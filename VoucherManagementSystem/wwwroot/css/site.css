@@ -1,0 +1,463 @@
+/* wwwroot/css/site.css */
+
+/* CSS Variables for Dynamic Theming */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --background-color: #f4f6f9;
+    --text-color: #212529;
+    --card-background: #ffffff;
+    --navbar-background: #ffffff;
+    --sidebar-background: #ffffff;
+    --footer-background: #f8f9fa;
+    --navbar-text-color: #495057;
+    --link-color: #0d6efd;
+}
+
+html {
+    font-size: 14px;
+    height: 100%;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Professional Light Header */
+.navbar {
+    padding: 0.75rem 1rem;
+    background-color: var(--navbar-background) !important;
+}
+
+.navbar-brand {
+    font-size: 1.25rem;
+    letter-spacing: 0.5px;
+    color: var(--primary-color) !important;
+}
+
+.navbar-light .navbar-nav .nav-link,
+.navbar-light .navbar-nav .nav-link.dropdown-toggle {
+    color: var(--navbar-text-color) !important;
+    font-weight: 500;
+}
+
+.navbar-light .navbar-nav .nav-link:hover,
+.navbar-light .navbar-nav .nav-link.dropdown-toggle:hover {
+    color: var(--primary-color) !important;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 6px;
+}
+
+.navbar-light .navbar-nav .nav-link i {
+    font-size: 1rem;
+    color: inherit !important;
+}
+
+/* Main content area - makes footer sticky */
+.container-fluid main,
+main {
+    flex: 1 0 auto;
+}
+
+/* Professional Footer */
+.footer {
+    background-color: var(--footer-background);
+    color: var(--text-color);
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+.footer a {
+    color: var(--link-color);
+}
+
+.footer a:hover {
+    color: var(--primary-color);
+}
+
+/* Card Styling - Clean & Professional */
+.card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 24px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: var(--card-background);
+    color: var(--text-color) !important;
+}
+
+.card-header {
+    font-weight: 600;
+    border-bottom: 2px solid #e9ecef;
+    background-color: var(--card-background) !important;
+    color: var(--text-color) !important;
+    padding: 1rem 1.25rem;
+}
+
+.card-body {
+    color: var(--text-color) !important;
+}
+
+.card-title {
+    color: var(--text-color) !important;
+}
+
+.card-text {
+    color: var(--text-color) !important;
+}
+
+/* Table Styling - Keep Original Look */
+.table {
+    background-color: var(--card-background);
+    color: var(--text-color) !important;
+}
+
+.table th {
+    background-color: rgba(0, 0, 0, 0.05);
+    font-weight: 600;
+    border-top: none;
+    color: var(--text-color) !important;
+}
+
+.table td {
+    color: var(--text-color) !important;
+}
+
+.table tbody tr {
+    color: var(--text-color) !important;
+}
+
+/* Button Styling - Clean */
+.btn {
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 6px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-color);
+    opacity: 0.9;
+    border-color: var(--primary-color);
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+.btn-warning {
+    background-color: var(--warning-color);
+    border-color: var(--warning-color);
+}
+
+.btn-info {
+    background-color: var(--info-color);
+    border-color: var(--info-color);
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 0.875rem;
+}
+
+/* Badge Styling */
+.badge {
+    padding: 6px 10px;
+    font-weight: 500;
+    border-radius: 4px;
+}
+
+/* Dashboard cards */
+.dashboard-card {
+    transition: transform 0.3s;
+}
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+    }
+
+/* Form styling - Professional */
+.form-label {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.form-control,
+.form-select {
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--card-background);
+    color: var(--text-color);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25);
+    background-color: var(--card-background);
+    color: var(--text-color);
+}
+
+/* Input Groups - Professional */
+.input-group-text {
+    background-color: rgba(0, 0, 0, 0.05);
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: var(--text-color);
+}
+
+/* DataTables customization */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 20px;
+    color: var(--text-color);
+}
+
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_filter label {
+    color: var(--text-color) !important;
+}
+
+.dataTables_wrapper .dataTables_info {
+    padding-top: 20px;
+    color: var(--text-color) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    padding-top: 20px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--text-color) !important;
+}
+
+.dataTables_wrapper select {
+    background-color: var(--card-background);
+    color: var(--text-color);
+    border-color: #ced4da;
+}
+
+.dataTables_wrapper input[type="search"] {
+    background-color: var(--card-background);
+    color: var(--text-color);
+    border-color: #ced4da;
+}
+
+/* Dropdown menu - Professional */
+.dropdown-menu {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0.5rem 0;
+    background-color: var(--card-background);
+}
+
+.dropdown-item {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.95rem;
+    color: var(--text-color);
+}
+
+.dropdown-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--text-color);
+}
+
+/* Alert messages - Professional */
+.alert {
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-weight: 500;
+    padding: 1rem 1.25rem;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460 !important;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724 !important;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404 !important;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24 !important;
+}
+
+/* Additional text color fixes for all elements */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-color) !important;
+}
+
+p, span, div, label {
+    color: inherit;
+}
+
+.text-muted {
+    opacity: 0.7;
+    color: var(--text-color) !important;
+}
+
+.text-dark {
+    color: var(--text-color) !important;
+}
+
+a {
+    color: var(--link-color);
+}
+
+a:hover {
+    color: var(--primary-color);
+}
+
+/* Modal fixes */
+.modal-content {
+    background-color: var(--card-background);
+    color: var(--text-color);
+}
+
+.modal-header {
+    background-color: var(--card-background);
+    color: var(--text-color);
+}
+
+.modal-body {
+    color: var(--text-color);
+}
+
+.modal-footer {
+    background-color: var(--card-background);
+}
+
+/* Badge fixes */
+.badge {
+    color: #fff !important;
+}
+
+/* Icon color fixes */
+.bi {
+    color: inherit;
+}
+
+/* Select2 fixes for dark theme */
+.select2-container--bootstrap-5 .select2-selection {
+    background-color: var(--card-background) !important;
+    color: var(--text-color) !important;
+    border-color: #ced4da !important;
+}
+
+.select2-container--bootstrap-5 .select2-dropdown {
+    background-color: var(--card-background) !important;
+    color: var(--text-color) !important;
+}
+
+.select2-container--bootstrap-5 .select2-results__option {
+    color: var(--text-color) !important;
+}
+
+.select2-container--bootstrap-5 .select2-search__field {
+    background-color: var(--card-background) !important;
+    color: var(--text-color) !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection__rendered {
+    color: var(--text-color) !important;
+}
+
+/* Container and main wrapper text */
+.container, .container-fluid {
+    color: var(--text-color);
+}
+
+/* Print styles */
+@media print {
+    .btn,
+    .navbar,
+    .footer,
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        display: none !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 15px;
+    }
+
+    .table {
+        font-size: 12px;
+    }
+
+    .btn {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+}
+
+/* Loading spinner */
+.spinner-border {
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }

@@ -1,0 +1,72 @@
+﻿@* Views/Customers/ManageRates.cshtml *@
+@{
+    ViewData["Title"] = "Manage Customer Rates";
+    var customer = ViewBag.Customer as VoucherManagementSystem.Models.Customer;
+    var items = ViewBag.Items as IEnumerable<VoucherManagementSystem.Models.Item>;
+    var customerRates = ViewBag.CustomerRates as IEnumerable<VoucherManagementSystem.Models.CustomerItemRate>;
+}
+
+<h2><i class="bi bi-currency-rupee"></i> Manage Rates for @customer.Name</h2>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Default Rate</th>
+                    <th>Custom Rate</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in items)
+                {
+                    var customerRate = customerRates?.FirstOrDefault(cr => cr.ItemId == item.Id);
+                    <tr>
+                        <td>@item.Name</td>
+                        <td>@string.Format("{0:N0}", item.DefaultRate)</td>
+                        <td>
+                            <input type="number"
+                                   class="form-control rate-input"
+                                   data-item-id="@item.Id"
+                                   value="@(customerRate?.Rate ?? item.DefaultRate)"
+                                   step="0.01" />
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary update-rate"
+                                    data-item-id="@item.Id">
+                                <i class="bi bi-save"></i> Update
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <a asp-controller="Customers" asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Customers
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('.update-rate').on('click', function() {
+                var itemId = $(this).data('item-id');
+                var rate = $(`.rate-input[data-item-id="${itemId}"]`).val();
+
+                $.post('/Customers/UpdateRate', {
+                    customerId: @customer.Id,
+                    itemId: itemId,
+                    rate: rate
+                }, function(response) {
+                    if (response.success) {
+                        alert('Rate updated successfully!');
+                    }
+                });
+            });
+        });
+    </script>
+}

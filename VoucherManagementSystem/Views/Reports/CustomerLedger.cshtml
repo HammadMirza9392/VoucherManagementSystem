@@ -1,0 +1,613 @@
+@* Views/Reports/CustomerLedger.cshtml *@
+@{
+    ViewData["Title"] = "Customer Ledger";
+
+    Func<VoucherManagementSystem.Models.VoucherType, string> getDisplayType = (vt) => vt switch {
+        VoucherManagementSystem.Models.VoucherType.CCR => "Received",
+        VoucherManagementSystem.Models.VoucherType.BCR => "Purchase",
+        _ => vt.ToString()
+    };
+}
+
+<div class="d-print-none">
+    <h2><i class="bi bi-person-lines-fill"></i> Customer Ledger Report</h2>
+</div>
+
+@if (ViewBag.Customer == null)
+{
+    <!-- Selection Form -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-filter"></i> Select Customer</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Customer <span class="text-danger">*</span></label>
+                    @Html.DropDownList("customerId", ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select", required = "required" })
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" name="fromDate" class="form-control" value="@DateTime.Today.AddDays(-90).ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" name="toDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Generate Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+else
+{
+    var customer = ViewBag.Customer as VoucherManagementSystem.Models.Customer;
+    var openingBalance = (decimal)ViewBag.OpeningBalance;
+    var totalDebit = (decimal)ViewBag.TotalDebit;
+    var totalCredit = (decimal)ViewBag.TotalCredit;
+    var closingBalance = (decimal)ViewBag.ClosingBalance;
+    var vouchers = ViewBag.Vouchers as List<VoucherManagementSystem.Models.Voucher>;
+    var fromDate = (DateTime)ViewBag.FromDate;
+    var toDate = (DateTime)ViewBag.ToDate;
+
+    <!-- Filter Form -->
+    <div class="card mb-3 d-print-none">
+        <div class="card-header bg-primary text-white">
+            <h6 class="mb-0"><i class="bi bi-funnel"></i> Filter Options</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Customer</label>
+                    @Html.DropDownList("customerId", ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select" })
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">From Date</label>
+                    <input type="date" name="fromDate" value="@fromDate.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">To Date</label>
+                    <input type="date" name="toDate" value="@toDate.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Item</label>
+                    @Html.DropDownList("itemId", ViewBag.Items as SelectList, "-- All Items --", new { @class = "form-select" })
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Voucher Type</label>
+                    <select name="voucherType" class="form-select">
+                        <option value="">-- All Types --</option>
+                        <option value="Purchase" selected="@(ViewBag.SelectedVoucherType == "Purchase")">Purchase</option>
+                        <option value="Sale" selected="@(ViewBag.SelectedVoucherType == "Sale")">Sale</option>
+                        <option value="CashPaid" selected="@(ViewBag.SelectedVoucherType == "CashPaid")">Cash Paid</option>
+                        <option value="CashReceived" selected="@(ViewBag.SelectedVoucherType == "CashReceived")">Cash Received</option>
+                        <option value="CCR" selected="@(ViewBag.SelectedVoucherType == "CCR")">Received (CCR)</option>
+                        <option value="Expense" selected="@(ViewBag.SelectedVoucherType == "Expense")">Expense</option>
+                        <option value="Hazri" selected="@(ViewBag.SelectedVoucherType == "Hazri")">Hazri</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Report Header -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-person-badge"></i> @customer.Name - Ledger Account</h5>
+            <small><i class="bi bi-calendar-range"></i> Period: @fromDate.ToString("dd-MMM-yyyy") to @toDate.ToString("dd-MMM-yyyy")</small>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="border-end pe-3">
+                        <p class="mb-2"><strong><i class="bi bi-person"></i> Customer Name:</strong> @customer.Name</p>
+                        <p class="mb-2"><strong><i class="bi bi-telephone"></i> Phone:</strong> @customer.Phone</p>
+                        <p class="mb-0"><strong><i class="bi bi-geo-alt"></i> Address:</strong> @customer.Address</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row text-center g-3">
+                        <div class="col-6">
+                            <div class="card border-success shadow-sm">
+                                <div class="card-body bg-light">
+                                    <h6 class="text-muted mb-2 fw-bold">
+                                        <i class="bi bi-arrow-up-circle"></i> Opening Balance
+                                    </h6>
+                                    <h3 class="balance-amount @(openingBalance >= 0 ? "text-success" : "text-danger") mb-0">
+                                        Rs. @string.Format("{0:N0}", Math.Abs(openingBalance))
+                                    </h3>
+                                    <span class="badge bg-@(openingBalance >= 0 ? "success" : "danger") mt-2">
+                                        @(openingBalance >= 0 ? "Debit" : "Credit")
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card border-primary shadow-sm">
+                                <div class="card-body bg-light">
+                                    <h6 class="text-muted mb-2 fw-bold">
+                                        <i class="bi bi-wallet2"></i> Closing Balance
+                                    </h6>
+                                    <h3 class="balance-amount @(closingBalance >= 0 ? "text-success" : "text-danger") mb-0">
+                                        Rs. @string.Format("{0:N0}", Math.Abs(closingBalance))
+                                    </h3>
+                                    <span class="badge bg-@(closingBalance >= 0 ? "success" : "danger") mt-2">
+                                        @(closingBalance >= 0 ? "Debit" : "Credit")
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ledger Transactions -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Transaction Details</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered mb-0" id="ledgerTable">
+                    <thead class="table-primary">
+                        <tr>
+                            <th class="fw-bold" style="font-size: 14px;">Date</th>
+                            <th class="fw-bold" style="font-size: 14px;">Transaction No.</th>
+                            <th class="fw-bold" style="font-size: 14px;">Type</th>
+                            <th class="fw-bold" style="font-size: 14px;">Items</th>
+                            <th class="fw-bold" style="font-size: 14px;">Description</th>
+                            <th class="text-end fw-bold" style="font-size: 14px;">Weight</th>
+                            <th class="text-end fw-bold" style="font-size: 14px;">Kat</th>
+                            <th class="text-end fw-bold" style="font-size: 14px;">Net Weight</th>
+                            <th class="text-end fw-bold" style="font-size: 14px;">Rate</th>
+                            <th class="text-end fw-bold" style="font-size: 14px;">Debit (Dr)</th>
+                            <th class="text-end fw-bold" style="font-size: 14px;">Credit (Cr)</th>
+                            <th class="text-end fw-bold" style="font-size: 14px;">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Opening Balance Row -->
+                        <tr class="table-warning">
+                            <td class="fw-semibold">@fromDate.ToString("dd-MMM-yyyy")</td>
+                            <td colspan="8" class="fw-bold fs-6">Opening Balance</td>
+                            <td class="text-end fw-semibold">@(openingBalance > 0 ? string.Format("{0:N0}", openingBalance) : "-")</td>
+                            <td class="text-end fw-semibold">@(openingBalance < 0 ? string.Format("{0:N0}", Math.Abs(openingBalance)) : "-")</td>
+                            <td class="text-end fw-bold">
+                                @string.Format("{0:N0}", Math.Abs(openingBalance)) @(openingBalance >= 0 ? "Dr" : "Cr")
+                            </td>
+                        </tr>
+
+                        @if (vouchers != null && vouchers.Any())
+                        {
+                            decimal runningBalance = openingBalance;
+                            foreach (var voucher in vouchers)
+                            {
+                                decimal debit = 0;
+                                decimal credit = 0;
+                                string itemName = "";
+                                string description = "";
+
+                                // Determine debit/credit based on voucher type and customer role
+                                // Purchase = CR (we owe the supplier/customer)
+                                // Sale = DR (customer owes us)
+                                // CashPaid = DR (we paid the customer, reduces what we owe)
+                                // CashReceived = CR (customer paid us, reduces what they owe)
+                                if (voucher.PurchasingCustomerId == customer.Id)
+                                {
+                                    switch (voucher.VoucherType)
+                                    {
+                                        case VoucherManagementSystem.Models.VoucherType.Purchase:
+                                            credit = voucher.Amount;  // Purchase = CR (we owe them)
+                                            itemName = voucher.Item?.Name ?? "N/A";
+                                            description = voucher.PurchasingCustomerDetails;
+                                            break;
+                                        case VoucherManagementSystem.Models.VoucherType.CashPaid:
+                                            debit = voucher.Amount;   // Cash Paid = DR (reduces what we owe)
+                                            itemName = "Cash Paid";
+                                            description = voucher.PurchasingCustomerDetails;
+                                            break;
+                                        case VoucherManagementSystem.Models.VoucherType.CCR:
+                                            debit = voucher.Amount;   // CCR transfer out = DR
+                                            itemName = "CCR";
+                                            description = $"From {voucher.ReceivingCustomer?.Name ?? "N/A"}";
+                                            break;
+                                    }
+                                }
+
+                                if (voucher.ReceivingCustomerId == customer.Id)
+                                {
+                                    switch (voucher.VoucherType)
+                                    {
+                                        case VoucherManagementSystem.Models.VoucherType.Sale:
+                                            debit = voucher.Amount;   // Sale = DR (they owe us)
+                                            itemName = voucher.Item?.Name ?? "N/A";
+                                            description = voucher.ReceivingCustomerDetails;
+                                            break;
+                                        case VoucherManagementSystem.Models.VoucherType.CashReceived:
+                                            credit = voucher.Amount;  // Cash Received = CR (reduces what they owe)
+                                            itemName = "Cash Received";
+                                            description = voucher.ReceivingCustomerDetails;
+                                            break;
+                                        case VoucherManagementSystem.Models.VoucherType.CCR:
+                                            credit = voucher.Amount;  // CCR transfer in = CR
+                                            itemName = "CCR";
+                                            description = $"To {voucher.PurchasingCustomer?.Name ?? "N/A"}";
+                                            break;
+                                    }
+                                }
+
+                                runningBalance += debit - credit;
+
+                                <tr style="font-size: 13px;">
+                                    <td class="align-middle">@voucher.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                    <td class="align-middle">@voucher.TransactionNumber</td>
+                                    <td class="align-middle">
+                                        <span class="badge bg-@(voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
+                                                              voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ? "success" :
+                                                              voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.CashPaid ? "warning text-dark" :
+                                                              voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.CashReceived ? "info" : "secondary")" style="font-size: 11px;">
+                                            @getDisplayType(voucher.VoucherType)
+                                        </span>
+                                    </td>
+                                    <td class="align-middle">@itemName</td>
+                                    <td class="align-middle">@description</td>
+                                    <td class="text-end align-middle">@(voucher.Weight.HasValue ? string.Format("{0:N3}", voucher.Weight.Value) : "-")</td>
+                                    <td class="text-end align-middle">@(voucher.Kat.HasValue ? string.Format("{0:N3}", voucher.Kat.Value) : "-")</td>
+                                    <td class="text-end align-middle">@(voucher.Quantity.HasValue ? string.Format("{0:N3}", voucher.Quantity.Value) : "-")</td>
+                                    <td class="text-end align-middle">@(voucher.Rate.HasValue ? string.Format("{0:N2}", voucher.Rate.Value) : "-")</td>
+                                    <td class="text-end align-middle @(debit > 0 ? "text-success fw-semibold" : "")">@(debit > 0 ? string.Format("{0:N0}", debit) : "-")</td>
+                                    <td class="text-end align-middle @(credit > 0 ? "text-danger fw-semibold" : "")">@(credit > 0 ? string.Format("{0:N0}", credit) : "-")</td>
+                                    <td class="text-end align-middle fw-bold @(runningBalance >= 0 ? "text-success" : "text-danger")">
+                                        @string.Format("{0:N0}", Math.Abs(runningBalance)) @(runningBalance >= 0 ? "Dr" : "Cr")
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="12" class="text-center text-muted py-4 fst-italic">
+                                    <i class="bi bi-info-circle"></i> No transactions found for the selected filters.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-success">
+                        <tr style="font-size: 15px;">
+                            <th colspan="9" class="text-end fw-bold py-3">TOTAL:</th>
+                            <th class="text-end text-success fw-bold py-3">Rs. @string.Format("{0:N0}", totalDebit)</th>
+                            <th class="text-end text-danger fw-bold py-3">Rs. @string.Format("{0:N0}", totalCredit)</th>
+                            <th class="text-end fw-bold py-3 @(closingBalance >= 0 ? "text-success" : "text-danger")">
+                                Rs. @string.Format("{0:N0}", Math.Abs(closingBalance)) @(closingBalance >= 0 ? "Dr" : "Cr")
+                            </th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-3 d-print-none">
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="bi bi-printer"></i> Print Ledger
+        </button>
+        <button onclick="exportTableToExcel('ledgerTable', 'CustomerLedger_@customer.Name.Replace(" ", "_")_@DateTime.Now.ToString("yyyyMMdd")')" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Export to Excel
+        </button>
+        <button onclick="generatePDF()" class="btn btn-danger"
+                data-customer-name="@customer.Name">
+            <i class="bi bi-file-pdf"></i> Generate PDF
+        </button>
+        <button onclick="sendToWhatsApp()" class="btn btn-success" style="background-color: #25D366; border-color: #25D366;"
+                data-customer-name="@customer.Name"
+                data-customer-phone="@customer.Phone"
+                data-from-date="@fromDate.ToString("dd-MMM-yyyy")"
+                data-to-date="@toDate.ToString("dd-MMM-yyyy")"
+                data-closing-balance="@string.Format("{0:N0}", Math.Abs(closingBalance))"
+                data-balance-type="@(closingBalance >= 0 ? "Dr" : "Cr")">
+            <i class="bi bi-whatsapp"></i> Send to WhatsApp
+        </button>
+        <a asp-controller="Reports" asp-action="ExportToExcel" asp-route-reportType="customerLedger"
+           asp-route-id="@customer.Id" asp-route-fromDate="@fromDate" asp-route-toDate="@toDate"
+           asp-route-itemId="@ViewBag.SelectedItemId" asp-route-voucherType="@ViewBag.SelectedVoucherType" class="btn btn-warning">
+            <i class="bi bi-download"></i> Download Full Report
+        </a>
+        <a asp-action="CustomerLedger" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> New Customer
+        </a>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-house"></i> Back to Reports
+        </a>
+    </div>
+}
+
+@section Scripts {
+    <!-- html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // DataTables disabled for ledger table due to complex structure with opening balance row
+            // The table works fine without DataTables features
+        });
+
+        function generatePDF() {
+            // Show loading indicator
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating PDF...';
+            button.disabled = true;
+
+            // Get customer name from data attribute
+            const customerName = button.getAttribute('data-customer-name') || 'Customer';
+            const timestamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
+            const filename = 'CustomerLedger_' + customerName.replace(/\s+/g, '_') + '_' + timestamp + '.pdf';
+
+            // Clone the entire report content
+            const element = document.querySelector('body').cloneNode(true);
+
+            // Remove all elements with d-print-none class from clone
+            element.querySelectorAll('.d-print-none').forEach(el => el.remove());
+
+            // Configure PDF options
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    scrollY: 0,
+                    scrollX: 0
+                },
+                jsPDF: {
+                    unit: 'mm',
+                    format: 'a4',
+                    orientation: 'portrait'
+                },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            // Generate PDF and download
+            html2pdf().set(opt).from(element).save().then(function() {
+                // Reset button
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }).catch(function(error) {
+                console.error('PDF generation error:', error);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+        }
+
+        async function sendToWhatsApp() {
+            // Show loading indicator
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating PDF...';
+            button.disabled = true;
+
+            // Get data from button attributes
+            const customerName = button.getAttribute('data-customer-name') || 'Customer';
+            const customerId = new URLSearchParams(window.location.search).get('customerId');
+            const fromDate = button.getAttribute('data-from-date') || '';
+            const toDate = button.getAttribute('data-to-date') || '';
+            const closingBalance = button.getAttribute('data-closing-balance') || '0';
+            const balanceType = button.getAttribute('data-balance-type') || 'Dr';
+
+            // Create filename
+            const timestamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
+            const filename = 'CustomerLedger_' + customerName.replace(/\s+/g, '_') + '_' + timestamp + '.pdf';
+
+            try {
+                // Clone the entire report content
+                const element = document.querySelector('body').cloneNode(true);
+
+                // Remove all elements with d-print-none class from clone
+                element.querySelectorAll('.d-print-none').forEach(el => el.remove());
+
+                // Configure PDF options
+                const opt = {
+                    margin: [10, 10, 10, 10],
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        scrollY: 0,
+                        scrollX: 0
+                    },
+                    jsPDF: {
+                        unit: 'mm',
+                        format: 'a4',
+                        orientation: 'portrait'
+                    },
+                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                };
+
+                // Generate PDF
+                const pdf = await html2pdf().set(opt).from(element).toPdf().get('pdf');
+                const pdfBlob = pdf.output('blob');
+
+                // Update button text
+                button.innerHTML = '<i class="bi bi-cloud-upload"></i> Uploading to server...';
+
+                // Create FormData to send PDF to backend
+                const formData = new FormData();
+                formData.append('pdfFile', pdfBlob, filename);
+                formData.append('customerId', customerId);
+                formData.append('fromDate', fromDate);
+                formData.append('toDate', toDate);
+                formData.append('closingBalance', closingBalance);
+                formData.append('balanceType', balanceType);
+
+                // Send PDF to backend
+                const response = await fetch('@Url.Action("SendCustomerLedgerToWhatsApp", "Reports")', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reset button
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+
+                    // Show success message with better formatting
+                    const successMsg = `✅ PDF Generated Successfully!\n\n` +
+                                      `📁 Saved as: ${result.fileName}\n` +
+                                      `📂 Location: WhatsAppData folder\n\n` +
+                                      `Next Steps:\n` +
+                                      `1️⃣ WhatsApp Web will open with pre-filled message\n` +
+                                      `2️⃣ Folder will open automatically\n` +
+                                      `3️⃣ Drag & drop the PDF into WhatsApp chat`;
+
+                    alert(successMsg);
+
+                    // Open WhatsApp Web
+                    window.open(result.whatsappUrl, '_blank');
+
+                    // Open folder containing the PDF
+                    setTimeout(async () => {
+                        try {
+                            const folderResponse = await fetch('@Url.Action("OpenWhatsAppFolder", "Reports")');
+                            const folderResult = await folderResponse.json();
+
+                            if (!folderResult.success) {
+                                console.warn('Could not open folder:', folderResult.message);
+                            }
+                        } catch (err) {
+                            console.error('Error opening folder:', err);
+                        }
+                    }, 500);
+                } else {
+                    throw new Error(result.message || 'Failed to send to WhatsApp');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function exportTableToExcel(tableID, filename = ''){
+            var downloadLink;
+            var dataType = 'application/vnd.ms-excel';
+            var tableSelect = document.getElementById(tableID);
+            var tableHTML = tableSelect.outerHTML.replace(/ /g, '%20');
+
+            filename = filename?filename+'.xls':'excel_data.xls';
+            downloadLink = document.createElement("a");
+            document.body.appendChild(downloadLink);
+
+            if(navigator.msSaveOrOpenBlob){
+                var blob = new Blob(['\ufeff', tableHTML], {
+                    type: dataType
+                });
+                navigator.msSaveOrOpenBlob( blob, filename);
+            }else{
+                downloadLink.href = 'data:' + dataType + ', ' + tableHTML;
+                downloadLink.download = filename;
+                downloadLink.click();
+            }
+        }
+    </script>
+
+    <style>
+        /* Enhanced table styling */
+        #ledgerTable thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #cfe2ff !important;
+            border-bottom: 2px solid #0d6efd;
+            padding: 12px 8px;
+        }
+
+        #ledgerTable tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        #ledgerTable {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            font-size: 1.1rem;
+            padding: 15px 20px;
+        }
+
+        .table-responsive {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        /* Custom scrollbar */
+        .table-responsive::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Balance amount styling */
+        .balance-amount {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        @@media print {
+            .card {
+                page-break-inside: avoid;
+            }
+
+            .table {
+                font-size: 9pt;
+            }
+
+            .badge {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .table-responsive {
+                max-height: none;
+                overflow: visible;
+            }
+
+            #ledgerTable thead th {
+                position: relative;
+            }
+        }
+    </style>
+}

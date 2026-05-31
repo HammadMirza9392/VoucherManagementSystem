@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet ef migrations add:*)",
+      "Bash(dotnet build)",
+      "Bash(dotnet ef migrations:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dir:*)",
+      "Bash(Select-String \"error|Error\")",
+      "Bash(dotnet ef database update:*)",
+      "Bash(findstr:*)",
+      "Bash(Select-String \"error|Error|Warning.*MVC1004\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

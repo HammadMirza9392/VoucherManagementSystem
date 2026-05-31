@@ -1,0 +1,106 @@
+<!-- Page Lock Password Modal -->
+<div class="modal fade" id="pageLockModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="bi bi-shield-lock"></i> Page Locked
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    This page is locked. Please enter the password to continue.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><strong>Page:</strong> <span id="lockedPageName"></span></label>
+                </div>
+                <div class="mb-3">
+                    <label for="pageLockPassword" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="pageLockPassword" placeholder="Enter password" autofocus>
+                    <div id="passwordError" class="text-danger mt-2" style="display:none;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                </a>
+                <button type="button" class="btn btn-primary" id="verifyPagePassword">
+                    <i class="bi bi-unlock"></i> Unlock
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var lockedPageUrl = '';
+
+    $(document).ready(function() {
+        // Check if page is locked (set by server)
+        var pageLocked = '@(Context.Items["PageLocked"]?.ToString() ?? "false")' === 'True';
+
+        if (pageLocked) {
+            var pageName = '@(Context.Items["LockedPageName"]?.ToString() ?? "")';
+            var pageUrl = '@(Context.Items["LockedPageUrl"]?.ToString() ?? "")';
+
+            // Hide page content immediately
+            $('main[role="main"]').hide();
+
+            showPageLockModal(pageName, pageUrl);
+        }
+
+        // Enter key to submit password
+        $('#pageLockPassword').on('keypress', function(e) {
+            if (e.which === 13) {
+                $('#verifyPagePassword').click();
+            }
+        });
+
+        // Verify password button
+        $('#verifyPagePassword').on('click', function() {
+            var password = $('#pageLockPassword').val();
+
+            if (!password) {
+                $('#passwordError').text('Please enter a password').show();
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("VerifyPassword", "PageLock")',
+                type: 'POST',
+                data: {
+                    pageUrl: lockedPageUrl,
+                    password: password
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Password correct - reload page
+                        location.reload();
+                    } else {
+                        $('#passwordError').text(response.message || 'Incorrect password').show();
+                        $('#pageLockPassword').val('').focus();
+                    }
+                },
+                error: function() {
+                    $('#passwordError').text('Error verifying password').show();
+                }
+            });
+        });
+    });
+
+    function showPageLockModal(pageName, pageUrl) {
+        lockedPageUrl = pageUrl;
+        $('#lockedPageName').text(pageName);
+        $('#pageLockPassword').val('');
+        $('#passwordError').hide();
+
+        var modal = new bootstrap.Modal(document.getElementById('pageLockModal'));
+        modal.show();
+
+        // Focus on password field after modal is shown
+        $('#pageLockModal').on('shown.bs.modal', function() {
+            $('#pageLockPassword').focus();
+        });
+    }
+</script>

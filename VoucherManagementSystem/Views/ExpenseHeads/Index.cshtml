@@ -1,0 +1,99 @@
+﻿@* Views/ExpenseHeads/Index.cshtml *@
+@model IEnumerable<VoucherManagementSystem.Models.ExpenseHead>
+@{
+    ViewData["Title"] = "Expense Heads";
+}
+
+<h2><i class="bi bi-wallet2"></i> Expense Heads Management</h2>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row">
+            <div class="col-6">
+                <h5>Expense Head List</h5>
+            </div>
+            <div class="col-6 text-end">
+                <a asp-action="Create" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> Add New Expense Head
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="get" asp-action="Index" class="mb-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="fromDate" class="form-label">From Date</label>
+                    <input type="date" class="form-control" id="fromDate" name="fromDate" value="@ViewBag.FromDate" />
+                </div>
+                <div class="col-md-4">
+                    <label for="toDate" class="form-label">To Date</label>
+                    <input type="date" class="form-control" id="toDate" name="toDate" value="@ViewBag.ToDate" />
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+        <table class="table table-striped" id="expenseHeadsTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Default Rate</th>
+                    <th>Notes</th>
+                    <th>Status</th>
+                    @if (Context.Session.GetString("UserRole") == "Admin")
+                    {
+                        <th>Added By</th>
+                    }
+                    <th>Updated By</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Name</td>
+                        <td>@string.Format("{0:N0}", item.DefaultRate)</td>
+                        <td>@item.Notes</td>
+                        <td>
+                            <span class="badge bg-@(item.IsActive ? "success" : "danger")">
+                                @(item.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        @if (Context.Session.GetString("UserRole") == "Admin")
+                        {
+                            <td>@(item.CreatedBy ?? "N/A")</td>
+                        }
+                        <td>@(item.UpdatedBy ?? "N/A")</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#expenseHeadsTable').DataTable();
+        });
+    </script>
+}

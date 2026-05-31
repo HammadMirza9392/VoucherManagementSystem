@@ -1,0 +1,72 @@
+@* Views/Reports/AddCashAdjustment.cshtml *@
+@model VoucherManagementSystem.Models.CashAdjustment
+@{
+    var adjustmentType = (VoucherManagementSystem.Models.CashAdjustmentType)ViewBag.AdjustmentType;
+    var isCashIn = adjustmentType == VoucherManagementSystem.Models.CashAdjustmentType.CashIn;
+    ViewData["Title"] = isCashIn ? "Add Cash (Cash In)" : "Remove Cash (Cash Out)";
+}
+
+<h2>
+    <i class="bi bi-@(isCashIn ? "plus-circle" : "dash-circle")"></i>
+    @(isCashIn ? "Add Cash (Cash In)" : "Remove Cash (Cash Out)")
+</h2>
+
+<div class="card">
+    <div class="card-header bg-@(isCashIn ? "success" : "danger") text-white">
+        <h5 class="mb-0">@(isCashIn ? "Add Cash to Hand" : "Remove Cash from Hand")</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="AddCashAdjustment" method="post">
+            <input type="hidden" asp-for="AdjustmentType" />
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rs.</span>
+                        <input asp-for="Amount" type="number" step="0.01" min="0.01" class="form-control" required />
+                    </div>
+                    <span asp-validation-for="Amount" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="AdjustmentDate" class="form-label">Date</label>
+                    <input asp-for="AdjustmentDate" type="datetime-local" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label asp-for="Description" class="form-label">Description / Reason</label>
+                    <textarea asp-for="Description" class="form-control" rows="2" placeholder="Enter reason for this @(isCashIn ? "cash in" : "cash out")..."></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="alert alert-@(isCashIn ? "success" : "warning")">
+                <i class="bi bi-info-circle"></i>
+                @if (isCashIn)
+                {
+                    <text>This will <strong>add</strong> the specified amount to the cash balance. Use this when receiving cash that is not from a voucher transaction (e.g., initial cash balance, external deposit).</text>
+                }
+                else
+                {
+                    <text>This will <strong>deduct</strong> the specified amount from the cash balance. Use this when spending cash that is not recorded as a voucher transaction (e.g., petty cash, personal withdrawal).</text>
+                }
+            </div>
+
+            <button type="submit" class="btn btn-@(isCashIn ? "success" : "danger")">
+                <i class="bi bi-@(isCashIn ? "plus-circle" : "dash-circle")"></i>
+                @(isCashIn ? "Add Cash" : "Remove Cash")
+            </button>
+            <a asp-action="CashStatement" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Cancel
+            </a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

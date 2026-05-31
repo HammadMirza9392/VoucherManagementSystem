@@ -1,0 +1,372 @@
+@model VoucherManagementSystem.Models.ThemeSettings
+
+@{
+    ViewData["Title"] = "Theme Settings";
+}
+
+@section Styles {
+    <style>
+        .color-preview {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .theme-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .theme-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        }
+
+        .theme-card.active {
+            border-color: #0d6efd;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        }
+
+        .color-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .color-input-group input[type="color"] {
+            width: 60px;
+            height: 40px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .color-input-group input[type="text"] {
+            background-color: var(--card-background) !important;
+            color: var(--text-color) !important;
+            border: 1px solid #ced4da;
+        }
+    </style>
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1"><i class="bi bi-palette-fill text-primary"></i> Theme Customization</h2>
+                    <p class="text-muted">Customize the appearance of your application</p>
+                </div>
+                <button type="button" class="btn btn-success" id="saveThemeBtn">
+                    <i class="bi bi-save"></i> Save & Apply Theme
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Presets -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-grid-3x3-gap-fill me-2"></i>Theme Presets</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="theme-card card h-100 @(Model.ThemeMode == "Light" ? "active" : "")" data-theme="Light">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="bi bi-sun-fill text-warning" style="font-size: 3rem;"></i>
+                                    </div>
+                                    <h5 class="card-title">Light Theme</h5>
+                                    <p class="card-text text-muted">Clean and bright interface with light backgrounds</p>
+                                    <button type="button" class="btn btn-outline-primary apply-preset" data-theme="Light">
+                                        <i class="bi bi-check-circle"></i> Apply
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="theme-card card h-100 @(Model.ThemeMode == "Dark" ? "active" : "")" data-theme="Dark">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="bi bi-moon-stars-fill text-primary" style="font-size: 3rem;"></i>
+                                    </div>
+                                    <h5 class="card-title">Dark Theme</h5>
+                                    <p class="card-text text-muted">Easy on the eyes with dark backgrounds</p>
+                                    <button type="button" class="btn btn-outline-primary apply-preset" data-theme="Dark">
+                                        <i class="bi bi-check-circle"></i> Apply
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="theme-card card h-100 @(Model.ThemeMode == "SemiDark" ? "active" : "")" data-theme="SemiDark">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="bi bi-circle-half text-info" style="font-size: 3rem;"></i>
+                                    </div>
+                                    <h5 class="card-title">Semi-Dark Theme</h5>
+                                    <p class="card-text text-muted">Best of both worlds with dark headers and light content</p>
+                                    <button type="button" class="btn btn-outline-primary apply-preset" data-theme="SemiDark">
+                                        <i class="bi bi-check-circle"></i> Apply
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Colors -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-paint-bucket me-2"></i>Custom Color Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <form id="themeForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="ThemeMode" name="ThemeMode" value="@Model.ThemeMode" />
+
+                        <!-- Primary Colors -->
+                        <h6 class="text-primary mb-3"><i class="bi bi-star-fill me-2"></i>Primary Colors</h6>
+                        <div class="row mb-4">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Primary Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="PrimaryColor" name="PrimaryColor" value="@Model.PrimaryColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.PrimaryColor" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Secondary Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="SecondaryColor" name="SecondaryColor" value="@Model.SecondaryColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.SecondaryColor" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Success Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="SuccessColor" name="SuccessColor" value="@Model.SuccessColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.SuccessColor" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Danger Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="DangerColor" name="DangerColor" value="@Model.DangerColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.DangerColor" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Warning Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="WarningColor" name="WarningColor" value="@Model.WarningColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.WarningColor" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Info Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="InfoColor" name="InfoColor" value="@Model.InfoColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.InfoColor" readonly />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Layout Colors -->
+                        <h6 class="text-primary mb-3"><i class="bi bi-layout-wtf me-2"></i>Layout Colors</h6>
+                        <div class="row mb-4">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Background Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="BackgroundColor" name="BackgroundColor" value="@Model.BackgroundColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.BackgroundColor" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Text Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="TextColor" name="TextColor" value="@Model.TextColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.TextColor" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Card Background</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="CardBackgroundColor" name="CardBackgroundColor" value="@Model.CardBackgroundColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.CardBackgroundColor" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Navbar Background</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="NavbarBackgroundColor" name="NavbarBackgroundColor" value="@Model.NavbarBackgroundColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.NavbarBackgroundColor" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Sidebar Background</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="SidebarBackgroundColor" name="SidebarBackgroundColor" value="@Model.SidebarBackgroundColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.SidebarBackgroundColor" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Footer Background</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="FooterBackgroundColor" name="FooterBackgroundColor" value="@Model.FooterBackgroundColor" class="color-picker" />
+                                    <input type="text" class="form-control" value="@Model.FooterBackgroundColor" readonly />
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Get anti-forgery token
+            var token = $('input[name="__RequestVerificationToken"]').val();
+
+            // Update text input when color picker changes
+            $('.color-picker').on('input', function() {
+                $(this).siblings('input[type="text"]').val($(this).val());
+            });
+
+            // Apply preset theme
+            $('.apply-preset').on('click', function() {
+                var theme = $(this).data('theme');
+                console.log('Applying theme:', theme);
+
+                $.ajax({
+                    url: '@Url.Action("ApplyPreset", "Theme")',
+                    type: 'POST',
+                    data: {
+                        themeMode: theme
+                    },
+                    success: function(response) {
+                        console.log('Response:', response);
+                        if (response.success) {
+                            // Update UI with new theme values
+                            $('#ThemeMode').val(response.theme.themeMode);
+                            $('#PrimaryColor').val(response.theme.primaryColor);
+                            $('#SecondaryColor').val(response.theme.secondaryColor);
+                            $('#SuccessColor').val(response.theme.successColor);
+                            $('#DangerColor').val(response.theme.dangerColor);
+                            $('#WarningColor').val(response.theme.warningColor);
+                            $('#InfoColor').val(response.theme.infoColor);
+                            $('#BackgroundColor').val(response.theme.backgroundColor);
+                            $('#TextColor').val(response.theme.textColor);
+                            $('#CardBackgroundColor').val(response.theme.cardBackgroundColor);
+                            $('#NavbarBackgroundColor').val(response.theme.navbarBackgroundColor);
+                            $('#SidebarBackgroundColor').val(response.theme.sidebarBackgroundColor);
+                            $('#FooterBackgroundColor').val(response.theme.footerBackgroundColor);
+
+                            // Update text inputs
+                            $('.color-picker').each(function() {
+                                $(this).siblings('input[type="text"]').val($(this).val());
+                            });
+
+                            // Update active card
+                            $('.theme-card').removeClass('active');
+                            $('.theme-card[data-theme="' + theme + '"]').addClass('active');
+
+                            // Apply theme to page immediately
+                            applyThemeToPage(response.theme);
+
+                            // Remove any existing theme alerts first
+                            $('#theme-success-alert').remove();
+
+                            // Show success message at the top of the page content
+                            var msg = theme + ' theme applied! Click "Save & Apply Theme" to save permanently.';
+                            var alertDiv = '<div id="theme-success-alert" class="alert alert-success alert-dismissible fade show mt-3" role="alert">' +
+                                '<i class="bi bi-check-circle"></i> ' + msg +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+                            $('.container-fluid.px-4.py-4').prepend(alertDiv);
+
+                            // Scroll to top
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error:', error);
+                        console.error('Status:', status);
+                        console.error('Response:', xhr.responseText);
+                        alert('Error applying theme preset: ' + error);
+                    }
+                });
+            });
+
+            // Save theme settings
+            $('#saveThemeBtn').on('click', function() {
+                var formData = $('#themeForm').serialize();
+                console.log('Saving theme settings...');
+
+                $.ajax({
+                    url: '@Url.Action("SaveSettings", "Theme")',
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        console.log('Save response:', response);
+                        if (response.success) {
+                            // Remove any existing alerts
+                            $('#theme-success-alert').remove();
+
+                            var alertDiv = '<div id="theme-success-alert" class="alert alert-success alert-dismissible fade show mt-3" role="alert">' +
+                                '<i class="bi bi-check-circle"></i> ' + response.message +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+                            $('.container-fluid.px-4.py-4').prepend(alertDiv);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                            // Reload after 1.5 seconds
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Save error:', error);
+                        console.error('Status:', status);
+                        console.error('Response:', xhr.responseText);
+                        alert('Error saving theme settings: ' + error);
+                    }
+                });
+            });
+
+            // Function to apply theme to current page
+            function applyThemeToPage(theme) {
+                document.documentElement.style.setProperty('--primary-color', theme.primaryColor);
+                document.documentElement.style.setProperty('--secondary-color', theme.secondaryColor);
+                document.documentElement.style.setProperty('--success-color', theme.successColor);
+                document.documentElement.style.setProperty('--danger-color', theme.dangerColor);
+                document.documentElement.style.setProperty('--warning-color', theme.warningColor);
+                document.documentElement.style.setProperty('--info-color', theme.infoColor);
+                document.documentElement.style.setProperty('--background-color', theme.backgroundColor);
+                document.documentElement.style.setProperty('--text-color', theme.textColor);
+                document.documentElement.style.setProperty('--card-background', theme.cardBackgroundColor);
+                document.documentElement.style.setProperty('--navbar-background', theme.navbarBackgroundColor);
+                document.documentElement.style.setProperty('--sidebar-background', theme.sidebarBackgroundColor);
+                document.documentElement.style.setProperty('--footer-background', theme.footerBackgroundColor);
+            }
+        });
+    </script>
+}

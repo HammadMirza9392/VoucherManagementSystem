@@ -1,0 +1,119 @@
+﻿@* Views/Items/Index.cshtml *@
+@model IEnumerable<VoucherManagementSystem.Models.Item>
+@{
+    ViewData["Title"] = "Items";
+}
+
+<h2><i class="bi bi-box-seam"></i> Items Management</h2>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row">
+            <div class="col-6">
+                <h5>Item List</h5>
+            </div>
+            <div class="col-6 text-end">
+                <a asp-action="Create" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> Add New Item
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="table table-striped" id="itemsTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Unit</th>
+                    <th>Default Rate</th>
+                    <th>Current Stock</th>
+                    <th>Stock Tracking</th>
+                    <th>Status</th>
+                    @if (Context.Session.GetString("UserRole") == "Admin")
+                    {
+                        <th>Added By</th>
+                    }
+                    <th>Updated By</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Id</td>
+                            <td>@item.Name</td>
+                            <td>@(item.Unit ?? "N/A")</td>
+                            <td>Rs. @string.Format("{0:N0}", item.DefaultRate)</td>
+                            <td>
+                                @if (item.StockTrackingEnabled)
+                                {
+                                    <span class="@(item.CurrentStock < 10 ? "text-danger fw-bold" : "")">
+                                        @string.Format("{0:N2}", item.CurrentStock)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-@(item.StockTrackingEnabled ? "success" : "secondary")">
+                                    @(item.StockTrackingEnabled ? "Enabled" : "Disabled")
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-@(item.IsActive ? "success" : "danger")">
+                                    @(item.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            @if (Context.Session.GetString("UserRole") == "Admin")
+                            {
+                                <td>@(item.CreatedBy ?? "N/A")</td>
+                            }
+                            <td>@(item.UpdatedBy ?? "N/A")</td>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="@(Context.Session.GetString("UserRole") == "Admin" ? "11" : "10")" class="text-center">No items found. <a asp-action="Create">Create your first item</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            if ($('#itemsTable tbody tr').length > 1) {
+                var isAdmin = '@Context.Session.GetString("UserRole")' === 'Admin';
+                var actionsColumnIndex = isAdmin ? 9 : 8;
+                $('#itemsTable').DataTable({
+                    "order": [[0, "desc"]],
+                    "pageLength": 10,
+                    "columnDefs": [
+                        { "orderable": false, "targets": actionsColumnIndex }
+                    ]
+                });
+            }
+        });
+    </script>
+}

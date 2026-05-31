@@ -1,0 +1,291 @@
+@* Views/Reports/CapitalReport.cshtml - Capital Report (Complete Financial Overview) *@
+@using VoucherManagementSystem.Controllers
+@{
+    ViewData["Title"] = "Capital Report";
+    var asOfDate = (DateTime)ViewBag.AsOfDate;
+    var stockItems = ViewBag.StockItems as List<StockValueItem>;
+    var totalStockValue = (decimal)(ViewBag.TotalStockValue ?? 0);
+    var receivablesList = ViewBag.ReceivablesList as List<CustomerReportItem>;
+    var totalReceivables = (decimal)(ViewBag.TotalReceivables ?? 0);
+    var payablesList = ViewBag.PayablesList as List<CustomerReportItem>;
+    var totalPayables = (decimal)(ViewBag.TotalPayables ?? 0);
+    var cashInHand = (decimal)(ViewBag.CashInHand ?? 0);
+    var bankBalances = ViewBag.BankBalances as List<BankBalanceItem>;
+    var totalBankBalance = (decimal)(ViewBag.TotalBankBalance ?? 0);
+    var expenseHeadSummary = ViewBag.ExpenseHeadSummary as List<ExpenseHeadSummaryItem>;
+    var totalExpenseHeadAmount = (decimal)(ViewBag.TotalExpenseHeadAmount ?? 0);
+    var totalCapital = (decimal)(ViewBag.TotalCapital ?? 0);
+}
+
+<div class="d-print-none">
+    <h2><i class="bi bi-bank"></i> Capital Report</h2>
+    <p class="text-muted">Complete Financial Overview</p>
+</div>
+
+<!-- Filter Form -->
+<div class="card mb-3 d-print-none">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0"><i class="bi bi-calendar"></i> Report Date</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">As of Date</label>
+                <input type="date" name="asOfDate" value="@asOfDate.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-dark w-100">
+                    <i class="bi bi-search"></i> Generate Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Capital Summary -->
+<div class="card mb-4 border-primary">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0"><i class="bi bi-wallet2"></i> Total Capital as of @asOfDate.ToString("dd-MMM-yyyy")</h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-12">
+                <table class="table table-borderless">
+                    <tr class="fs-5">
+                        <td><i class="bi bi-box-seam text-primary"></i> Stock Value</td>
+                        <td class="text-end text-primary fw-bold">Rs. @string.Format("{0:N0}", totalStockValue)</td>
+                    </tr>
+                    <tr class="fs-5">
+                        <td><i class="bi bi-arrow-down-circle text-success"></i> Receivables (Amount to Receive)</td>
+                        <td class="text-end text-success fw-bold">Rs. @string.Format("{0:N0}", totalReceivables)</td>
+                    </tr>
+                    <tr class="fs-5">
+                        <td><i class="bi bi-cash-stack text-info"></i> Cash in Hand</td>
+                        <td class="text-end text-info fw-bold">Rs. @string.Format("{0:N0}", cashInHand)</td>
+                    </tr>
+                    <tr class="fs-5">
+                        <td><i class="bi bi-bank text-secondary"></i> Bank Balances</td>
+                        <td class="text-end text-secondary fw-bold">Rs. @string.Format("{0:N0}", totalBankBalance)</td>
+                    </tr>
+                    <tr class="fs-5">
+                        <td><i class="bi bi-arrow-up-circle text-danger"></i> Less: Payables (Amount to Pay)</td>
+                        <td class="text-end text-danger fw-bold">(Rs. @string.Format("{0:N0}", totalPayables))</td>
+                    </tr>
+                    <tr class="table-primary fs-4">
+                        <td><strong><i class="bi bi-wallet-fill"></i> Total Capital</strong></td>
+                        <td class="text-end fw-bold">Rs. @string.Format("{0:N0}", totalCapital)</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Stock Value Section -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-box-seam"></i> Stock Value: Rs. @string.Format("{0:N0}", totalStockValue)</h5>
+            </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th class="text-end">Qty</th>
+                            <th class="text-end">Avg Rate</th>
+                            <th class="text-end">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (stockItems != null && stockItems.Any())
+                        {
+                            foreach (var s in stockItems)
+                            {
+                                <tr>
+                                    <td>@s.Item.Name</td>
+                                    <td class="text-end">@string.Format("{0:N2}", s.Quantity)</td>
+                                    <td class="text-end">@string.Format("{0:N2}", s.AvgRate)</td>
+                                    <td class="text-end fw-bold">@string.Format("{0:N0}", s.Value)</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="4" class="text-center">No stock available</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receivables Section -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-arrow-down-circle"></i> Receivables: Rs. @string.Format("{0:N0}", totalReceivables)</h5>
+            </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (receivablesList != null && receivablesList.Any())
+                        {
+                            foreach (var r in receivablesList)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-action="CustomerLedger" asp-route-customerId="@r.Customer.Id">@r.Customer.Name</a>
+                                    </td>
+                                    <td class="text-end text-success fw-bold">Rs. @string.Format("{0:N0}", r.ToReceive)</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="2" class="text-center">No receivables</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payables Section -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-arrow-up-circle"></i> Payables: Rs. @string.Format("{0:N0}", totalPayables)</h5>
+            </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Supplier</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (payablesList != null && payablesList.Any())
+                        {
+                            foreach (var p in payablesList)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-action="CustomerLedger" asp-route-customerId="@p.Customer.Id">@p.Customer.Name</a>
+                                    </td>
+                                    <td class="text-end text-danger fw-bold">Rs. @string.Format("{0:N0}", p.ToPay)</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="2" class="text-center">No payables</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cash & Bank Section -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-cash-stack"></i> Cash & Bank</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr class="table-warning">
+                            <td><strong><i class="bi bi-wallet2"></i> Cash in Hand</strong></td>
+                            <td class="text-end fw-bold text-info">Rs. @string.Format("{0:N0}", cashInHand)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h6 class="mt-3"><i class="bi bi-bank"></i> Bank Accounts</h6>
+                <table class="table table-sm table-striped">
+                    <tbody>
+                        @if (bankBalances != null && bankBalances.Any())
+                        {
+                            foreach (var b in bankBalances)
+                            {
+                                <tr>
+                                    <td>@b.Bank.Name</td>
+                                    <td class="text-end @(b.Balance >= 0 ? "text-success" : "text-danger") fw-bold">
+                                        Rs. @string.Format("{0:N0}", b.Balance)
+                                    </td>
+                                </tr>
+                            }
+                            <tr class="table-secondary">
+                                <td><strong>Total Bank Balance</strong></td>
+                                <td class="text-end fw-bold">Rs. @string.Format("{0:N0}", totalBankBalance)</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            <tr><td colspan="2" class="text-center">No bank accounts</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Expense Head Summary Section -->
+<div class="card mb-4">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0"><i class="bi bi-receipt"></i> Expense Summary by Head (Total Spent: Rs. @string.Format("{0:N0}", totalExpenseHeadAmount))</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            @if (expenseHeadSummary != null && expenseHeadSummary.Any())
+            {
+                foreach (var e in expenseHeadSummary)
+                {
+                    var percentage = totalExpenseHeadAmount > 0 ? (e.TotalAmount / totalExpenseHeadAmount * 100) : 0;
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>@e.ExpenseHead.Name</span>
+                            <span class="fw-bold">Rs. @string.Format("{0:N0}", e.TotalAmount)</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-danger" style="width: @percentage%"></div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="col-12 text-center">No expenses recorded</div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 d-print-none">
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="bi bi-printer"></i> Print Report
+    </button>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Reports
+    </a>
+</div>
+
+@section Scripts {
+    <style>
+        @@media print {
+            .card { page-break-inside: avoid; margin-bottom: 10px !important; }
+            .card-body { max-height: none !important; overflow: visible !important; }
+        }
+    </style>
+}

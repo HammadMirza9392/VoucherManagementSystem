@@ -1,0 +1,103 @@
+@{
+    ViewData["Title"] = "Master Lock Authentication";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-lg">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0 text-center">
+                        <i class="bi bi-shield-lock-fill"></i> Master Lock Authentication
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <strong>Protected Area!</strong> Please enter the master password to access the Master Lock configuration page.
+                    </div>
+
+                    <form id="masterLockForm">
+                        <div class="mb-4">
+                            <label for="masterPassword" class="form-label">
+                                <strong>Master Password</strong>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-key-fill"></i>
+                                </span>
+                                <input type="password"
+                                       class="form-control form-control-lg"
+                                       id="masterPassword"
+                                       placeholder="Enter master password"
+                                       required
+                                       autofocus>
+                            </div>
+                            <div id="passwordError" class="text-danger mt-2" style="display:none;"></div>
+                            <div class="form-text mt-2">
+                                <i class="bi bi-info-circle"></i> Default password: <code>admin123</code>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="unlockBtn">
+                                <i class="bi bi-unlock-fill"></i> Unlock Master Lock
+                            </button>
+                            <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#masterLockForm').on('submit', function(e) {
+                e.preventDefault();
+
+                var password = $('#masterPassword').val();
+
+                if (!password) {
+                    $('#passwordError').text('Please enter the master password').show();
+                    return;
+                }
+
+                $('#unlockBtn').prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Verifying...');
+                $('#passwordError').hide();
+
+                $.ajax({
+                    url: '@Url.Action("VerifyMasterPassword", "PageLock")',
+                    type: 'POST',
+                    data: { password: password },
+                    success: function(response) {
+                        if (response.success) {
+                            // Redirect to Master Lock page
+                            window.location.href = '@Url.Action("MasterLock", "PageLock")';
+                        } else {
+                            $('#passwordError').text(response.message || 'Incorrect password').show();
+                            $('#masterPassword').val('').focus();
+                            $('#unlockBtn').prop('disabled', false).html('<i class="bi bi-unlock-fill"></i> Unlock Master Lock');
+                        }
+                    },
+                    error: function() {
+                        $('#passwordError').text('Error verifying password. Please try again.').show();
+                        $('#unlockBtn').prop('disabled', false).html('<i class="bi bi-unlock-fill"></i> Unlock Master Lock');
+                    }
+                });
+            });
+
+            // Enter key to submit
+            $('#masterPassword').on('keypress', function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    $('#masterLockForm').submit();
+                }
+            });
+        });
+    </script>
+}

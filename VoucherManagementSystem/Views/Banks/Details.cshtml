@@ -1,0 +1,52 @@
+﻿@* Views/Banks/Details.cshtml *@
+@model VoucherManagementSystem.Models.Bank
+@{
+    ViewData["Title"] = "Bank Details";
+}
+
+<h2><i class="bi bi-bank"></i> Bank Details</h2>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5>@Model.Name</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Name:</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">Account Number:</dt>
+            <dd class="col-sm-9">@Model.AccountNumber</dd>
+
+            <dt class="col-sm-3">Current Balance:</dt>
+            <dd class="col-sm-9 h4 text-primary">Rs. @string.Format("{0:N0}", Model.Balance)</dd>
+
+            <dt class="col-sm-3">Details:</dt>
+            <dd class="col-sm-9">@Model.Details</dd>
+
+            <dt class="col-sm-3">Status:</dt>
+            <dd class="col-sm-9">
+                <span class="badge bg-@(Model.IsActive ? "success" : "danger")">
+                    @(Model.IsActive ? "Active" : "Inactive")
+                </span>
+            </dd>
+
+            <dt class="col-sm-3">Created Date:</dt>
+            <dd class="col-sm-9">@Model.CreatedDate.ToString("dd-MMM-yyyy")</dd>
+        </dl>
+
+        <hr />
+
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a asp-controller="Reports" asp-action="BankStatement" asp-route-bankId="@Model.Id" class="btn btn-info">
+                <i class="bi bi-file-text"></i> View Statement
+            </a>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+</div>

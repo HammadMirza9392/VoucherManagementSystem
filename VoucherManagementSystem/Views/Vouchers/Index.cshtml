@@ -1,0 +1,187 @@
+﻿@* Views/Vouchers/Index.cshtml *@
+@model IEnumerable<VoucherManagementSystem.Models.Voucher>
+@{
+    ViewData["Title"] = "Vouchers";
+}
+
+<h2><i class="bi bi-file-text"></i> Vouchers Management</h2>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3" id="filterForm">
+            <div class="col-md-2">
+                <label class="form-label">Voucher Type</label>
+                <select name="voucherType" class="form-select" id="voucherTypeFilter">
+                    <option value="">All Types</option>
+                    @foreach (var type in Enum.GetValues<VoucherManagementSystem.Models.VoucherType>())
+                    {
+                        <option value="@type" selected="@(ViewBag.VoucherType?.ToString() == type.ToString())">@type</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Customer</label>
+                @Html.DropDownList("customerId", ViewBag.Customers as SelectList, "All Customers", new { @class = "form-select", id = "customerFilter" })
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Item</label>
+                @Html.DropDownList("itemId", ViewBag.Items as SelectList, "All Items", new { @class = "form-select", id = "itemFilter" })
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Project</label>
+                @Html.DropDownList("projectId", ViewBag.Projects as SelectList, "All Projects", new { @class = "form-select", id = "projectFilter" })
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input type="date" name="fromDate" value="@ViewBag.FromDate?.ToString("yyyy-MM-dd")" class="form-control" id="fromDateFilter" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input type="date" name="toDate" value="@ViewBag.ToDate?.ToString("yyyy-MM-dd")" class="form-control" id="toDateFilter" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Stock Include</label>
+                <select name="stockInclude" class="form-select" id="stockIncludeFilter">
+                    <option value="">All</option>
+                    <option value="true" selected="@(ViewBag.StockInclude?.ToString() == "True")">Yes (1)</option>
+                    <option value="false" selected="@(ViewBag.StockInclude?.ToString() == "False")">No (0)</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="clearFilter">
+                        <i class="bi bi-x-circle"></i> Clear Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row">
+            <div class="col-6">
+                <h5>Voucher List</h5>
+            </div>
+            <div class="col-6 text-end">
+                <a asp-action="GeneralCreate" class="btn btn-primary me-2">
+                    <i class="bi bi-plus-circle-fill"></i> General Create
+                </a>
+                <div class="dropdown d-inline-block">
+                    <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-plus-circle"></i> New Voucher
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" asp-action="Create" asp-route-type="Purchase">Purchase</a></li>
+                        <li><a class="dropdown-item" asp-action="Create" asp-route-type="Sale">Sale</a></li>
+                        <li><a class="dropdown-item" asp-action="Create" asp-route-type="Expense">Expense</a></li>
+                        <li><a class="dropdown-item" asp-action="Create" asp-route-type="Hazri">Hazri</a></li>
+                        <li><a class="dropdown-item" asp-action="Create" asp-route-type="CashPaid">Cash Paid</a></li>
+                        <li><a class="dropdown-item" asp-action="Create" asp-route-type="CashReceived">Cash Received</a></li>
+                        <li><a class="dropdown-item" asp-action="Create" asp-route-type="CCR">CCR</a></li>
+                        <li><a class="dropdown-item" asp-action="Create" asp-route-type="BCR">BCR</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="table table-striped" id="vouchersTable">
+            <thead>
+                <tr>
+                    <th>Transaction No</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Item</th>
+                    <th>Project</th>
+                    <th>Stock</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.TransactionNumber</td>
+                        <td>
+                            <span class="badge bg-@(item.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
+                                                    item.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ? "success" :
+                                                    item.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense ? "danger" : "secondary")">
+                                @item.VoucherType
+                            </span>
+                        </td>
+                        <td>@item.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                        <td>
+                            @{
+                                var customerId = item.PurchasingCustomerId ?? item.ReceivingCustomerId;
+                                var customerName = item.PurchasingCustomer?.Name ?? item.ReceivingCustomer?.Name;
+                            }
+                            @if (customerId.HasValue && !string.IsNullOrEmpty(customerName))
+                            {
+                                <a asp-controller="Reports" asp-action="CustomerLedger" asp-route-customerId="@customerId" class="text-decoration-none" title="View Customer Ledger">
+                                    @customerName
+                                </a>
+                            }
+                        </td>
+                        <td>@item.Item?.Name</td>
+                        <td>
+                            @if (item.ProjectId.HasValue && item.Project != null)
+                            {
+                                <a asp-controller="Reports" asp-action="ProjectReport" asp-route-projectId="@item.ProjectId" class="text-decoration-none" title="View Project Report">
+                                    @item.Project.Name
+                                </a>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-@(item.StockInclude ? "success" : "secondary")">
+                                @(item.StockInclude ? "1" : "0")
+                            </span>
+                        </td>
+                        <td class="text-end">@string.Format("{0:N0}", item.Amount)</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#vouchersTable').DataTable({
+                "order": [[2, "desc"]],
+                "pageLength": 25
+            });
+
+            // Clear filter button functionality
+            $('#clearFilter').on('click', function() {
+                $('#voucherTypeFilter').val('');
+                $('#customerFilter').val('');
+                $('#itemFilter').val('');
+                $('#projectFilter').val('');
+                $('#fromDateFilter').val('');
+                $('#toDateFilter').val('');
+                $('#stockIncludeFilter').val('');
+                window.location.href = '@Url.Action("Index", "Vouchers")';
+            });
+        });
+    </script>
+}

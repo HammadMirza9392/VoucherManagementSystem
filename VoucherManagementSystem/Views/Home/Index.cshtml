@@ -1,0 +1,456 @@
+@using VoucherManagementSystem.Controllers
+@{
+    ViewData["Title"] = "Dashboard";
+    var totalCapital = (decimal)(ViewBag.TotalCapital ?? 0);
+    var totalStockValue = (decimal)(ViewBag.TotalStockValue ?? 0);
+    var totalReceivables = (decimal)(ViewBag.TotalReceivables ?? 0);
+    var totalPayables = (decimal)(ViewBag.TotalPayables ?? 0);
+    var cashInHand = (decimal)(ViewBag.CashInHand ?? 0);
+    var totalBankBalance = (decimal)(ViewBag.TotalBankBalance ?? 0);
+    var todayAmount = (decimal)(ViewBag.TodayAmount ?? 0);
+    var totalExpenses30Days = (decimal)(ViewBag.TotalExpenses30Days ?? 0);
+
+    var stockData = ViewBag.StockData as List<DashboardStockItem> ?? new List<DashboardStockItem>();
+    var receivablesData = ViewBag.ReceivablesData as List<DashboardNameAmount> ?? new List<DashboardNameAmount>();
+    var payablesData = ViewBag.PayablesData as List<DashboardNameAmount> ?? new List<DashboardNameAmount>();
+    var bankData = ViewBag.BankData as List<DashboardBankBalance> ?? new List<DashboardBankBalance>();
+    var expenseData = ViewBag.ExpenseData as List<DashboardNameAmount> ?? new List<DashboardNameAmount>();
+    var monthlyData = ViewBag.MonthlyData as List<DashboardMonthlyData> ?? new List<DashboardMonthlyData>();
+    var voucherTypeData = ViewBag.VoucherTypeData as List<DashboardVoucherType> ?? new List<DashboardVoucherType>();
+}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0"><i class="bi bi-speedometer2"></i> Dashboard</h4>
+        <small class="text-muted">Al Hafiz Store Management</small>
+    </div>
+    <div>
+        <span class="badge bg-dark"><i class="bi bi-calendar"></i> @DateTime.Now.ToString("dd MMM yyyy")</span>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="btn-group w-100" role="group">
+            <a asp-controller="Vouchers" asp-action="Create" asp-route-type="Purchase" class="btn btn-success btn-sm">
+                <i class="bi bi-cart-plus"></i> Purchase
+            </a>
+            <a asp-controller="Vouchers" asp-action="Create" asp-route-type="Sale" class="btn btn-warning btn-sm">
+                <i class="bi bi-cart-check"></i> Sale
+            </a>
+            <a asp-controller="Vouchers" asp-action="Create" asp-route-type="Expense" class="btn btn-danger btn-sm">
+                <i class="bi bi-receipt"></i> Expense
+            </a>
+            <a asp-controller="Vouchers" asp-action="Create" asp-route-type="CashReceived" class="btn btn-info btn-sm">
+                <i class="bi bi-cash"></i> Cash In
+            </a>
+            <a asp-controller="Vouchers" asp-action="Create" asp-route-type="CashPaid" class="btn btn-secondary btn-sm">
+                <i class="bi bi-cash-coin"></i> Cash Out
+            </a>
+            <a asp-controller="Reports" asp-action="Index" class="btn btn-primary btn-sm">
+                <i class="bi bi-graph-up"></i> Reports
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Total Capital Banner -->
+<div class="card mb-3 border-0 shadow" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);">
+    <div class="card-body py-3">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                    <i class="bi bi-wallet2 text-white" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+            <div class="col">
+                <div class="text-white text-uppercase small fw-bold" style="letter-spacing: 1px;">Total Capital</div>
+                <h2 class="text-white fw-bold mb-0" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Rs. @string.Format("{0:N0}", totalCapital)</h2>
+                <small class="text-white">Stock + Receivables + Cash + Bank - Payables - Expenses</small>
+            </div>
+            <div class="col-auto d-none d-md-block">
+                <div class="text-end">
+                    <div class="text-white small"><i class="bi bi-calendar-check"></i> As of @DateTime.Now.ToString("dd MMM yyyy")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards - 6 columns -->
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md-2">
+        <div class="card h-100 border-success dashboard-card">
+            <div class="card-body py-2 px-2 text-center">
+                <i class="bi bi-box-seam text-success"></i>
+                <div class="small text-muted">Stock</div>
+                <div class="fw-bold text-success">@string.Format("{0:N0}", totalStockValue)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card h-100 border-info dashboard-card">
+            <div class="card-body py-2 px-2 text-center">
+                <i class="bi bi-arrow-down-circle text-info"></i>
+                <div class="small text-muted">Receivable</div>
+                <div class="fw-bold text-info">@string.Format("{0:N0}", totalReceivables)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card h-100 border-danger dashboard-card">
+            <div class="card-body py-2 px-2 text-center">
+                <i class="bi bi-arrow-up-circle text-danger"></i>
+                <div class="small text-muted">Payable</div>
+                <div class="fw-bold text-danger">@string.Format("{0:N0}", totalPayables)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card h-100 border-warning dashboard-card">
+            <div class="card-body py-2 px-2 text-center">
+                <i class="bi bi-cash-stack text-warning"></i>
+                <div class="small text-muted">Cash</div>
+                <div class="fw-bold text-warning">@string.Format("{0:N0}", cashInHand)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card h-100 dashboard-card" style="border-color: #6f42c1;">
+            <div class="card-body py-2 px-2 text-center">
+                <i class="bi bi-bank" style="color: #6f42c1;"></i>
+                <div class="small text-muted">Bank</div>
+                <div class="fw-bold" style="color: #6f42c1;">@string.Format("{0:N0}", totalBankBalance)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card h-100 dashboard-card" style="border-color: #e83e8c;">
+            <div class="card-body py-2 px-2 text-center">
+                <i class="bi bi-graph-down" style="color: #e83e8c;"></i>
+                <div class="small text-muted">Expenses</div>
+                <div class="fw-bold" style="color: #e83e8c;">@string.Format("{0:N0}", totalExpenses30Days)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row - Compact -->
+<div class="row g-2 mb-3">
+    <!-- Capital Pie -->
+    <div class="col-md-3">
+        <div class="card dashboard-card">
+            <div class="card-header py-1 bg-white">
+                <small class="fw-bold"><i class="bi bi-pie-chart"></i> Capital</small>
+            </div>
+            <div class="card-body p-2" style="height: 180px;">
+                <canvas id="capitalChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Monthly Trends -->
+    <div class="col-md-5">
+        <div class="card dashboard-card">
+            <div class="card-header py-1 bg-white">
+                <small class="fw-bold"><i class="bi bi-graph-up"></i> Monthly Trends</small>
+            </div>
+            <div class="card-body p-2" style="height: 180px;">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Expense Chart -->
+    <div class="col-md-4">
+        <div class="card dashboard-card">
+            <div class="card-header py-1 bg-white">
+                <small class="fw-bold"><i class="bi bi-bar-chart"></i> Expenses</small>
+            </div>
+            <div class="card-body p-2" style="height: 180px;">
+                <canvas id="expenseChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Tables Row -->
+<div class="row g-2 mb-3">
+    <!-- Receivables -->
+    <div class="col-md-3">
+        <div class="card h-100 dashboard-card">
+            <div class="card-header py-1 bg-success text-white d-flex justify-content-between align-items-center">
+                <small><i class="bi bi-arrow-down-circle"></i> Receivables (@receivablesData.Count)</small>
+                <small class="fw-bold">@string.Format("{0:N0}", totalReceivables)</small>
+            </div>
+            <div class="card-body p-0 dashboard-scroll-body">
+                <table class="table table-sm mb-0" style="font-size: 0.8rem;">
+                    <tbody>
+                        @foreach (var item in receivablesData)
+                        {
+                            <tr>
+                                <td class="text-truncate" style="max-width: 100px;">@item.Name</td>
+                                <td class="text-end text-success fw-bold">@string.Format("{0:N0}", item.Amount)</td>
+                            </tr>
+                        }
+                        @if (!receivablesData.Any())
+                        {
+                            <tr><td colspan="2" class="text-center text-muted fst-italic py-2">No receivables</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer py-1 bg-white">
+                <a asp-controller="Reports" asp-action="AllCustomersReport" class="btn btn-sm btn-outline-success w-100 py-0">View All</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payables -->
+    <div class="col-md-3">
+        <div class="card h-100 dashboard-card">
+            <div class="card-header py-1 bg-danger text-white d-flex justify-content-between align-items-center">
+                <small><i class="bi bi-arrow-up-circle"></i> Payables (@payablesData.Count)</small>
+                <small class="fw-bold">@string.Format("{0:N0}", totalPayables)</small>
+            </div>
+            <div class="card-body p-0 dashboard-scroll-body">
+                <table class="table table-sm mb-0" style="font-size: 0.8rem;">
+                    <tbody>
+                        @foreach (var item in payablesData)
+                        {
+                            <tr>
+                                <td class="text-truncate" style="max-width: 100px;">@item.Name</td>
+                                <td class="text-end text-danger fw-bold">@string.Format("{0:N0}", item.Amount)</td>
+                            </tr>
+                        }
+                        @if (!payablesData.Any())
+                        {
+                            <tr><td colspan="2" class="text-center text-muted fst-italic py-2">No payables</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer py-1 bg-white">
+                <a asp-controller="Reports" asp-action="AllCustomersReport" class="btn btn-sm btn-outline-danger w-100 py-0">View All</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock -->
+    <div class="col-md-3">
+        <div class="card h-100 dashboard-card">
+            <div class="card-header py-1 bg-primary text-white d-flex justify-content-between align-items-center">
+                <small><i class="bi bi-box-seam"></i> Stock Items (@stockData.Count)</small>
+                <small class="fw-bold">@string.Format("{0:N0}", totalStockValue)</small>
+            </div>
+            <div class="card-body p-0 dashboard-scroll-body">
+                <table class="table table-sm mb-0" style="font-size: 0.8rem;">
+                    <tbody>
+                        @foreach (var item in stockData)
+                        {
+                            <tr>
+                                <td class="text-truncate" style="max-width: 80px;">@item.Name</td>
+                                <td class="text-end">@string.Format("{0:N0}", item.Quantity)</td>
+                                <td class="text-end text-primary fw-bold">@string.Format("{0:N0}", item.Value)</td>
+                            </tr>
+                        }
+                        @if (!stockData.Any())
+                        {
+                            <tr><td colspan="3" class="text-center text-muted fst-italic py-2">No stock</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer py-1 bg-white">
+                <a asp-controller="Reports" asp-action="CapitalReport" class="btn btn-sm btn-outline-primary w-100 py-0">Capital Report</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banks -->
+    <div class="col-md-3">
+        <div class="card h-100 dashboard-card">
+            <div class="card-header py-1 text-white d-flex justify-content-between align-items-center" style="background-color: #6f42c1;">
+                <small><i class="bi bi-bank"></i> Bank Accounts (@bankData.Count)</small>
+                <small class="fw-bold">@string.Format("{0:N0}", totalBankBalance)</small>
+            </div>
+            <div class="card-body p-0 dashboard-scroll-body">
+                <table class="table table-sm mb-0" style="font-size: 0.8rem;">
+                    <tbody>
+                        @foreach (var bank in bankData)
+                        {
+                            <tr>
+                                <td class="text-truncate" style="max-width: 100px;">@bank.Name</td>
+                                <td class="text-end fw-bold @(bank.Balance >= 0 ? "text-success" : "text-danger")">
+                                    @string.Format("{0:N0}", bank.Balance)
+                                </td>
+                            </tr>
+                        }
+                        @if (!bankData.Any())
+                        {
+                            <tr><td colspan="2" class="text-center text-muted fst-italic py-2">No banks</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header py-1 bg-dark text-white d-flex justify-content-between">
+                <small><i class="bi bi-clock-history"></i> Recent Transactions</small>
+                <small>Today: @ViewBag.TodayTransactions txns | Rs. @string.Format("{0:N0}", todayAmount)</small>
+            </div>
+            <div class="card-body p-0" style="max-height: 250px; overflow-y: auto;">
+                <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Date</th>
+                            <th>Txn #</th>
+                            <th>Type</th>
+                            <th>Customer</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (ViewBag.RecentVouchers != null)
+                        {
+                            foreach (var v in ViewBag.RecentVouchers)
+                            {
+                                var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
+                                <tr>
+                                    <td>@v.VoucherDate.ToString("dd-MMM")</td>
+                                    <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
+                                    <td><span class="badge bg-@GetVoucherColor(v.VoucherType.ToString())">@v.VoucherType</span></td>
+                                    <td class="text-truncate" style="max-width: 150px;">@customer</td>
+                                    <td class="text-end fw-bold">Rs. @string.Format("{0:N0}", v.Amount)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer py-1 bg-white">
+                <a asp-controller="Vouchers" asp-action="Index" class="btn btn-sm btn-outline-dark w-100 py-0">View All Vouchers</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetVoucherColor(string type)
+    {
+        return type switch
+        {
+            "Purchase" => "success",
+            "Sale" => "warning",
+            "Expense" => "danger",
+            "Hazri" => "info",
+            "CashPaid" => "secondary",
+            "CashReceived" => "primary",
+            "CCR" => "dark",
+            "BCR" => "dark",
+            _ => "secondary"
+        };
+    }
+}
+
+@section Scripts {
+    <style>
+        .dashboard-card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            padding: 6px;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .dashboard-scroll-body {
+            max-height: 250px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #adb5bd #f8f9fa;
+        }
+
+        .dashboard-scroll-body::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .dashboard-scroll-body::-webkit-scrollbar-track {
+            background: #f8f9fa;
+        }
+
+        .dashboard-scroll-body::-webkit-scrollbar-thumb {
+            background-color: #adb5bd;
+            border-radius: 3px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        Chart.defaults.font.size = 10;
+        Chart.defaults.responsive = true;
+        Chart.defaults.maintainAspectRatio = false;
+        Chart.defaults.resizeDelay = 100;
+
+        // Capital Distribution Chart
+        new Chart(document.getElementById('capitalChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Stock', 'Receivable', 'Cash', 'Bank', 'Payable'],
+                datasets: [{
+                    data: [@totalStockValue, @totalReceivables, @Math.Max(0, cashInHand), @Math.Max(0, totalBankBalance), @totalPayables],
+                    backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#6f42c1', '#dc3545'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                plugins: { legend: { position: 'right', labels: { boxWidth: 8, font: { size: 9 } } } },
+                cutout: '50%'
+            }
+        });
+
+        // Monthly Trend Chart
+        var monthlyDataJson = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(monthlyData));
+        new Chart(document.getElementById('monthlyChart'), {
+            type: 'line',
+            data: {
+                labels: monthlyDataJson.map(d => d.Month),
+                datasets: [
+                    { label: 'Sales', data: monthlyDataJson.map(d => d.Sales), borderColor: '#ffc107', backgroundColor: 'rgba(255,193,7,0.1)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2 },
+                    { label: 'Purchases', data: monthlyDataJson.map(d => d.Purchases), borderColor: '#28a745', backgroundColor: 'rgba(40,167,69,0.1)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2 },
+                    { label: 'Expenses', data: monthlyDataJson.map(d => d.Expenses), borderColor: '#dc3545', backgroundColor: 'rgba(220,53,69,0.1)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2 }
+                ]
+            },
+            options: {
+                plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } },
+                scales: { y: { beginAtZero: true, ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 9 } } } }
+            }
+        });
+
+        // Expense by Head Chart
+        var expenseDataJson = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(expenseData));
+        new Chart(document.getElementById('expenseChart'), {
+            type: 'bar',
+            data: {
+                labels: expenseDataJson.map(d => d.Name.length > 8 ? d.Name.substring(0, 8) + '..' : d.Name),
+                datasets: [{
+                    data: expenseDataJson.map(d => d.Amount),
+                    backgroundColor: ['#dc3545', '#e83e8c', '#fd7e14', '#ffc107', '#28a745', '#20c997', '#17a2b8', '#6f42c1'],
+                    borderRadius: 3
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, ticks: { font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } }
+            }
+        });
+    </script>
+}

@@ -1,0 +1,78 @@
+﻿@* Views/Projects/Details.cshtml *@
+@model VoucherManagementSystem.Models.Project
+@{
+    ViewData["Title"] = "Project Details";
+}
+
+<h2><i class="bi bi-briefcase"></i> Project Details</h2>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5>@Model.Name</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Name:</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">Description:</dt>
+            <dd class="col-sm-9">@Model.Description</dd>
+
+            <dt class="col-sm-3">Start Date:</dt>
+            <dd class="col-sm-9">@Model.StartDate.ToString("dd-MMM-yyyy")</dd>
+
+            <dt class="col-sm-3">End Date:</dt>
+            <dd class="col-sm-9">@(Model.EndDate?.ToString("dd-MMM-yyyy") ?? "Ongoing")</dd>
+
+            <dt class="col-sm-3">Status:</dt>
+            <dd class="col-sm-9">
+                <span class="badge bg-@(Model.IsActive ? "success" : "danger")">
+                    @(Model.IsActive ? "Active" : "Completed")
+                </span>
+            </dd>
+
+            <dt class="col-sm-3">Created Date:</dt>
+            <dd class="col-sm-9">@Model.CreatedDate.ToString("dd-MMM-yyyy")</dd>
+        </dl>
+
+        @if (ViewBag.ProjectVouchers != null)
+        {
+            <h5 class="mt-4">Recent Transactions</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Transaction No</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var voucher in ViewBag.ProjectVouchers)
+                    {
+                        <tr>
+                            <td>@voucher.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                            <td>@voucher.TransactionNumber</td>
+                            <td>@voucher.VoucherType</td>
+                            <td>@string.Format("{0:N0}", voucher.Amount)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <hr />
+
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a asp-controller="Reports" asp-action="ProfitLoss" class="btn btn-info">
+                <i class="bi bi-graph-up"></i> P&L Report
+            </a>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+</div>

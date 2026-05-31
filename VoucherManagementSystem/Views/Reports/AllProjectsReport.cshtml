@@ -1,0 +1,162 @@
+@* Views/Reports/AllProjectsReport.cshtml - All Projects Report *@
+@using VoucherManagementSystem.Controllers
+@{
+    ViewData["Title"] = "All Projects Report";
+    var projectReports = ViewBag.ProjectReports as List<ProjectReportItem>;
+    var fromDate = (DateTime)ViewBag.FromDate;
+    var toDate = (DateTime)ViewBag.ToDate;
+    var totalRevenue = (decimal)(ViewBag.TotalRevenue ?? 0);
+    var totalPurchases = (decimal)(ViewBag.TotalPurchases ?? 0);
+    var totalExpenses = (decimal)(ViewBag.TotalExpenses ?? 0);
+    var totalProfitLoss = (decimal)(ViewBag.TotalProfitLoss ?? 0);
+}
+
+<div class="d-print-none">
+    <h2><i class="bi bi-diagram-3"></i> All Projects Report</h2>
+    <p class="text-muted">Overview of all projects performance</p>
+</div>
+
+<!-- Filter Form -->
+<div class="card mb-3 d-print-none">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="bi bi-filter"></i> Filter Options</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">From Date</label>
+                <input type="date" name="fromDate" value="@fromDate.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">To Date</label>
+                <input type="date" name="toDate" value="@toDate.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-info w-100">
+                    <i class="bi bi-search"></i> Generate
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h6>Total Revenue (Sales)</h6>
+                <h4>Rs. @string.Format("{0:N0}", totalRevenue)</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h6>Total Purchases</h6>
+                <h4>Rs. @string.Format("{0:N0}", totalPurchases)</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h6>Total Expenses</h6>
+                <h4>Rs. @string.Format("{0:N0}", totalExpenses)</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-@(totalProfitLoss >= 0 ? "success" : "danger") text-white">
+            <div class="card-body text-center">
+                <h6>Net Profit/Loss</h6>
+                <h4>Rs. @string.Format("{0:N0}", totalProfitLoss)</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Projects Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-table"></i> Project Details (@fromDate.ToString("dd-MMM-yyyy") to @toDate.ToString("dd-MMM-yyyy"))</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover" id="projectsTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Project Name</th>
+                        <th class="text-center">Vouchers</th>
+                        <th class="text-end">Revenue (Sales)</th>
+                        <th class="text-end">Purchases</th>
+                        <th class="text-end">Expenses</th>
+                        <th class="text-end">Profit/Loss</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (projectReports != null && projectReports.Any())
+                    {
+                        foreach (var p in projectReports)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@p.Project.Name</strong>
+                                    @if (!string.IsNullOrEmpty(p.Project.Description))
+                                    {
+                                        <br /><small class="text-muted">@p.Project.Description</small>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">@p.VoucherCount</span>
+                                </td>
+                                <td class="text-end text-success">Rs. @string.Format("{0:N0}", p.Revenue)</td>
+                                <td class="text-end text-primary">Rs. @string.Format("{0:N0}", p.Purchases)</td>
+                                <td class="text-end text-danger">Rs. @string.Format("{0:N0}", p.Expenses)</td>
+                                <td class="text-end fw-bold @(p.ProfitLoss >= 0 ? "text-success" : "text-danger")">
+                                    Rs. @string.Format("{0:N0}", p.ProfitLoss)
+                                </td>
+                                <td class="text-center">
+                                    <a asp-action="ProjectReport" asp-route-projectId="@p.Project.Id" class="btn btn-sm btn-outline-info">
+                                        <i class="bi bi-eye"></i> Details
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center">No projects found.</td>
+                        </tr>
+                    }
+                </tbody>
+                @if (projectReports != null && projectReports.Any())
+                {
+                    <tfoot class="table-dark">
+                        <tr>
+                            <th>Total</th>
+                            <th class="text-center">@projectReports.Sum(p => p.VoucherCount)</th>
+                            <th class="text-end">Rs. @string.Format("{0:N0}", totalRevenue)</th>
+                            <th class="text-end">Rs. @string.Format("{0:N0}", totalPurchases)</th>
+                            <th class="text-end">Rs. @string.Format("{0:N0}", totalExpenses)</th>
+                            <th class="text-end">Rs. @string.Format("{0:N0}", totalProfitLoss)</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 d-print-none">
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="bi bi-printer"></i> Print
+    </button>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Reports
+    </a>
+</div>

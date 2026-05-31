@@ -1,0 +1,71 @@
+﻿@* Views/Customers/Details.cshtml *@
+@model VoucherManagementSystem.Models.Customer
+@{
+    ViewData["Title"] = "Customer Details";
+}
+
+<h2><i class="bi bi-person"></i> Customer Details</h2>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5>@Model.Name</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Name:</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">Phone:</dt>
+            <dd class="col-sm-9">@Model.Phone</dd>
+
+            <dt class="col-sm-3">Address:</dt>
+            <dd class="col-sm-9">@Model.Address</dd>
+
+            <dt class="col-sm-3">Status:</dt>
+            <dd class="col-sm-9">
+                <span class="badge bg-@(Model.IsActive ? "success" : "danger")">
+                    @(Model.IsActive ? "Active" : "Inactive")
+                </span>
+            </dd>
+
+            <dt class="col-sm-3">Created Date:</dt>
+            <dd class="col-sm-9">@Model.CreatedDate.ToString("dd-MMM-yyyy")</dd>
+        </dl>
+
+        @if (ViewBag.CustomerRates != null)
+        {
+            <h5 class="mt-4">Custom Item Rates</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Custom Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var rate in ViewBag.CustomerRates)
+                    {
+                        <tr>
+                            <td>@rate.Item.Name</td>
+                            <td>@string.Format("{0:N0}", rate.Rate)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <hr />
+
+        <div>
+            <a asp-action="ManageRates" asp-route-id="@Model.Id" class="btn btn-primary">
+                <i class="bi bi-currency-rupee"></i> Manage Rates
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+</div>

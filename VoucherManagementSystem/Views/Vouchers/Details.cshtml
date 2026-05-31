@@ -1,0 +1,86 @@
+﻿@* Views/Vouchers/Details.cshtml *@
+@model VoucherManagementSystem.Models.Voucher
+@{
+    ViewData["Title"] = "Voucher Details";
+}
+
+<h2><i class="bi bi-file-text"></i> Voucher Details</h2>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5>@Model.TransactionNumber - @Model.VoucherType</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">Transaction Number:</dt>
+                    <dd class="col-sm-8">@Model.TransactionNumber</dd>
+
+                    <dt class="col-sm-4">Voucher Type:</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-secondary">@Model.VoucherType</span>
+                    </dd>
+
+                    <dt class="col-sm-4">Date:</dt>
+                    <dd class="col-sm-8">@Model.VoucherDate.ToString("dd-MMM-yyyy")</dd>
+
+                    <dt class="col-sm-4">Cash Type:</dt>
+                    <dd class="col-sm-8">@Model.CashType</dd>
+
+                    <dt class="col-sm-4">Amount:</dt>
+                    <dd class="col-sm-8 h4 text-primary">Rs. @string.Format("{0:N0}", Model.Amount)</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row">
+                    @if (Model.PurchasingCustomer != null)
+                    {
+                        <dt class="col-sm-4">Purchasing Customer:</dt>
+                        <dd class="col-sm-8">@Model.PurchasingCustomer.Name</dd>
+                    }
+
+                    @if (Model.ReceivingCustomer != null)
+                    {
+                        <dt class="col-sm-4">Receiving Customer:</dt>
+                        <dd class="col-sm-8">@Model.ReceivingCustomer.Name</dd>
+                    }
+
+                    @if (Model.Item != null)
+                    {
+                        <dt class="col-sm-4">Item:</dt>
+                        <dd class="col-sm-8">@Model.Item.Name</dd>
+
+                        <dt class="col-sm-4">Quantity:</dt>
+                        <dd class="col-sm-8">@Model.Quantity @Model.Item.Unit</dd>
+
+                        <dt class="col-sm-4">Rate:</dt>
+                        <dd class="col-sm-8">@Model.Rate</dd>
+                    }
+
+                    @if (Model.Project != null)
+                    {
+                        <dt class="col-sm-4">Project:</dt>
+                        <dd class="col-sm-8">@Model.Project.Name</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        <hr />
+
+        <div class="row">
+            <div class="col-12">
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+                <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">
+                    <i class="bi bi-trash"></i> Delete
+                </a>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

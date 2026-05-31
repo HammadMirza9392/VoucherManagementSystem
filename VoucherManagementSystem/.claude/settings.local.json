@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet ef migrations:*)",
+      "Bash(dotnet build)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(dotnet ef database:*)",
+      "Bash(del:*)",
+      "Bash(if not exist:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

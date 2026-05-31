@@ -1,0 +1,135 @@
+﻿@* Views/Customers/Create.cshtml - ENHANCED VERSION *@
+@model VoucherManagementSystem.Models.Customer
+@{
+    ViewData["Title"] = "Create Customer";
+}
+
+<h2><i class="bi bi-person-plus"></i> Create New Customer</h2>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-form"></i> Customer Information</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <h6 class="alert-heading">Please correct the following errors:</h6>
+                            <div asp-validation-summary="All" class="mb-0"></div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label">
+                            Customer Name <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input asp-for="Name" class="form-control" placeholder="Enter customer full name" autofocus />
+                        </div>
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Phone" class="form-label">
+                                Phone Number
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                <input asp-for="Phone" class="form-control" placeholder="03XX-XXXXXXX"
+                                       data-inputmask="'mask': '9999-9999999'" />
+                            </div>
+                            <span asp-validation-for="Phone" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status</label>
+                            <div class="form-check form-switch mt-2">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox"
+                                       role="switch" value="true" checked />
+                                <input name="IsActive" type="hidden" value="false" />
+                                <label asp-for="IsActive" class="form-check-label">
+                                    Active Customer
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Address" class="form-label">
+                            Complete Address
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                            <textarea asp-for="Address" class="form-control" rows="3"
+                                      placeholder="Enter complete address including city"></textarea>
+                        </div>
+                        <span asp-validation-for="Address" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Create Customer
+                            </button>
+                            <button type="submit" name="action" value="create-another" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Create & Add Another
+                            </button>
+                        </div>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Quick Tips</h5>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Customer name is required and must be unique</li>
+                    <li>Phone format: 03XX-XXXXXXX</li>
+                    <li>Active customers appear in voucher dropdowns</li>
+                    <li>You can set custom item rates for each customer later</li>
+                    <li>Deactivated customers are hidden but data is preserved</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-speedometer2"></i> Quick Stats</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Total Customers:</strong> @ViewBag.TotalCustomers</p>
+                <p class="mb-1"><strong>Active Customers:</strong> @ViewBag.ActiveCustomers</p>
+                <p class="mb-0"><strong>Added Today:</strong> @ViewBag.TodayCustomers</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.7/jquery.inputmask.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Phone number mask
+            $('[data-inputmask]').inputmask();
+
+            // Auto-focus on first empty field
+            $('input:visible:enabled:first').focus();
+        });
+    </script>
+}

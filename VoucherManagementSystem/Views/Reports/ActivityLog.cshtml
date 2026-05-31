@@ -1,0 +1,227 @@
+@* Views/Reports/ActivityLog.cshtml - System Activity Log Report *@
+@{
+    ViewData["Title"] = "Activity Log";
+    var activityDate = ViewBag.ActivityDate != null ? (DateTime)ViewBag.ActivityDate : DateTime.Today;
+    var createdVouchers = ViewBag.CreatedVouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
+    var updatedVouchers = ViewBag.UpdatedVouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
+    var totalCreated = (int)(ViewBag.TotalCreated ?? 0);
+    var totalUpdated = (int)(ViewBag.TotalUpdated ?? 0);
+}
+
+<div class="d-print-none">
+    <h2><i class="bi bi-clock-history"></i> Activity Log</h2>
+    <p class="text-muted">View all system changes (added/edited) by date</p>
+</div>
+
+<!-- Date Filter -->
+<div class="card mb-3 d-print-none">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label fw-bold"><i class="bi bi-calendar-event"></i> Activity Date</label>
+                <input type="date" name="activityDate" value="@activityDate.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> View Activity
+                </button>
+            </div>
+            <div class="col-md-3">
+                <a asp-action="ActivityLog" asp-route-activityDate="@DateTime.Today.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-calendar-check"></i> Today
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-2 mb-3">
+    <div class="col-md-3">
+        <div class="card bg-success text-white text-center">
+            <div class="card-body py-2">
+                <h6 class="mb-0"><i class="bi bi-plus-circle"></i> Added</h6>
+                <h2 class="mb-0">@totalCreated</h2>
+                <small>entries created</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark text-center">
+            <div class="card-body py-2">
+                <h6 class="mb-0"><i class="bi bi-pencil-square"></i> Updated</h6>
+                <h2 class="mb-0">@totalUpdated</h2>
+                <small>entries modified</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white text-center">
+            <div class="card-body py-2">
+                <h6 class="mb-0"><i class="bi bi-calendar"></i> Date</h6>
+                <h4 class="mb-0">@activityDate.ToString("dd MMM")</h4>
+                <small>@activityDate.ToString("yyyy")</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-dark text-white text-center">
+            <div class="card-body py-2">
+                <h6 class="mb-0"><i class="bi bi-activity"></i> Total</h6>
+                <h2 class="mb-0">@(totalCreated + totalUpdated)</h2>
+                <small>total activities</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Created Vouchers -->
+<div class="card mb-3">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Entries Added on @activityDate.ToString("dd-MMM-yyyy")</h5>
+        <span class="badge bg-white text-success">@totalCreated entries</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0" id="createdTable">
+                <thead class="table-success">
+                    <tr>
+                        <th>Time Added</th>
+                        <th>Trans No</th>
+                        <th>Type</th>
+                        <th>Voucher Date</th>
+                        <th>Customer</th>
+                        <th>Item</th>
+                        <th>Project</th>
+                        <th class="text-end">Amount</th>
+                        <th>Added By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (createdVouchers != null && createdVouchers.Any())
+                    {
+                        foreach (var v in createdVouchers)
+                        {
+                            var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
+                            <tr>
+                                <td><span class="badge bg-success">@v.CreatedDate.ToString("HH:mm:ss")</span></td>
+                                <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
+                                <td>
+                                    <span class="badge bg-@(v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ? "success" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense ? "danger" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Hazri ? "warning" : "secondary")">
+                                        @v.VoucherType
+                                    </span>
+                                </td>
+                                <td>@v.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@customer</td>
+                                <td>@(v.Item?.Name ?? "-")</td>
+                                <td>@(v.Project?.Name ?? "-")</td>
+                                <td class="text-end fw-bold text-success">Rs. @string.Format("{0:N0}", v.Amount)</td>
+                                <td><span class="badge bg-secondary">@(v.CreatedBy ?? "System")</span></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted fst-italic py-3">
+                                <i class="bi bi-info-circle"></i> No entries were added on @activityDate.ToString("dd-MMM-yyyy")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                @if (createdVouchers != null && createdVouchers.Any())
+                {
+                    <tfoot class="table-success">
+                        <tr>
+                            <th colspan="7" class="text-end">Total Created Amount:</th>
+                            <th class="text-end">Rs. @string.Format("{0:N0}", createdVouchers.Sum(v => v.Amount))</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Updated Vouchers -->
+<div class="card mb-3">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Entries Updated on @activityDate.ToString("dd-MMM-yyyy")</h5>
+        <span class="badge bg-dark text-white">@totalUpdated entries</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0" id="updatedTable">
+                <thead class="table-warning">
+                    <tr>
+                        <th>Time Updated</th>
+                        <th>Trans No</th>
+                        <th>Type</th>
+                        <th>Voucher Date</th>
+                        <th>Customer</th>
+                        <th>Item</th>
+                        <th>Project</th>
+                        <th class="text-end">Amount</th>
+                        <th>Updated By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (updatedVouchers != null && updatedVouchers.Any())
+                    {
+                        foreach (var v in updatedVouchers)
+                        {
+                            var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
+                            <tr>
+                                <td><span class="badge bg-warning text-dark">@v.UpdatedDate?.ToString("HH:mm:ss")</span></td>
+                                <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
+                                <td>
+                                    <span class="badge bg-@(v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ? "success" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense ? "danger" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Hazri ? "warning" : "secondary")">
+                                        @v.VoucherType
+                                    </span>
+                                </td>
+                                <td>@v.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@customer</td>
+                                <td>@(v.Item?.Name ?? "-")</td>
+                                <td>@(v.Project?.Name ?? "-")</td>
+                                <td class="text-end fw-bold">Rs. @string.Format("{0:N0}", v.Amount)</td>
+                                <td><span class="badge bg-secondary">@(v.UpdatedBy ?? "System")</span></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted fst-italic py-3">
+                                <i class="bi bi-info-circle"></i> No entries were updated on @activityDate.ToString("dd-MMM-yyyy")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 d-print-none">
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="bi bi-printer"></i> Print Log
+    </button>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Reports
+    </a>
+</div>
+
+@section Scripts {
+    <style>
+        @@media print {
+            .card { page-break-inside: avoid; }
+        }
+    </style>
+}

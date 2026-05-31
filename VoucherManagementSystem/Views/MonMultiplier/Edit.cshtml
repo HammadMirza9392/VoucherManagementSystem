@@ -1,0 +1,65 @@
+@model VoucherManagementSystem.Models.MonMultiplier
+@{
+    ViewData["Title"] = "Edit Mon Multiplier";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-pencil"></i> Edit Mon Multiplier</h4>
+    <a asp-action="Index" class="btn btn-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+</div>
+
+<div class="card shadow-sm" style="max-width: 600px;">
+    <div class="card-body">
+        <form asp-action="Edit">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+            <div class="mb-3">
+                <label asp-for="VoucherType" class="form-label fw-bold">Voucher Type <span class="text-danger">*</span></label>
+                <select asp-for="VoucherType" class="form-select">
+                    <option value="">-- Select Voucher Type --</option>
+                    <option value="Purchase">Purchase</option>
+                    <option value="Sale">Sale</option>
+                    <option value="Expense">Expense</option>
+                    <option value="Hazri">Hazri</option>
+                    <option value="CashPaid">CashPaid</option>
+                    <option value="CashReceived">CashReceived</option>
+                    <option value="CCR">CCR</option>
+                    <option value="BCR">BCR</option>
+                </select>
+                <span asp-validation-for="VoucherType" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Multiplier" class="form-label fw-bold">Multiplier <span class="text-danger">*</span></label>
+                <input asp-for="Multiplier" type="number" step="0.0001" class="form-control" />
+                <div class="form-text text-muted">Weight = Mon × <strong>Multiplier</strong></div>
+                <span asp-validation-for="Multiplier" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label">Description</label>
+                <input asp-for="Description" class="form-control" />
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check">
+                    <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                    <label asp-for="IsActive" class="form-check-label">Active</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> Update
+            </button>
+            <a asp-action="Index" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

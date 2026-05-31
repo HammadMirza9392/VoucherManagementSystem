@@ -1,0 +1,185 @@
+@* Views/Reports/DailyCashBook.cshtml *@
+@{
+    ViewData["Title"] = "Daily Cash Book";
+    var fromDate = ViewBag.FromDate != null ? (DateTime)ViewBag.FromDate : DateTime.Today;
+    var toDate = ViewBag.ToDate != null ? (DateTime)ViewBag.ToDate : DateTime.Today;
+    var openingBalance = ViewBag.OpeningBalance != null ? (decimal)ViewBag.OpeningBalance : 0;
+    var vouchers = ViewBag.Vouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
+}
+
+<div class="d-print-none">
+    <h2><i class="bi bi-journal-text"></i> Daily Cash Book</h2>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">From Date</label>
+                    <input type="date" name="fromDate" value="@fromDate.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">To Date</label>
+                    <input type="date" name="toDate" value="@toDate.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> View Cash Book
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-calendar-day"></i> Cash Book: @fromDate.ToString("dd-MMM-yyyy")
+            @if (fromDate.Date != toDate.Date)
+            {
+                <span> to @toDate.ToString("dd-MMM-yyyy")</span>
+            }
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <h6>Opening Balance: <span class="text-primary">Rs. @string.Format("{0:N0}", openingBalance)</span></h6>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th colspan="4" class="text-center bg-success text-white">Receipts (Cash In)</th>
+                        <th colspan="4" class="text-center bg-danger text-white">Payments (Cash Out)</th>
+                    </tr>
+                    <tr>
+                        <th>Trans No</th>
+                        <th>Particulars</th>
+                        <th>Customer</th>
+                        <th class="text-end">Amount</th>
+                        <th>Trans No</th>
+                        <th>Particulars</th>
+                        <th>Customer</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var receipts = new List<VoucherManagementSystem.Models.Voucher>();
+                        var payments = new List<VoucherManagementSystem.Models.Voucher>();
+
+                        if (vouchers != null)
+                        {
+                            foreach (var v in vouchers)
+                            {
+                                if ((v.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ||
+                                v.VoucherType == VoucherManagementSystem.Models.VoucherType.CashReceived) &&
+                                v.CashType == VoucherManagementSystem.Models.CashType.Cash)
+                                {
+                                    receipts.Add(v);
+                                }
+                                else if ((v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ||
+                                v.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense ||
+                                v.VoucherType == VoucherManagementSystem.Models.VoucherType.CashPaid ||
+                                v.VoucherType == VoucherManagementSystem.Models.VoucherType.Hazri) &&
+                                v.CashType == VoucherManagementSystem.Models.CashType.Cash)
+                                {
+                                    payments.Add(v);
+                                }
+                            }
+                        }
+
+                        var maxRows = Math.Max(receipts.Count, payments.Count);
+                        decimal totalReceipts = 0;
+                        decimal totalPayments = 0;
+
+                        for (int i = 0; i < maxRows; i++)
+                        {
+                            <tr>
+                                @if (i < receipts.Count)
+                                {
+                                    var receipt = receipts[i];
+                                    totalReceipts += receipt.Amount;
+                                    <td>@receipt.TransactionNumber</td>
+                                    <td>@(receipt.Item?.Name ?? receipt.ReceivingCustomerDetails ?? "Cash Receipt")</td>
+                                    <td>@(receipt.ReceivingCustomer?.Name ?? "-")</td>
+                                    <td class="text-end text-success">@string.Format("{0:N0}", receipt.Amount)</td>
+                                }
+                                else
+                                {
+                                    <td colspan="4">&nbsp;</td>
+                                }
+
+                                @if (i < payments.Count)
+                                {
+                                    var payment = payments[i];
+                                    totalPayments += payment.Amount;
+                                    <td>@payment.TransactionNumber</td>
+                                    <td>@(payment.Item?.Name ?? payment.ExpenseHead?.Name ?? payment.PurchasingCustomerDetails ?? "Cash Payment")</td>
+                                    <td>@(payment.PurchasingCustomer?.Name ?? "-")</td>
+                                    <td class="text-end text-danger">@string.Format("{0:N0}", payment.Amount)</td>
+                                }
+                                else
+                                {
+                                    <td colspan="4">&nbsp;</td>
+                                }
+                            </tr>
+                        }
+
+                        var closingBalance = openingBalance + totalReceipts - totalPayments;
+
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="3">Total Receipts</td>
+                            <td class="text-end text-success">@string.Format("{0:N0}", totalReceipts)</td>
+                            <td colspan="3">Total Payments</td>
+                            <td class="text-end text-danger">@string.Format("{0:N0}", totalPayments)</td>
+                        </tr>
+                        <tr class="table-dark text-white">
+                            <td colspan="4">
+                                Opening Balance: Rs. @string.Format("{0:N0}", openingBalance)
+                            </td>
+                            <td colspan="4" class="text-end">
+                                Closing Balance: Rs. @string.Format("{0:N0}", closingBalance)
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 d-print-none">
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="bi bi-printer"></i> Print Cash Book
+    </button>
+    <a asp-action="CashFlow" class="btn btn-info">
+        <i class="bi bi-cash-stack"></i> Cash Flow Report
+    </a>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Reports
+    </a>
+</div>
+
+@section Scripts {
+    <style>
+        @@media print {
+            .card {
+                border: 1px solid #000 !important;
+            }
+
+            .table-bordered {
+                border: 1px solid #000 !important;
+            }
+
+            .table-bordered th,
+            .table-bordered td {
+                border: 1px solid #000 !important;
+            }
+        }
+    </style>
+}

@@ -1,0 +1,547 @@
+﻿@* Views/Vouchers/Edit.cshtml - ENHANCED VERSION *@
+@model VoucherManagementSystem.Models.Voucher
+@{
+    ViewData["Title"] = "Edit Voucher";
+}
+
+<h2><i class="bi bi-pencil-square"></i> Edit @Model.VoucherType Voucher</h2>
+
+<div class="card">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">Transaction: @Model.TransactionNumber</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="Edit" method="post" id="voucherEditForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="TransactionNumber" />
+            <input type="hidden" asp-for="VoucherType" />
+            <input type="hidden" asp-for="CreatedDate" />
+            <input type="hidden" asp-for="CreatedBy" />
+            <input type="hidden" name="returnToGeneral" value="@(ViewBag.ReturnToGeneral == true ? "true" : "false")" />
+
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label asp-for="TransactionNumber" class="form-label">Transaction Number</label>
+                    <input asp-for="TransactionNumber" class="form-control" readonly />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="VoucherDate" class="form-label">Voucher Date</label>
+                    <input asp-for="VoucherDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-3 mb-3" id="projectSection">
+                    <label asp-for="ProjectId" class="form-label">Project</label>
+                    @Html.DropDownListFor(m => m.ProjectId, ViewBag.Projects as SelectList, "Select Project", new { @class = "form-select" })
+                </div>
+                <div class="col-md-3 mb-3" id="cashTypeSection">
+                    <label asp-for="CashType" class="form-label">Cash Type</label>
+                    <select asp-for="CashType" class="form-select" id="cashType">
+                        <option value="">Select Type</option>
+                        @foreach (var type in Enum.GetValues<VoucherManagementSystem.Models.CashType>())
+                        {
+                            <option value="@type">@type</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="row" id="purchasingCustomerSection">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="PurchasingCustomerId" class="form-label">Purchasing Customer</label>
+                    <div class="input-group">
+                        @Html.DropDownListFor(m => m.PurchasingCustomerId, ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select", id = "purchasingCustomer" })
+                        <button type="button" class="btn btn-outline-secondary" id="copyPurchasingCustomerName" title="Copy customer name to details">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-8 mb-3">
+                    <label asp-for="PurchasingCustomerDetails" class="form-label">Purchasing Customer Details</label>
+                    <input asp-for="PurchasingCustomerDetails" class="form-control" id="purchasingCustomerDetails" />
+                </div>
+            </div>
+
+            <div class="row" id="receivingCustomerSection" style="display:none;">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="ReceivingCustomerId" class="form-label">Receiving Customer</label>
+                    <div class="input-group">
+                        @Html.DropDownListFor(m => m.ReceivingCustomerId, ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select", id = "receivingCustomer" })
+                        <button type="button" class="btn btn-outline-secondary" id="copyReceivingCustomerName" title="Copy customer name to details">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-8 mb-3">
+                    <label asp-for="ReceivingCustomerDetails" class="form-label">Receiving Customer Details</label>
+                    <input asp-for="ReceivingCustomerDetails" class="form-control" id="receivingCustomerDetails" />
+                </div>
+            </div>
+
+            <div class="row" id="bankSection" style="display:none;">
+                <div class="col-md-3 mb-3" id="bankPaidSection">
+                    <label asp-for="BankCustomerPaidId" class="form-label">Bank Customer Paid</label>
+                    @Html.DropDownListFor(m => m.BankCustomerPaidId, ViewBag.Banks as SelectList, "Select Bank", new { @class = "form-select" })
+                </div>
+                <div class="col-md-3 mb-3" id="bankPaidDetailsSection">
+                    <label asp-for="BankCustomerPaidDetails" class="form-label">Bank Paid Details</label>
+                    <input asp-for="BankCustomerPaidDetails" class="form-control" />
+                </div>
+                <div class="col-md-3 mb-3" id="bankReceiverSection">
+                    <label asp-for="BankCustomerReceiverId" class="form-label">Bank Customer Receiver</label>
+                    @Html.DropDownListFor(m => m.BankCustomerReceiverId, ViewBag.Banks as SelectList, "Select Bank", new { @class = "form-select" })
+                </div>
+                <div class="col-md-3 mb-3" id="bankReceiverDetailsSection">
+                    <label asp-for="BankCustomerReceiverDetails" class="form-label">Bank Receiver Details</label>
+                    <input asp-for="BankCustomerReceiverDetails" class="form-control" />
+                </div>
+            </div>
+
+            <div class="row" id="itemSection">
+                <div class="col-md-2 mb-3">
+                    <label asp-for="ItemId" class="form-label">Item</label>
+                    @Html.DropDownListFor(m => m.ItemId, ViewBag.Items as SelectList, "Select Item", new { @class = "form-select", id = "itemSelect" })
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label asp-for="Mon" class="form-label">
+                        Mon <small class="text-muted">(×40=Weight)</small>
+                    </label>
+                    <input asp-for="Mon" class="form-control" id="mon" type="number" step="0.001" />
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label asp-for="Weight" class="form-label">
+                        Weight <small class="text-muted">(Auto)</small>
+                    </label>
+                    <input asp-for="Weight" type="number" step="0.001" class="form-control" id="weight" />
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label asp-for="Kat" class="form-label">
+                        Kat <small class="text-muted">(Deduction)</small>
+                    </label>
+                    <input asp-for="Kat" type="number" step="0.001" class="form-control" id="kat" value="0" />
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label asp-for="Quantity" class="form-label">
+                        Qty <small class="text-muted">(W-K)</small>
+                    </label>
+                    <input asp-for="Quantity" type="number" step="0.001" class="form-control" id="quantity" />
+                </div>
+            </div>
+
+            <div class="row" id="expenseSection" style="display:none;">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="ExpenseHeadId" class="form-label">Expense Head</label>
+                    @Html.DropDownListFor(m => m.ExpenseHeadId, ViewBag.ExpenseHeads as SelectList, "Select Expense Head", new { @class = "form-select", id = "expenseHead" })
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label asp-for="ExpenseHeadRate" class="form-label">Expense Head Rate</label>
+                    <input asp-for="ExpenseHeadRate" type="number" step="0.01" class="form-control" id="expenseHeadRate" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="ExpenseHeadDetails" class="form-label">Expense Head Details</label>
+                    <input asp-for="ExpenseHeadDetails" class="form-control" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-2 mb-3" id="rateSection">
+                    <label asp-for="Rate" class="form-label">
+                        Rate <small class="text-muted">(Auto)</small>
+                    </label>
+                    <input asp-for="Rate" type="number" step="0.01" class="form-control" id="rate" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Amount" class="form-label">
+                        Amount <small class="text-muted">(Qty×Rate)</small>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rs.</span>
+                        <input asp-for="Amount" type="number" step="0.01" class="form-control" id="amount" />
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="GariNo" class="form-label">Gari No.</label>
+                    <input asp-for="GariNo" class="form-control" placeholder="Vehicle Number" />
+                </div>
+                <div class="col-md-2 mb-3" id="stockIncludeSection">
+                    <label class="form-label">Stock Include</label>
+                    <input type="text" class="form-control" id="stockIncludeText" value="@(Model.StockInclude ? "1" : "0")" maxlength="1" />
+                    <input type="hidden" asp-for="StockInclude" id="stockInclude" />
+                    <small class="text-muted">0=No, 1=Yes</small>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Status" class="form-label">Status</label>
+                    <select asp-for="Status" class="form-select">
+                        @foreach (var status in Enum.GetValues<VoucherManagementSystem.Models.TransactionStatus>())
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <strong>Calculation Formula:</strong>
+                        Mon × 40 = Weight | Weight - Kat = Quantity | Quantity × Rate = Amount
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-save"></i> Update Voucher
+                    </button>
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-info">
+                        <i class="bi bi-eye"></i> View Details
+                    </a>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to List
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Initialize stock include hidden field on page load based on text field
+        $(document).ready(function() {
+            var currentValue = $('#stockIncludeText').val();
+            $('#stockInclude').val(currentValue === '1' ? 'True' : 'False');
+        });
+        $(document).ready(function() {
+            // Initialize Select2 for customer dropdowns with search functionality
+            $('#purchasingCustomer, #receivingCustomer').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Customer',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // Initialize Select2 for item dropdown with search functionality
+            $('#itemSelect').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Item',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // Arrow key navigation between form fields
+            var formInputs = 'input:not([readonly]):visible, select:visible, textarea:visible';
+
+            $(document).on('keydown', formInputs, function(e) {
+                // Get all visible and enabled form inputs
+                var $allInputs = $(formInputs).not(':disabled');
+                var currentIndex = $allInputs.index(this);
+
+                // Arrow Right - Move to next field
+                if (e.keyCode === 39) {
+                    e.preventDefault();
+                    if (currentIndex < $allInputs.length - 1) {
+                        var $nextInput = $allInputs.eq(currentIndex + 1);
+                        // If next input is a Select2, open it
+                        if ($nextInput.hasClass('select2-hidden-accessible')) {
+                            $nextInput.select2('open');
+                        } else {
+                            $nextInput.focus().select();
+                        }
+                    }
+                }
+
+                // Arrow Left - Move to previous field
+                if (e.keyCode === 37) {
+                    e.preventDefault();
+                    if (currentIndex > 0) {
+                        var $prevInput = $allInputs.eq(currentIndex - 1);
+                        // If previous input is a Select2, open it
+                        if ($prevInput.hasClass('select2-hidden-accessible')) {
+                            $prevInput.select2('open');
+                        } else {
+                            $prevInput.focus().select();
+                        }
+                    }
+                }
+            });
+
+            // Stock Include text to checkbox conversion
+            $('#stockIncludeText').on('input', function() {
+                var value = $(this).val();
+                if (value === '1') {
+                    $('#stockInclude').val('True');
+                    $(this).val('1');
+                } else {
+                    $('#stockInclude').val('False');
+                    $(this).val('0');
+                }
+            });
+
+            // On form submit, ensure stockInclude hidden field is set correctly
+            $('#voucherEditForm').on('submit', function(e) {
+                var value = $('#stockIncludeText').val();
+                $('#stockInclude').val(value === '1' ? 'True' : 'False');
+
+                // Validate Project is required for Purchase, Sale, Expense, and Hazri
+                var voucherType = '@Model.VoucherType';
+                var projectId = $('#ProjectId').val();
+
+                if ((voucherType === 'Purchase' || voucherType === 'Sale' ||
+                     voucherType === 'Expense' || voucherType === 'Hazri') && !projectId) {
+                    e.preventDefault();
+                    alert('Project is required for ' + voucherType + ' vouchers. Please select a project.');
+                    $('#ProjectId').focus();
+                    return false;
+                }
+            });
+
+            // Arrow key navigation for Select2 search boxes
+            $(document).on('keydown', '.select2-search__field', function(e) {
+                // Arrow Right - Close dropdown and move to next field
+                if (e.keyCode === 39) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Find which Select2 this search belongs to
+                    var $container = $(this).closest('.select2-container');
+                    var $select = $($container.prev('select.select2-hidden-accessible'));
+
+                    // Close the dropdown
+                    $select.select2('close');
+
+                    // Find next field
+                    var $allInputs = $(formInputs).not(':disabled');
+                    var currentIndex = $allInputs.index($select[0]);
+
+                    if (currentIndex < $allInputs.length - 1) {
+                        var $nextInput = $allInputs.eq(currentIndex + 1);
+                        if ($nextInput.hasClass('select2-hidden-accessible')) {
+                            $nextInput.select2('open');
+                        } else {
+                            $nextInput.focus().select();
+                        }
+                    }
+                }
+
+                // Arrow Left - Close dropdown and move to previous field
+                if (e.keyCode === 37) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Find which Select2 this search belongs to
+                    var $container = $(this).closest('.select2-container');
+                    var $select = $($container.prev('select.select2-hidden-accessible'));
+
+                    // Close the dropdown
+                    $select.select2('close');
+
+                    // Find previous field
+                    var $allInputs = $(formInputs).not(':disabled');
+                    var currentIndex = $allInputs.index($select[0]);
+
+                    if (currentIndex > 0) {
+                        var $prevInput = $allInputs.eq(currentIndex - 1);
+                        if ($prevInput.hasClass('select2-hidden-accessible')) {
+                            $prevInput.select2('open');
+                        } else {
+                            $prevInput.focus().select();
+                        }
+                    }
+                }
+            });
+
+            var voucherType = '@Model.VoucherType';
+            configureFormForVoucherType(voucherType);
+
+            // Handle cash type change
+            $('#cashType').on('change', function() {
+                if ($(this).val() == 'Bank') {
+                    $('#bankSection').show();
+                    // For Purchase voucher, hide Bank Receiver fields
+                    if (voucherType === 'Purchase') {
+                        $('#bankReceiverSection, #bankReceiverDetailsSection').hide();
+                    } else {
+                        $('#bankReceiverSection, #bankReceiverDetailsSection').show();
+                    }
+                } else {
+                    $('#bankSection').hide();
+                }
+            });
+
+            // Show bank section on load if CashType is Bank
+            if ('@Model.CashType' === 'Bank') {
+                $('#bankSection').show();
+                if (voucherType === 'Purchase') {
+                    $('#bankReceiverSection, #bankReceiverDetailsSection').hide();
+                }
+            }
+
+            // MON calculation: Mon * 40 = Weight, Kat = 0
+            $('#mon').on('input', function() {
+                var mon = parseFloat($(this).val()) || 0;
+                var weight = mon * 40;
+                $('#weight').val(weight.toFixed(3));
+                $('#kat').val(0);
+                calculateQuantity();
+            });
+
+            // Weight or Kat change: Weight - Kat = Quantity
+            $('#weight, #kat').on('input', function() {
+                calculateQuantity();
+            });
+
+            // Calculate quantity
+            function calculateQuantity() {
+                var weight = parseFloat($('#weight').val()) || 0;
+                var kat = parseFloat($('#kat').val()) || 0;
+                var quantity = weight - kat;
+                $('#quantity').val(quantity.toFixed(3));
+                calculateAmount();
+            }
+
+            // Quantity or Rate change: Quantity * Rate = Amount
+            $('#quantity, #rate').on('input', function() {
+                calculateAmount();
+            });
+
+            function calculateAmount() {
+                var qty = parseFloat($('#quantity').val()) || 0;
+                var rate = parseFloat($('#rate').val()) || 0;
+                $('#amount').val((qty * rate).toFixed(2));
+            }
+
+            // Get item rate for customer (for Sales - Receiving Customer)
+            $('#itemSelect, #receivingCustomer').on('change', function() {
+                var itemId = $('#itemSelect').val();
+                var customerId = $('#receivingCustomer').val();
+
+                if (voucherType == 'Sale' && itemId && customerId) {
+                    $.get('/Vouchers/GetItemRate', { itemId: itemId, customerId: customerId }, function(data) {
+                        $('#rate').val(data.rate);
+                        calculateAmount();
+                    });
+                }
+            });
+
+            // Get item rate for customer (for Purchase - Purchasing Customer)
+            $('#itemSelect, #purchasingCustomer').on('change', function() {
+                var itemId = $('#itemSelect').val();
+                var customerId = $('#purchasingCustomer').val();
+
+                if (voucherType == 'Purchase' && itemId && customerId) {
+                    $.get('/Vouchers/GetItemRate', { itemId: itemId, customerId: customerId }, function(data) {
+                        $('#rate').val(data.rate);
+                        calculateAmount();
+                    });
+                }
+            });
+
+            // Sync Expense Head Rate with Amount ONLY for Expense vouchers
+            $('#expenseHeadRate').on('input', function() {
+                var expenseRate = parseFloat($(this).val()) || 0;
+
+                if (voucherType === 'Expense') {
+                    // For Expense voucher only, expense rate directly sets amount
+                    $('#amount').val(expenseRate.toFixed(2));
+                }
+                // For Purchase/Sale vouchers, expense rate does NOT affect amount
+            });
+
+            $('#amount').on('input', function() {
+                if (voucherType === 'Expense') {
+                    var amount = parseFloat($(this).val()) || 0;
+                    $('#expenseHeadRate').val(amount.toFixed(2));
+                }
+            });
+
+            // Initialize calculations on load
+            if ($('#mon').val()) {
+                $('#mon').trigger('input');
+            }
+
+            // Copy customer name to clipboard
+            $('#copyPurchasingCustomerName').on('click', function() {
+                var selectedText = $('#purchasingCustomer option:selected').text();
+                if (selectedText && selectedText !== 'Select Customer') {
+                    navigator.clipboard.writeText(selectedText).then(function() {
+                        // Visual feedback
+                        var btn = $('#copyPurchasingCustomerName');
+                        var originalHTML = btn.html();
+                        btn.html('<i class="bi bi-check"></i>');
+                        setTimeout(function() {
+                            btn.html(originalHTML);
+                        }, 1000);
+                    });
+                }
+            });
+
+            $('#copyReceivingCustomerName').on('click', function() {
+                var selectedText = $('#receivingCustomer option:selected').text();
+                if (selectedText && selectedText !== 'Select Customer') {
+                    navigator.clipboard.writeText(selectedText).then(function() {
+                        // Visual feedback
+                        var btn = $('#copyReceivingCustomerName');
+                        var originalHTML = btn.html();
+                        btn.html('<i class="bi bi-check"></i>');
+                        setTimeout(function() {
+                            btn.html(originalHTML);
+                        }, 1000);
+                    });
+                }
+            });
+        });
+
+        function configureFormForVoucherType(type) {
+            // Reset all sections
+            $('#purchasingCustomerSection, #receivingCustomerSection, #bankSection, #itemSection, #expenseSection').hide();
+            $('#rateSection, #stockIncludeSection, #projectSection, #cashTypeSection').show();
+            $('.col-md-3.mb-3:has(label[for="GariNo"])').show();
+
+            switch(type) {
+                case 'Purchase':
+                    $('#purchasingCustomerSection, #itemSection, #expenseSection').show();
+                    $('#stockIncludeSection').show();
+                    break;
+                case 'Sale':
+                    $('#receivingCustomerSection, #itemSection, #expenseSection').show();
+                    $('#stockIncludeSection').show();
+                    break;
+                case 'Expense':
+                    $('#expenseSection').show();
+                    $('#rateSection, #stockIncludeSection').hide();
+                    break;
+                case 'Hazri':
+                    $('#expenseSection, #itemSection').show();
+                    $('#cashTypeSection').hide();
+                    $('.col-md-2.mb-3:has(label[for="Mon"])').hide();
+                    $('.col-md-2.mb-3:has(label[for="Weight"])').hide();
+                    $('.col-md-2.mb-3:has(label[for="Kat"])').hide();
+                    $('.col-md-2.mb-3:has(label[for="ExpenseHeadRate"])').hide();
+                    $('#stockIncludeSection').hide();
+                    break;
+                case 'CashPaid':
+                    $('#purchasingCustomerSection').show();
+                    $('#rateSection, #stockIncludeSection, #projectSection').hide();
+                    $('.col-md-3.mb-3:has(label[for="GariNo"])').hide();
+                    break;
+                case 'CashReceived':
+                    $('#receivingCustomerSection').show();
+                    $('#rateSection, #stockIncludeSection').hide();
+                    $('.col-md-3.mb-3:has(label[for="GariNo"])').hide();
+                    break;
+                case 'CCR':
+                    $('#purchasingCustomerSection, #receivingCustomerSection').show();
+                    $('#rateSection, #stockIncludeSection, #cashTypeSection, #projectSection').hide();
+                    $('.col-md-3.mb-3:has(label[for="GariNo"])').hide();
+                    break;
+                case 'BCR':
+                    $('#bankSection').show();
+                    $('#rateSection, #stockIncludeSection, #cashTypeSection, #projectSection').hide();
+                    $('.col-md-3.mb-3:has(label[for="GariNo"])').hide();
+                    break;
+            }
+        }
+    </script>
+}

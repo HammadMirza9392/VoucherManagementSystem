@@ -1,0 +1,274 @@
+@* Views/Reports/Index.cshtml *@
+@{
+    ViewData["Title"] = "Reports";
+}
+
+<!-- Quick Access Cards -->
+<div class="row mb-4 mt-4">
+    <div class="col-md-3">
+        <a asp-action="CapitalReport" class="text-decoration-none">
+            <div class="card bg-dark h-100 dashboard-card">
+                <div class="card-body text-center text-white">
+                    <i class="bi bi-bank fs-1 text-white"></i>
+                    <h5 class="mt-2 text-white">Capital Report</h5>
+                    <small class="text-white" style="opacity: 1 !important;">Complete Financial Overview</small>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-action="AllCustomersReport" class="text-decoration-none">
+            <div class="card bg-primary h-100 dashboard-card">
+                <div class="card-body text-center text-white">
+                    <i class="bi bi-people fs-1 text-white"></i>
+                    <h5 class="mt-2 text-white">All Customers</h5>
+                    <small class="text-white" style="opacity: 1 !important;">Receivables & Payables</small>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-action="AllProjectsReport" class="text-decoration-none">
+            <div class="card bg-info h-100 dashboard-card">
+                <div class="card-body text-center text-white">
+                    <i class="bi bi-diagram-3 fs-1 text-white"></i>
+                    <h5 class="mt-2 text-white">All Projects</h5>
+                    <small class="text-white" style="opacity: 1 !important;">Projects Overview</small>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-action="AllExpensesReport" class="text-decoration-none">
+            <div class="card bg-danger h-100 dashboard-card">
+                <div class="card-body text-center text-white">
+                    <i class="bi bi-receipt fs-1 text-white"></i>
+                    <h5 class="mt-2 text-white">All Expenses</h5>
+                    <small class="text-white" style="opacity: 1 !important;">Expense Summary</small>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <a asp-action="ExpenseReport" class="text-decoration-none">
+            <div class="card bg-danger h-100 dashboard-card">
+                <div class="card-body text-center text-white">
+                    <i class="bi bi-wallet2 fs-1 text-white"></i>
+                    <h5 class="mt-2 text-white">Expense Report</h5>
+                    <small class="text-white" style="opacity: 1 !important;">Detailed Expense Analysis</small>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-action="HazriReport" class="text-decoration-none">
+            <div class="card bg-warning h-100 dashboard-card">
+                <div class="card-body text-center text-dark">
+                    <i class="bi bi-people-fill fs-1 text-dark"></i>
+                    <h5 class="mt-2 text-dark">Hazri Report</h5>
+                    <small class="text-dark" style="opacity: 1 !important;">Attendance & Labor Payments</small>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="bi bi-bar-chart"></i> Project Profit & Loss Report</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Generate profit and loss statements for your projects.</p>
+                <form asp-action="ProfitLoss" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Select Project <span class="text-danger">*</span></label>
+                        @if (ViewBag.Projects != null)
+                        {
+                            @Html.DropDownList("projectId", ViewBag.Projects as SelectList, "-- Select Project --", new { @class = "form-select", required = "required" })
+                        }
+                        else
+                        {
+                            <select class="form-select" disabled>
+                                <option>No projects available</option>
+                            </select>
+                        }
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">From Date <span class="text-danger">*</span></label>
+                            <input type="date" name="fromDate" class="form-control" required value="@DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">To Date <span class="text-danger">*</span></label>
+                            <input type="date" name="toDate" class="form-control" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-file-earmark-text"></i> Generate P&L Report
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                <h5><i class="bi bi-bank"></i> Bank Statement</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">View detailed bank transaction statements.</p>
+                <form asp-action="BankStatement" method="get">
+                    <div class="mb-3">
+                        <label class="form-label">Select Bank <span class="text-danger">*</span></label>
+                        @if (ViewBag.Banks != null)
+                        {
+                            @Html.DropDownList("bankId", ViewBag.Banks as SelectList, "-- Select Bank --", new { @class = "form-select", required = "required" })
+                        }
+                        else
+                        {
+                            <select class="form-select" disabled>
+                                <option>No banks available</option>
+                            </select>
+                        }
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">From Date <span class="text-danger">*</span></label>
+                            <input type="date" name="fromDate" class="form-control" required value="@DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">To Date <span class="text-danger">*</span></label>
+                            <input type="date" name="toDate" class="form-control" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-file-earmark-text"></i> Generate Bank Statement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                <h5><i class="bi bi-cash-stack"></i> Cash Statement</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">View detailed cash in hand transaction statements with date filters.</p>
+                <a asp-action="CashStatement" class="btn btn-success w-100">
+                    <i class="bi bi-file-earmark-text"></i> View Cash Statement
+                </a>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="bi bi-receipt-cutoff"></i> Daily Cash Book</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">View daily cash transactions and balances.</p>
+                <a asp-action="DailyCashBook" class="btn btn-primary w-100">
+                    <i class="bi bi-file-earmark-text"></i> View Daily Cash Book
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header bg-info text-white">
+                <h5><i class="bi bi-box-seam"></i> Stock Report</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">View current stock levels and inventory valuation.</p>
+                <a asp-action="StockReport" class="btn btn-info w-100">
+                    <i class="bi bi-file-earmark-text"></i> View Current Stock Report
+                </a>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="bi bi-box-arrow-in-down"></i> Stock Track Report</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Track which customer purchased/sold items and when.</p>
+                <a asp-action="StockTrackReport" class="btn btn-primary w-100">
+                    <i class="bi bi-file-earmark-text"></i> View Stock Track Report
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="bi bi-person-lines-fill"></i> Customer Ledger</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">View detailed customer account statements and transaction history.</p>
+                <a asp-action="CustomerLedger" class="btn btn-danger w-100">
+                    <i class="bi bi-file-earmark-text"></i> View Customer Ledger
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header bg-dark text-white">
+                <h5><i class="bi bi-clock-history"></i> Activity Log</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">View all entries added, edited, or updated by date (system change history).</p>
+                <a asp-action="ActivityLog" class="btn btn-dark w-100">
+                    <i class="bi bi-file-earmark-text"></i> View Activity Log
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5><i class="bi bi-clock-history"></i> Quick Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="p-3 border rounded">
+                            <h4 class="text-primary">@ViewBag.TotalVouchers</h4>
+                            <p class="mb-0">Total Vouchers</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 border rounded">
+                            <h4 class="text-success">@ViewBag.ActiveProjects</h4>
+                            <p class="mb-0">Active Projects</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 border rounded">
+                            <h4 class="text-info">@ViewBag.TotalCustomers</h4>
+                            <p class="mb-0">Total Customers</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 border rounded">
+                            <h4 class="text-warning">@ViewBag.TotalItems</h4>
+                            <p class="mb-0">Total Items</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

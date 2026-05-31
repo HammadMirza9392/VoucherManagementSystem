@@ -1,0 +1,1068 @@
+@model VoucherManagementSystem.Models.Voucher
+@{
+    ViewData["Title"] = "General Voucher Creation";
+    var voucherList = ViewBag.VoucherList as List<VoucherManagementSystem.Models.Voucher>;
+}
+
+@section Styles {
+    <style>
+        /* Label styling for voucher forms */
+        #voucherForm label,
+        #voucherForm .form-label {
+            background-color: #9b0000;
+            color: white;
+            padding: 8px;
+            border-radius: 3px;
+            display: block;
+            margin-bottom: 2px;
+            font-weight: normal;
+            text-align: center;
+            width: 100%;
+            font-size: calc(1rem + 2px);
+        }
+
+        /* Consistent field sizes in table */
+        #voucherForm table td {
+            min-width: 120px;
+            width: auto;
+        }
+
+        /* Make all form controls same height */
+        #voucherForm .form-control,
+        #voucherForm .form-select,
+        #voucherForm .form-control-sm,
+        #voucherForm .form-select-sm {
+            height: auto;
+            min-height: 38px;
+        }
+
+        /* Top row equal width fields */
+        .top-fields-row .col-equal {
+            flex: 1;
+            max-width: none;
+        }
+    </style>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- All Vouchers List Section -->
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">All Vouchers (Total: @ViewBag.TotalRecords)</h5>
+        <button type="button" id="deleteSelected" class="btn btn-danger btn-sm" style="display:none;">
+            <i class="bi bi-trash"></i> Delete Selected
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAll" title="Select All" /></th>
+                        <th>Type</th>
+                        <th>Transaction No</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Item</th>
+                        <th>Project</th>
+                        <th>Quantity</th>
+                        <th>Rate</th>
+                        <th>Amount</th>
+                        @if (Context.Session.GetString("UserRole") == "Admin")
+                        {
+                            <th>Added By</th>
+                        }
+                        <th>Updated By</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (voucherList != null && voucherList.Any())
+                    {
+                        @foreach (var item in voucherList)
+                        {
+                            <tr>
+                                <td><input type="checkbox" class="voucher-checkbox" value="@item.Id" /></td>
+                                <td>
+                                    <span class="badge bg-@(item.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
+                                                            item.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ? "success" :
+                                                            item.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense ? "danger" : "secondary")">
+                                        @item.VoucherType
+                                    </span>
+                                </td>
+                                <td>@item.TransactionNumber</td>
+                                <td>@item.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                <td>
+                                    @{
+                                        var customerId = item.PurchasingCustomerId ?? item.ReceivingCustomerId;
+                                        var customerName = item.PurchasingCustomer?.Name ?? item.ReceivingCustomer?.Name;
+                                    }
+                                    @if (customerId.HasValue && !string.IsNullOrEmpty(customerName))
+                                    {
+                                        <a href="#" class="customer-ledger-link text-decoration-none" data-customer-id="@customerId.Value" title="View Customer Ledger">
+                                            @customerName
+                                        </a>
+                                    }
+                                </td>
+                                <td>@item.Item?.Name</td>
+                                <td>
+                                    @if (item.ProjectId.HasValue && item.Project != null)
+                                    {
+                                        <a asp-controller="Reports" asp-action="ProjectReport" asp-route-projectId="@item.ProjectId" class="text-decoration-none" title="View Project Report">
+                                            @item.Project.Name
+                                        </a>
+                                    }
+                                </td>
+                                <td>@(item.Quantity.HasValue ? string.Format("{0:N3}", item.Quantity.Value) : "-")</td>
+                                <td>@(item.Rate.HasValue ? string.Format("{0:N2}", item.Rate.Value) : "-")</td>
+                                <td>@string.Format("{0:N0}", item.Amount)</td>
+                                @if (Context.Session.GetString("UserRole") == "Admin")
+                                {
+                                    <td>@(item.CreatedBy ?? "N/A")</td>
+                                }
+                                <td>@(item.UpdatedBy ?? "N/A")</td>
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info" title="Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@item.Id" asp-route-returnToGeneral="true" class="btn btn-sm btn-warning" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger delete-voucher" data-id="@item.Id" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="@(Context.Session.GetString("UserRole") == "Admin" ? "14" : "13")" class="text-center">No vouchers found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (ViewBag.TotalPages > 1)
+        {
+            <nav aria-label="Voucher pagination">
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(ViewBag.CurrentPage - 1)">Previous</a>
+                    </li>
+
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@i">@i</a>
+                        </li>
+                    }
+
+                    <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(ViewBag.CurrentPage + 1)">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    </div>
+</div>
+
+<!-- Create Form Section -->
+<div class="card">
+    <div class="card-header">
+        <h5>Add New Voucher</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="Create" id="voucherForm">
+            <input type="hidden" name="returnToGeneral" value="true" />
+            <!-- Top Fields: Transaction Number, Date, and Voucher Type -->
+            <div class="row mb-3 top-fields-row">
+                <div class="col-equal">
+                    <label asp-for="TransactionNumber" class="form-label">Transaction Number</label>
+                    <input asp-for="TransactionNumber" class="form-control" id="TransactionNumber" readonly />
+                </div>
+                <div class="col-equal">
+                    <label asp-for="VoucherDate" class="form-label">Voucher Date</label>
+                    <input asp-for="VoucherDate" type="date" class="form-control" id="voucherDate" />
+                </div>
+                <div class="col-equal">
+                    <label asp-for="VoucherType" class="form-label">Voucher Type</label>
+                    <select asp-for="VoucherType" class="form-select" id="voucherTypeSelect">
+                        @foreach (var type in Enum.GetValues<VoucherManagementSystem.Models.VoucherType>())
+                        {
+                            <option value="@type">@type</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Single Row Layout with Multiple Sub-rows -->
+            <div class="table-responsive">
+                <table class="table table-bordered" style="table-layout: auto; white-space: nowrap;">
+                    <tbody>
+                        <tr>
+                            <!-- Column 1: Project & Cash Type -->
+                            <td id="projectCashTypeColumn" style="vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr id="projectRow">
+                                        <td style="padding: 2px;">
+                                            <label asp-for="ProjectId" class="form-label mb-1" style="font-size: 0.85rem;">Project</label>
+                                            @Html.DropDownListFor(m => m.ProjectId, ViewBag.Projects as SelectList, "Select Project", new { @class = "form-select form-select-sm" })
+                                        </td>
+                                    </tr>
+                                    <tr id="cashTypeRow">
+                                        <td style="padding: 2px;">
+                                            <label asp-for="CashType" class="form-label mb-1" style="font-size: 0.85rem;">Cash Type</label>
+                                            <select asp-for="CashType" class="form-select form-select-sm" id="cashType">
+                                                <option value="">Select Type</option>
+                                                @foreach (var type in Enum.GetValues<VoucherManagementSystem.Models.CashType>())
+                                                {
+                                                    <option value="@type">@type</option>
+                                                }
+                                            </select>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Column 2: Bank Details (shown when Cash Type = Bank) -->
+                            <td id="bankColumn" style="display:none; vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr id="bankPaidRow">
+                                        <td style="padding: 2px;">
+                                            <label asp-for="BankCustomerPaidId" class="form-label mb-1" style="font-size: 0.85rem;">Bank Paid</label>
+                                            @Html.DropDownListFor(m => m.BankCustomerPaidId, ViewBag.Banks as SelectList, "Select Bank", new { @class = "form-select form-select-sm" })
+                                        </td>
+                                    </tr>
+                                    <tr id="bankPaidDetailsRow">
+                                        <td style="padding: 2px;">
+                                            <label asp-for="BankCustomerPaidDetails" class="form-label mb-1" style="font-size: 0.85rem;">Bank Paid Details</label>
+                                            <input asp-for="BankCustomerPaidDetails" class="form-control form-control-sm" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Column 2b: Bank Receiver (for certain voucher types) -->
+                            <td id="bankReceiverColumn" style="display:none; vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr id="bankReceiverRow">
+                                        <td style="padding: 2px;">
+                                            <label asp-for="BankCustomerReceiverId" class="form-label mb-1" style="font-size: 0.85rem;">Bank Receiver</label>
+                                            @Html.DropDownListFor(m => m.BankCustomerReceiverId, ViewBag.Banks as SelectList, "Select Bank", new { @class = "form-select form-select-sm" })
+                                        </td>
+                                    </tr>
+                                    <tr id="bankReceiverDetailsRow">
+                                        <td style="padding: 2px;">
+                                            <label asp-for="BankCustomerReceiverDetails" class="form-label mb-1" style="font-size: 0.85rem;">Bank Receiver Details</label>
+                                            <input asp-for="BankCustomerReceiverDetails" class="form-control form-control-sm" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Column 3: Purchasing Customer -->
+                            <td id="purchasingCustomerColumn" style="display:none; vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="PurchasingCustomerId" class="form-label mb-1" style="font-size: 0.85rem;">Purchasing Customer</label>
+                                            <div class="input-group input-group-sm">
+                                                @Html.DropDownListFor(m => m.PurchasingCustomerId, ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select form-select-sm", id = "purchasingCustomer" })
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="viewPurchasingCustomerLedger" title="View Ledger">
+                                                    <i class="bi bi-file-text"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPurchasingCustomerName" title="Copy">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="PurchasingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Details</label>
+                                            <input asp-for="PurchasingCustomerDetails" class="form-control form-control-sm" id="purchasingCustomerDetails" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Column 4: Receiving Customer -->
+                            <td id="receivingCustomerColumn" style="display:none; vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="ReceivingCustomerId" class="form-label mb-1" style="font-size: 0.85rem;">Receiving Customer</label>
+                                            <div class="input-group input-group-sm">
+                                                @Html.DropDownListFor(m => m.ReceivingCustomerId, ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select form-select-sm", id = "receivingCustomer" })
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="viewReceivingCustomerLedger" title="View Ledger">
+                                                    <i class="bi bi-file-text"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyReceivingCustomerName" title="Copy">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="ReceivingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Details</label>
+                                            <input asp-for="ReceivingCustomerDetails" class="form-control form-control-sm" id="receivingCustomerDetails" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Column 5: Item -->
+                            <td id="itemColumn" style="display:none; vertical-align: top; padding: 8px; min-width: 180px;">
+                                <label asp-for="ItemId" class="form-label mb-1" style="font-size: 0.85rem;">Item</label>
+                                @Html.DropDownListFor(m => m.ItemId, ViewBag.Items as SelectList, "Select Item", new { @class = "form-select form-select-sm", id = "itemSelect" })
+                            </td>
+
+                            <!-- Column 6: Mon & Weight -->
+                            <td id="monWeightColumn" style="display:none; vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="Mon" class="form-label mb-1" style="font-size: 0.85rem;">
+                                                Mon <small id="monMultiplierHint" class="text-white opacity-75" style="font-size:0.7rem;"></small>
+                                            </label>
+                                            <input asp-for="Mon" class="form-control form-control-sm" id="Mon" type="number" step="0.001" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="Weight" class="form-label mb-1" style="font-size: 0.85rem;">Weight</label>
+                                            <input asp-for="Weight" type="number" step="0.001" class="form-control form-control-sm" id="weight" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Column 7: Kat & Quantity -->
+                            <td id="katQuantityColumn" style="display:none; vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="Kat" class="form-label mb-1" style="font-size: 0.85rem;">Kat</label>
+                                            <input asp-for="Kat" type="number" step="0.001" class="form-control form-control-sm" id="kat" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="Quantity" class="form-label mb-1" style="font-size: 0.85rem;">Quantity</label>
+                                            <input asp-for="Quantity" type="number" step="0.001" class="form-control form-control-sm" id="quantity" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Column 8: Expense Head (3 rows) -->
+                            <td id="expenseHeadColumn" style="display:none; vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="ExpenseHeadId" class="form-label mb-1" style="font-size: 0.85rem;">Expense Head</label>
+                                            @Html.DropDownListFor(m => m.ExpenseHeadId, ViewBag.ExpenseHeads as SelectList, "Select Expense Head", new { @class = "form-select form-select-sm", id = "expenseHead" })
+                                        </td>
+                                    </tr>
+                                    <tr id="expenseRateRow">
+                                        <td style="padding: 2px;">
+                                            <label asp-for="ExpenseHeadRate" class="form-label mb-1" style="font-size: 0.85rem;">Expense Rate</label>
+                                            <input asp-for="ExpenseHeadRate" type="number" step="0.01" class="form-control form-control-sm" id="expenseHeadRate" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="ExpenseHeadDetails" class="form-label mb-1" style="font-size: 0.85rem;">Expense Details</label>
+                                            <input asp-for="ExpenseHeadDetails" class="form-control form-control-sm" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Column 9: Rate & Amount -->
+                            <td id="rateAmountColumn" style="vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr id="rateRow">
+                                        <td style="padding: 2px;">
+                                            <label asp-for="Rate" class="form-label mb-1" style="font-size: 0.85rem;">Rate</label>
+                                            <input asp-for="Rate" type="number" step="0.01" class="form-control form-control-sm" id="rate" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="Amount" class="form-label mb-1" style="font-size: 0.85rem;">Amount</label>
+                                            <input asp-for="Amount" type="number" step="0.01" class="form-control form-control-sm" id="amount" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Column 10: Gari No & Stock -->
+                            <td id="gariStockColumn" style="display:none; vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="GariNo" class="form-label mb-1" style="font-size: 0.85rem;">Gari No.</label>
+                                            <input asp-for="GariNo" class="form-control form-control-sm" />
+                                        </td>
+                                    </tr>
+                                    <tr id="stockIncludeRow">
+                                        <td style="padding: 2px;">
+                                            <label class="form-label mb-1" style="font-size: 0.85rem;">Stock (0/1)</label>
+                                            <input type="text" class="form-control form-control-sm" id="stockIncludeText" value="1" maxlength="1" />
+                                            <input type="hidden" asp-for="StockInclude" id="stockInclude" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Submit Button Column -->
+                            <td style="vertical-align: middle; padding: 8px;">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="bi bi-check-circle"></i> Save
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-12">
+                    <a asp-action="Index" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> Back to List
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize stock include hidden field on page load (default to True for Purchase/Sale)
+            $('#stockInclude').val('True');
+
+            // Load saved voucher date from localStorage or set to today
+            var savedDate = localStorage.getItem('voucherDate');
+            if (savedDate) {
+                $('#voucherDate').val(savedDate);
+            }
+
+            // Save voucher date to localStorage when changed
+            $('#voucherDate').on('change', function() {
+                localStorage.setItem('voucherDate', $(this).val());
+            });
+
+            // Restore saved form selections (project, voucher type, cash type, customer)
+            var savedVoucherType = localStorage.getItem('gc_voucherType');
+            var savedProjectId = localStorage.getItem('gc_projectId');
+            var savedCashType = localStorage.getItem('gc_cashType');
+            var savedPurchasingCustomer = localStorage.getItem('gc_purchasingCustomer');
+            var savedReceivingCustomer = localStorage.getItem('gc_receivingCustomer');
+
+            if (savedVoucherType) {
+                $('#voucherTypeSelect').val(savedVoucherType);
+                configureFormForVoucherType(savedVoucherType);
+                updateTransactionNumber(savedVoucherType);
+            }
+            if (savedProjectId) {
+                $('#ProjectId').val(savedProjectId);
+            }
+            if (savedCashType) {
+                $('#cashType').val(savedCashType);
+                if (savedCashType === 'Bank') {
+                    $('#bankColumn').show();
+                }
+            }
+            if (savedPurchasingCustomer) {
+                $('#purchasingCustomer').val(savedPurchasingCustomer).trigger('change');
+            }
+            if (savedReceivingCustomer) {
+                $('#receivingCustomer').val(savedReceivingCustomer).trigger('change');
+            }
+
+            // Save selections to localStorage on change
+            $('#ProjectId').on('change', function() {
+                localStorage.setItem('gc_projectId', $(this).val());
+            });
+            $('#cashType').on('change', function() {
+                localStorage.setItem('gc_cashType', $(this).val());
+            });
+            $('#purchasingCustomer').on('change', function() {
+                localStorage.setItem('gc_purchasingCustomer', $(this).val());
+            });
+            $('#receivingCustomer').on('change', function() {
+                localStorage.setItem('gc_receivingCustomer', $(this).val());
+            });
+
+            // Auto-scroll to form after page load (when redirected after save)
+            @if (TempData["Success"] != null)
+            {
+                <text>
+                setTimeout(function() {
+                    $('html, body').animate({
+                        scrollTop: $('#voucherForm').offset().top - 100
+                    }, 500);
+                    // Focus on first field (Voucher Type)
+                    $('#voucherTypeSelect').focus();
+                }, 300);
+                </text>
+            }
+
+            // Initialize Select2 for customer dropdowns with search functionality
+            $('#purchasingCustomer, #receivingCustomer').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Customer',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // Initialize Select2 for item dropdown with search functionality
+            $('#itemSelect').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Item',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // Arrow and Enter key navigation between form fields
+            var formInputs = 'input:not([readonly]):visible, select:visible, textarea:visible, button[type="submit"]:visible';
+
+            $(document).on('keydown', formInputs, function(e) {
+                // Get all visible and enabled form inputs
+                var $allInputs = $(formInputs).not(':disabled');
+                var currentIndex = $allInputs.index(this);
+
+                // Enter key - Move to next field (except on submit button)
+                if (e.keyCode === 13) {
+                    // If current element is submit button, allow default submit behavior
+                    if ($(this).is('button[type="submit"]')) {
+                        return true;
+                    }
+
+                    // Prevent form submission
+                    e.preventDefault();
+
+                    // Move to next field
+                    if (currentIndex < $allInputs.length - 1) {
+                        var $nextInput = $allInputs.eq(currentIndex + 1);
+                        // If next input is a Select2, open it
+                        if ($nextInput.hasClass('select2-hidden-accessible')) {
+                            $nextInput.select2('open');
+                        } else if ($nextInput.is('button[type="submit"]')) {
+                            $nextInput.focus();
+                        } else {
+                            $nextInput.focus().select();
+                        }
+                    }
+                }
+
+                // Arrow Right - Move to next field
+                if (e.keyCode === 39) {
+                    e.preventDefault();
+                    if (currentIndex < $allInputs.length - 1) {
+                        var $nextInput = $allInputs.eq(currentIndex + 1);
+                        // If next input is a Select2, open it
+                        if ($nextInput.hasClass('select2-hidden-accessible')) {
+                            $nextInput.select2('open');
+                        } else if ($nextInput.is('button[type="submit"]')) {
+                            $nextInput.focus();
+                        } else {
+                            $nextInput.focus().select();
+                        }
+                    }
+                }
+
+                // Arrow Left - Move to previous field
+                if (e.keyCode === 37) {
+                    e.preventDefault();
+                    if (currentIndex > 0) {
+                        var $prevInput = $allInputs.eq(currentIndex - 1);
+                        // If previous input is a Select2, open it
+                        if ($prevInput.hasClass('select2-hidden-accessible')) {
+                            $prevInput.select2('open');
+                        } else if ($prevInput.is('button[type="submit"]')) {
+                            $prevInput.focus();
+                        } else {
+                            $prevInput.focus().select();
+                        }
+                    }
+                }
+            });
+
+            // Stock Include text to checkbox conversion
+            $('#stockIncludeText').on('input', function() {
+                var value = $(this).val();
+                if (value === '1') {
+                    $('#stockInclude').val('True');
+                    $(this).val('1');
+                } else {
+                    $('#stockInclude').val('False');
+                    $(this).val('0');
+                }
+            });
+
+            // On form submit, ensure stockInclude hidden field is set correctly
+            $('#voucherForm').on('submit', function(e) {
+                var value = $('#stockIncludeText').val();
+                $('#stockInclude').val(value === '1' ? 'True' : 'False');
+
+                // Validate Project is required for Purchase, Sale, Expense, and Hazri
+                var voucherType = $('#voucherTypeSelect').val();
+                var projectId = $('#ProjectId').val();
+
+                if ((voucherType === 'Purchase' || voucherType === 'Sale' ||
+                     voucherType === 'Expense' || voucherType === 'Hazri') && !projectId) {
+                    e.preventDefault();
+                    alert('Project is required for ' + voucherType + ' vouchers. Please select a project.');
+                    $('#ProjectId').focus();
+                    return false;
+                }
+            });
+
+            // Enter and Arrow key navigation for Select2 search boxes
+            $(document).on('keydown', '.select2-search__field', function(e) {
+                // Enter key - Close dropdown and move to next field (if item is selected)
+                if (e.keyCode === 13) {
+                    var $container = $(this).closest('.select2-container');
+                    var $select = $($container.prev('select.select2-hidden-accessible'));
+
+                    // Small delay to let Select2 process the selection
+                    setTimeout(function() {
+                        $select.select2('close');
+
+                        var $allInputs = $(formInputs).not(':disabled');
+                        var currentIndex = $allInputs.index($select[0]);
+
+                        if (currentIndex < $allInputs.length - 1) {
+                            var $nextInput = $allInputs.eq(currentIndex + 1);
+                            if ($nextInput.hasClass('select2-hidden-accessible')) {
+                                $nextInput.select2('open');
+                            } else if ($nextInput.is('button[type="submit"]')) {
+                                $nextInput.focus();
+                            } else {
+                                $nextInput.focus().select();
+                            }
+                        }
+                    }, 50);
+                }
+
+                // Arrow Right - Close dropdown and move to next field
+                if (e.keyCode === 39) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Find which Select2 this search belongs to
+                    var $container = $(this).closest('.select2-container');
+                    var $select = $($container.prev('select.select2-hidden-accessible'));
+
+                    // Close the dropdown
+                    $select.select2('close');
+
+                    // Find next field
+                    var $allInputs = $(formInputs).not(':disabled');
+                    var currentIndex = $allInputs.index($select[0]);
+
+                    if (currentIndex < $allInputs.length - 1) {
+                        var $nextInput = $allInputs.eq(currentIndex + 1);
+                        if ($nextInput.hasClass('select2-hidden-accessible')) {
+                            $nextInput.select2('open');
+                        } else if ($nextInput.is('button[type="submit"]')) {
+                            $nextInput.focus();
+                        } else {
+                            $nextInput.focus().select();
+                        }
+                    }
+                }
+
+                // Arrow Left - Close dropdown and move to previous field
+                if (e.keyCode === 37) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Find which Select2 this search belongs to
+                    var $container = $(this).closest('.select2-container');
+                    var $select = $($container.prev('select.select2-hidden-accessible'));
+
+                    // Close the dropdown
+                    $select.select2('close');
+
+                    // Find previous field
+                    var $allInputs = $(formInputs).not(':disabled');
+                    var currentIndex = $allInputs.index($select[0]);
+
+                    if (currentIndex > 0) {
+                        var $prevInput = $allInputs.eq(currentIndex - 1);
+                        if ($prevInput.hasClass('select2-hidden-accessible')) {
+                            $prevInput.select2('open');
+                        } else if ($prevInput.is('button[type="submit"]')) {
+                            $prevInput.focus();
+                        } else {
+                            $prevInput.focus().select();
+                        }
+                    }
+                }
+            });
+
+            // Get initial transaction number
+            var initialType = $('#voucherTypeSelect').val();
+            updateTransactionNumber(initialType);
+
+            // Handle Voucher Type change
+            $('#voucherTypeSelect').on('change', function() {
+                var voucherType = $(this).val();
+                localStorage.setItem('gc_voucherType', voucherType);
+                // Clear customer/cash selections when type changes
+                localStorage.removeItem('gc_cashType');
+                localStorage.removeItem('gc_purchasingCustomer');
+                localStorage.removeItem('gc_receivingCustomer');
+                updateTransactionNumber(voucherType);
+                configureFormForVoucherType(voucherType);
+                clearFormFields();
+                // Fetch multiplier for new voucher type
+                fetchMonMultiplier(voucherType);
+            });
+
+            // Show/hide sections based on initial voucher type
+            configureFormForVoucherType(initialType);
+
+            // Handle cash type change
+            $('#cashType').on('change', function() {
+                var voucherType = $('#voucherTypeSelect').val();
+                if ($(this).val() == 'Bank') {
+                    $('#bankColumn').show();
+                    // For Purchase voucher, hide Bank Receiver column
+                    if (voucherType === 'Purchase') {
+                        $('#bankReceiverColumn').hide();
+                    } else {
+                        $('#bankReceiverColumn').show();
+                    }
+                } else {
+                    $('#bankColumn, #bankReceiverColumn').hide();
+                }
+            });
+
+            // Current Mon multiplier (fetched from server based on voucher type)
+            var currentMonMultiplier = 40;
+
+            function fetchMonMultiplier(voucherType) {
+                if (!voucherType) return;
+                $.get('/MonMultiplier/GetMultiplier', { voucherType: voucherType }, function(data) {
+                    currentMonMultiplier = data.multiplier || 40;
+                    // Show multiplier hint near Mon field
+                    var hint = '× ' + currentMonMultiplier + ' = Weight';
+                    if ($('#monMultiplierHint').length) {
+                        $('#monMultiplierHint').text(hint);
+                    }
+                });
+            }
+
+            // Fetch multiplier for initial voucher type
+            fetchMonMultiplier($('#voucherTypeSelect').val());
+
+            // Calculate Weight, Kat, and Quantity when Mon changes
+            $('#Mon').on('input', function() {
+                var mon = parseFloat($(this).val()) || 0;
+                var weight = mon * currentMonMultiplier;
+                $('#weight').val(weight.toFixed(3));
+                $('#kat').val(0);
+                var quantity = weight - 0;
+                $('#quantity').val(quantity.toFixed(3));
+                // Trigger amount calculation
+                $('#quantity').trigger('change');
+            });
+
+            // Calculate Quantity when Weight or Kat changes
+            $('#weight, #kat').on('input', function() {
+                var weight = parseFloat($('#weight').val()) || 0;
+                var kat = parseFloat($('#kat').val()) || 0;
+                var quantity = weight - kat;
+                $('#quantity').val(quantity.toFixed(3));
+                // Trigger amount calculation
+                $('#quantity').trigger('change');
+            });
+
+            // Calculate amount when Quantity or Rate changes
+            $('#quantity, #rate').on('input change', function() {
+                var qty = parseFloat($('#quantity').val()) || 0;
+                var rate = parseFloat($('#rate').val()) || 0;
+                $('#amount').val((qty * rate).toFixed(2));
+            });
+
+            // Auto-calculate rate from weight and amount (with decimals)
+            $('#weight, #amount').on('input change', function() {
+                var weight = parseFloat($('#weight').val()) || 0;
+                var amount = parseFloat($('#amount').val()) || 0;
+
+                if (weight > 0 && amount > 0) {
+                    var calculatedRate = amount / weight;
+                    $('#rate').val(calculatedRate.toFixed(4)); // Show up to 4 decimal places
+                }
+            });
+
+            // Get item rate based on Receiving Customer (for Sale) or Purchasing Customer
+            $('#itemSelect, #receivingCustomer, #purchasingCustomer').on('change', function() {
+                var itemId = $('#itemSelect').val();
+                var voucherType = $('#voucherTypeSelect').val();
+                var customerId;
+
+                // For Sale vouchers, use Receiving Customer; for Purchase, use Purchasing Customer
+                if (voucherType === 'Sale') {
+                    customerId = $('#receivingCustomer').val();
+                } else {
+                    customerId = $('#purchasingCustomer').val();
+                }
+
+                if (itemId && customerId) {
+                    $.get('/Vouchers/GetItemRate', { itemId: itemId, customerId: customerId }, function(data) {
+                        $('#rate').val(data.rate);
+                        $('#quantity').trigger('change');
+                    });
+                }
+            });
+
+            // Sync Expense Head Rate with Amount ONLY for Expense vouchers
+            $('#expenseHeadRate').on('input', function() {
+                var voucherType = $('#voucherTypeSelect').val();
+                var expenseRate = parseFloat($(this).val()) || 0;
+
+                if (voucherType === 'Expense') {
+                    // For Expense voucher only, expense rate directly sets amount
+                    $('#amount').val(expenseRate.toFixed(2));
+                }
+            });
+
+            $('#amount').on('input', function() {
+                var voucherType = $('#voucherTypeSelect').val();
+                if (voucherType === 'Expense') {
+                    var amount = parseFloat($(this).val()) || 0;
+                    $('#expenseHeadRate').val(amount.toFixed(2));
+                }
+            });
+
+            // Copy customer name to clipboard
+            $('#copyPurchasingCustomerName').on('click', function() {
+                var selectedText = $('#purchasingCustomer option:selected').text();
+                if (selectedText && selectedText !== 'Select Customer') {
+                    navigator.clipboard.writeText(selectedText).then(function() {
+                        var btn = $('#copyPurchasingCustomerName');
+                        var originalHTML = btn.html();
+                        btn.html('<i class="bi bi-check"></i>');
+                        setTimeout(function() {
+                            btn.html(originalHTML);
+                        }, 1000);
+                    });
+                }
+            });
+
+            $('#copyReceivingCustomerName').on('click', function() {
+                var selectedText = $('#receivingCustomer option:selected').text();
+                if (selectedText && selectedText !== 'Select Customer') {
+                    navigator.clipboard.writeText(selectedText).then(function() {
+                        var btn = $('#copyReceivingCustomerName');
+                        var originalHTML = btn.html();
+                        btn.html('<i class="bi bi-check"></i>');
+                        setTimeout(function() {
+                            btn.html(originalHTML);
+                        }, 1000);
+                    });
+                }
+            });
+
+            // View Purchasing Customer Ledger
+            $('#viewPurchasingCustomerLedger').on('click', function() {
+                var customerId = $('#purchasingCustomer').val();
+                if (customerId) {
+                    openCustomerLedger(customerId);
+                } else {
+                    alert('Please select a customer first.');
+                }
+            });
+
+            // View Receiving Customer Ledger
+            $('#viewReceivingCustomerLedger').on('click', function() {
+                var customerId = $('#receivingCustomer').val();
+                if (customerId) {
+                    openCustomerLedger(customerId);
+                } else {
+                    alert('Please select a customer first.');
+                }
+            });
+
+            // Select All / Deselect All
+            $('#selectAll').on('change', function() {
+                $('.voucher-checkbox').prop('checked', $(this).prop('checked'));
+                toggleDeleteButton();
+            });
+
+            // Update delete button visibility
+            $('.voucher-checkbox').on('change', function() {
+                toggleDeleteButton();
+            });
+
+            // Delete single voucher
+            $('.delete-voucher').on('click', function() {
+                var voucherId = $(this).data('id');
+                if (confirm('Are you sure you want to delete this voucher?')) {
+                    deleteVouchers([voucherId]);
+                }
+            });
+
+            // Delete selected vouchers
+            $('#deleteSelected').on('click', function() {
+                var selectedIds = [];
+                $('.voucher-checkbox:checked').each(function() {
+                    selectedIds.push($(this).val());
+                });
+
+                if (selectedIds.length > 0) {
+                    if (confirm('Are you sure you want to delete ' + selectedIds.length + ' voucher(s)?')) {
+                        deleteVouchers(selectedIds);
+                    }
+                }
+            });
+
+            // Customer ledger link in entries table
+            $(document).on('click', '.customer-ledger-link', function(e) {
+                e.preventDefault();
+                var customerId = $(this).data('customer-id');
+                if (customerId) {
+                    openCustomerLedger(customerId);
+                }
+            });
+        });
+
+        function updateTransactionNumber(voucherType) {
+            $.get('/Vouchers/GetTransactionNumber?type=' + voucherType, function(data) {
+                $('#TransactionNumber').val(data.transactionNumber);
+            });
+        }
+
+        function clearFormFields() {
+            // Clear all input fields except voucher type, transaction number, and date
+            $('input[type="text"]:not(#TransactionNumber), input[type="number"]').val('');
+            $('select:not(#voucherTypeSelect)').prop('selectedIndex', 0);
+            $('#purchasingCustomer, #receivingCustomer, #itemSelect').val(null).trigger('change');
+        }
+
+        function openCustomerLedger(customerId) {
+            // Get current date
+            var today = new Date();
+            var toDate = today.toISOString().split('T')[0];
+
+            // Get date from 1 month ago
+            var fromDate = new Date();
+            fromDate.setMonth(fromDate.getMonth() - 1);
+            var fromDateStr = fromDate.toISOString().split('T')[0];
+
+            // Build URL with parameters
+            var url = '@Url.Action("CustomerLedger", "Reports")' +
+                      '?customerId=' + customerId +
+                      '&fromDate=' + fromDateStr +
+                      '&toDate=' + toDate;
+
+            // Open in new tab
+            window.open(url, '_blank');
+        }
+
+        function toggleDeleteButton() {
+            var checkedCount = $('.voucher-checkbox:checked').length;
+            if (checkedCount > 0) {
+                $('#deleteSelected').show();
+            } else {
+                $('#deleteSelected').hide();
+            }
+        }
+
+        function deleteVouchers(voucherIds) {
+            $.ajax({
+                url: '@Url.Action("DeleteMultiple", "Vouchers")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(voucherIds),
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Error deleting vouchers: ' + error);
+                }
+            });
+        }
+
+        function configureFormForVoucherType(type) {
+            // Reset all columns - hide all by default
+            $('#purchasingCustomerColumn, #receivingCustomerColumn, #bankColumn, #bankReceiverColumn').hide();
+            $('#itemColumn, #monWeightColumn, #katQuantityColumn, #expenseHeadColumn, #gariStockColumn').hide();
+
+            // Always show these by default
+            $('#projectCashTypeColumn, #rateAmountColumn').show();
+            $('#projectRow, #cashTypeRow, #rateRow').show();
+
+            switch(type) {
+                case 'Purchase':
+                    $('#purchasingCustomerColumn, #itemColumn, #monWeightColumn, #katQuantityColumn').show();
+                    $('#expenseHeadColumn, #gariStockColumn').show();
+                    $('#stockIncludeRow').show();
+                    break;
+                case 'Sale':
+                    $('#receivingCustomerColumn, #itemColumn, #monWeightColumn, #katQuantityColumn').show();
+                    $('#expenseHeadColumn, #gariStockColumn').show();
+                    $('#stockIncludeRow').show();
+                    break;
+                case 'Expense':
+                    $('#expenseHeadColumn').show();
+                    $('#rateRow').hide();
+                    break;
+                case 'Hazri':
+                    $('#expenseHeadColumn, #katQuantityColumn').show();
+                    $('#cashTypeRow').hide();
+                    $('#expenseRateRow').hide();
+                    break;
+                case 'CashPaid':
+                    $('#purchasingCustomerColumn').show();
+                    $('#projectRow').hide();
+                    $('#rateRow').hide();
+                    break;
+                case 'CashReceived':
+                    $('#receivingCustomerColumn').show();
+                    $('#projectRow').hide();
+                    $('#rateRow').hide();
+                    break;
+                case 'CCR':
+                    $('#purchasingCustomerColumn, #receivingCustomerColumn').show();
+                    $('#projectRow, #cashTypeRow, #rateRow').hide();
+                    break;
+                case 'BCR':
+                    $('#bankColumn, #bankReceiverColumn').show();
+                    $('#projectRow, #cashTypeRow, #rateRow').hide();
+                    break;
+            }
+        }
+    </script>
+}

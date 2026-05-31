@@ -1,0 +1,40 @@
+﻿@* Views/Vouchers/Delete.cshtml *@
+@model VoucherManagementSystem.Models.Voucher
+@{
+    ViewData["Title"] = "Delete Voucher";
+}
+
+<h2><i class="bi bi-trash"></i> Delete Voucher</h2>
+
+<div class="alert alert-danger">
+    <h4>Are you sure you want to delete this voucher?</h4>
+    <p>This action cannot be undone. Stock and bank balances will be reversed.</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Transaction Number:</dt>
+            <dd class="col-sm-9">@Model.TransactionNumber</dd>
+
+            <dt class="col-sm-3">Type:</dt>
+            <dd class="col-sm-9">@Model.VoucherType</dd>
+
+            <dt class="col-sm-3">Date:</dt>
+            <dd class="col-sm-9">@Model.VoucherDate.ToString("dd-MMM-yyyy")</dd>
+
+            <dt class="col-sm-3">Amount:</dt>
+            <dd class="col-sm-9">Rs. @string.Format("{0:N0}", Model.Amount)</dd>
+        </dl>
+
+        <form asp-action="Delete">
+            <input type="hidden" asp-for="Id" />
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash"></i> Confirm Delete
+            </button>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+        </form>
+    </div>
+</div>

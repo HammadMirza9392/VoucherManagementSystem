@@ -1,0 +1,81 @@
+﻿@* Views/Projects/Index.cshtml *@
+@model IEnumerable<VoucherManagementSystem.Models.Project>
+@{
+    ViewData["Title"] = "Projects";
+}
+
+<h2><i class="bi bi-briefcase"></i> Projects Management</h2>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row">
+            <div class="col-6">
+                <h5>Project List</h5>
+            </div>
+            <div class="col-6 text-end">
+                <a asp-action="Create" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> Add New Project
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="table table-striped" id="projectsTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    @if (Context.Session.GetString("UserRole") == "Admin")
+                    {
+                        <th>Added By</th>
+                    }
+                    <th>Updated By</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Name</td>
+                        <td>@item.Description</td>
+                        <td>@item.StartDate.ToString("dd-MMM-yyyy")</td>
+                        <td>@(item.EndDate?.ToString("dd-MMM-yyyy") ?? "Ongoing")</td>
+                        <td>
+                            <span class="badge bg-@(item.IsActive ? "success" : "danger")">
+                                @(item.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        @if (Context.Session.GetString("UserRole") == "Admin")
+                        {
+                            <td>@(item.CreatedBy ?? "N/A")</td>
+                        }
+                        <td>@(item.UpdatedBy ?? "N/A")</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#projectsTable').DataTable();
+        });
+    </script>
+}
