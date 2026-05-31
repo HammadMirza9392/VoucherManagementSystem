@@ -634,7 +634,7 @@
                 var projectId = $('#ProjectId').val();
 
                 if ((voucherType === 'Purchase' || voucherType === 'Sale' ||
-                     voucherType === 'Expense' || voucherType === 'Hazri') && !projectId) {
+                     voucherType === 'Expense' || voucherType === 'Hazri') && !projectId && voucherType !== 'AdvancedPayment') {
                     e.preventDefault();
                     alert('Project is required for ' + voucherType + ' vouchers. Please select a project.');
                     $('#ProjectId').focus();
@@ -1061,6 +1061,10 @@
                 case 'BCR':
                     $('#bankColumn, #bankReceiverColumn').show();
                     $('#projectRow, #cashTypeRow, #rateRow').hide();
+                    break;
+                case 'AdvancedPayment':
+                    $('#receivingCustomerColumn').show();
+                    $('#projectRow, #rateRow').hide();
                     break;
             }
         }

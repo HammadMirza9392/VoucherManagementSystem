@@ -1,0 +1,152 @@
+@model VoucherManagementSystem.Models.Voucher
+@{
+    ViewData["Title"] = "Advanced Payment";
+    var preSelectedCustomerId = ViewBag.PreSelectedCustomerId as int?;
+}
+
+@section Styles {
+    <style>
+        #voucherForm label,
+        #voucherForm .form-label {
+            background-color: #006400;
+            color: white;
+            padding: 8px;
+            border-radius: 3px;
+            display: block;
+            margin-bottom: 2px;
+            font-weight: normal;
+            text-align: center;
+            width: 100%;
+            font-size: calc(1rem + 2px);
+        }
+    </style>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-cash-coin text-success"></i> Advanced Payment</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Vouchers
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Record Advanced Payment from Customer</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="SaveAdvancedPayment" method="post" id="voucherForm">
+            @Html.AntiForgeryToken()
+
+            <div class="row g-3">
+
+                <!-- Transaction Number -->
+                <div class="col-md-3">
+                    <label class="form-label">Transaction No.</label>
+                    <input type="text" class="form-control" id="transactionNumber"
+                           asp-for="TransactionNumber" readonly />
+                </div>
+
+                <!-- Date -->
+                <div class="col-md-3">
+                    <label class="form-label">Date <span class="text-warning">*</span></label>
+                    <input type="date" class="form-control" asp-for="VoucherDate"
+                           value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                </div>
+
+                <!-- Cash Type -->
+                <div class="col-md-3">
+                    <label class="form-label">Cash Type <span class="text-warning">*</span></label>
+                    <select class="form-select" asp-for="CashType" required>
+                        <option value="@VoucherManagementSystem.Models.CashType.Cash">Cash</option>
+                        <option value="@VoucherManagementSystem.Models.CashType.Bank">Bank</option>
+                    </select>
+                </div>
+
+                <!-- Bank (shown when Bank is selected) -->
+                <div class="col-md-3" id="bankField" style="display:none;">
+                    <label class="form-label">Bank Account</label>
+                    <select class="form-select" asp-for="BankCustomerReceiverId"
+                            asp-items="ViewBag.Banks">
+                        <option value="">-- Select Bank --</option>
+                    </select>
+                </div>
+
+                <!-- Receiving Customer -->
+                <div class="col-md-6">
+                    <label class="form-label">Receiving Customer <span class="text-warning">*</span></label>
+                    <select class="form-select select2" asp-for="ReceivingCustomerId"
+                            asp-items="ViewBag.Customers" required>
+                        <option value="">-- Select Customer --</option>
+                    </select>
+                </div>
+
+                <!-- Customer Details -->
+                <div class="col-md-6">
+                    <label class="form-label">Customer Details</label>
+                    <input type="text" class="form-control" asp-for="ReceivingCustomerDetails"
+                           placeholder="e.g. Advance against future purchase..." />
+                </div>
+
+                <!-- Amount -->
+                <div class="col-md-3">
+                    <label class="form-label">Amount (Rs.) <span class="text-warning">*</span></label>
+                    <input type="number" class="form-control" asp-for="Amount"
+                           min="1" step="0.01" placeholder="0" required />
+                </div>
+
+            </div>
+
+            <!-- Hidden fields -->
+            <input type="hidden" asp-for="VoucherType"
+                   value="@VoucherManagementSystem.Models.VoucherType.AdvancedPayment" />
+
+            <hr class="my-4" />
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-save"></i> Save Advanced Payment
+                </button>
+                <a asp-action="GeneralCreate" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Load transaction number
+            $.get('@Url.Action("GetTransactionNumber", "Vouchers")', { type: @((int)VoucherManagementSystem.Models.VoucherType.AdvancedPayment) }, function (data) {
+                $('#transactionNumber').val(data.transactionNumber);
+            });
+
+            // Initialize Select2 for customer dropdown
+            $('.select2').select2({
+                theme: 'bootstrap-5',
+                placeholder: '-- Select Customer --',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // Pre-select customer if coming from ledger
+            @if (preSelectedCustomerId.HasValue)
+            {
+                <text>
+                $('[name="ReceivingCustomerId"]').val('@preSelectedCustomerId.Value').trigger('change');
+                </text>
+            }
+
+            // Show/hide bank field based on cash type
+            $('[name="CashType"]').on('change', function () {
+                if ($(this).val() === '@((int)VoucherManagementSystem.Models.CashType.Bank)') {
+                    $('#bankField').show();
+                } else {
+                    $('#bankField').hide();
+                    $('[name="BankCustomerReceiverId"]').val('');
+                }
+            });
+        });
+    </script>
+}

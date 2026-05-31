@@ -1089,7 +1089,7 @@ namespace VoucherManagementSystem.Controllers
                     }
 
                     // Sale = DR (customer owes us)
-                    // CashReceived = CR (customer paid, reduces what they owe)
+                    // CashReceived / AdvancedPayment = CR (customer paid, reduces what they owe)
                     if (voucher.ReceivingCustomerId == customerId.Value)
                     {
                         switch (voucher.VoucherType)
@@ -1099,7 +1099,8 @@ namespace VoucherManagementSystem.Controllers
                                 break;
                             case VoucherType.CashReceived:
                             case VoucherType.CCR:
-                                totalCredit += voucher.Amount;  // CashReceived = CR
+                            case VoucherType.AdvancedPayment:
+                                totalCredit += voucher.Amount;  // CR
                                 break;
                         }
                     }
@@ -1158,7 +1159,7 @@ namespace VoucherManagementSystem.Controllers
                 }
 
                 // Sale = DR (they owe us) - increases balance
-                // CashReceived = CR (they paid) - decreases balance
+                // CashReceived / AdvancedPayment = CR (they paid) - decreases balance
                 if (voucher.ReceivingCustomerId == customerId)
                 {
                     switch (voucher.VoucherType)
@@ -1168,6 +1169,7 @@ namespace VoucherManagementSystem.Controllers
                             break;
                         case VoucherType.CashReceived:
                         case VoucherType.CCR:
+                        case VoucherType.AdvancedPayment:
                             balance -= voucher.Amount;  // CR decreases balance
                             break;
                     }
@@ -1481,7 +1483,7 @@ namespace VoucherManagementSystem.Controllers
                 // Group by expense head for summary
                 var hazriSummary = hazriRecords
                     .GroupBy(h => h.ExpenseHead?.Name ?? "Unknown")
-                    .Select(g => new { ExpenseHead = g.Key, Total = g.Sum(h => h.Amount) })
+                    .Select(g => new ExpenseSummaryItem { ExpenseHead = g.Key, Total = g.Sum(h => h.Amount) })
                     .OrderByDescending(x => x.Total)
                     .ToList();
 
@@ -1712,11 +1714,10 @@ namespace VoucherManagementSystem.Controllers
                     {
                         if (v.ReceivingCustomerId == customer.Id)
                         {
-                            // Sale or CashReceived to this customer
                             if (v.VoucherType == VoucherType.Sale)
                                 toReceive += v.Amount; // Customer owes us
-                            else if (v.VoucherType == VoucherType.CashReceived)
-                                toReceive -= v.Amount; // Customer paid us
+                            else if (v.VoucherType == VoucherType.CashReceived || v.VoucherType == VoucherType.AdvancedPayment)
+                                toReceive -= v.Amount; // Customer paid us / advanced payment
                         }
 
                         if (v.PurchasingCustomerId == customer.Id)
@@ -1833,7 +1834,7 @@ namespace VoucherManagementSystem.Controllers
                         {
                             if (v.VoucherType == VoucherType.Sale)
                                 toReceive += v.Amount;
-                            else if (v.VoucherType == VoucherType.CashReceived)
+                            else if (v.VoucherType == VoucherType.CashReceived || v.VoucherType == VoucherType.AdvancedPayment)
                                 toReceive -= v.Amount;
                         }
 

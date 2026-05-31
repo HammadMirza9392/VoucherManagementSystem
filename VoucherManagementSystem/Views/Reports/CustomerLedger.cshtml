@@ -5,6 +5,7 @@
     Func<VoucherManagementSystem.Models.VoucherType, string> getDisplayType = (vt) => vt switch {
         VoucherManagementSystem.Models.VoucherType.CCR => "Received",
         VoucherManagementSystem.Models.VoucherType.BCR => "Purchase",
+        VoucherManagementSystem.Models.VoucherType.AdvancedPayment => "Advance",
         _ => vt.ToString()
     };
 }
@@ -87,6 +88,7 @@ else
                         <option value="CashPaid" selected="@(ViewBag.SelectedVoucherType == "CashPaid")">Cash Paid</option>
                         <option value="CashReceived" selected="@(ViewBag.SelectedVoucherType == "CashReceived")">Cash Received</option>
                         <option value="CCR" selected="@(ViewBag.SelectedVoucherType == "CCR")">Received (CCR)</option>
+                        <option value="AdvancedPayment" selected="@(ViewBag.SelectedVoucherType == "AdvancedPayment")">Advanced Payment</option>
                         <option value="Expense" selected="@(ViewBag.SelectedVoucherType == "Expense")">Expense</option>
                         <option value="Hazri" selected="@(ViewBag.SelectedVoucherType == "Hazri")">Hazri</option>
                     </select>
@@ -221,8 +223,10 @@ else
                                             break;
                                         case VoucherManagementSystem.Models.VoucherType.CCR:
                                             debit = voucher.Amount;   // CCR transfer out = DR
-                                            itemName = "CCR";
-                                            description = $"From {voucher.ReceivingCustomer?.Name ?? "N/A"}";
+                                            itemName = voucher.ReceivingCustomerId.HasValue
+                                                ? $"Paid to <a href='/Reports/CustomerLedger?customerId={voucher.ReceivingCustomerId}&fromDate={fromDate:yyyy-MM-dd}&toDate={toDate:yyyy-MM-dd}'>{voucher.ReceivingCustomer?.Name ?? "N/A"}</a>"
+                                                : $"Paid to {voucher.ReceivingCustomer?.Name ?? "N/A"}";
+                                            description = voucher.PurchasingCustomerDetails;
                                             break;
                                     }
                                 }
@@ -243,8 +247,15 @@ else
                                             break;
                                         case VoucherManagementSystem.Models.VoucherType.CCR:
                                             credit = voucher.Amount;  // CCR transfer in = CR
-                                            itemName = "CCR";
-                                            description = $"To {voucher.PurchasingCustomer?.Name ?? "N/A"}";
+                                            itemName = voucher.PurchasingCustomerId.HasValue
+                                                ? $"Received from <a href='/Reports/CustomerLedger?customerId={voucher.PurchasingCustomerId}&fromDate={fromDate:yyyy-MM-dd}&toDate={toDate:yyyy-MM-dd}'>{voucher.PurchasingCustomer?.Name ?? "N/A"}</a>"
+                                                : $"Received from {voucher.PurchasingCustomer?.Name ?? "N/A"}";
+                                            description = voucher.ReceivingCustomerDetails;
+                                            break;
+                                        case VoucherManagementSystem.Models.VoucherType.AdvancedPayment:
+                                            credit = voucher.Amount;  // Advance = CR (customer paid ahead)
+                                            itemName = "Advanced Payment";
+                                            description = voucher.ReceivingCustomerDetails;
                                             break;
                                     }
                                 }
@@ -258,11 +269,12 @@ else
                                         <span class="badge bg-@(voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
                                                               voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ? "success" :
                                                               voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.CashPaid ? "warning text-dark" :
-                                                              voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.CashReceived ? "info" : "secondary")" style="font-size: 11px;">
+                                                              voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.CashReceived ? "info" :
+                                                              voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedPayment ? "success" : "secondary")" style="font-size: 11px;">
                                             @getDisplayType(voucher.VoucherType)
                                         </span>
                                     </td>
-                                    <td class="align-middle">@itemName</td>
+                                    <td class="align-middle">@Html.Raw(itemName)</td>
                                     <td class="align-middle">@description</td>
                                     <td class="text-end align-middle">@(voucher.Weight.HasValue ? string.Format("{0:N3}", voucher.Weight.Value) : "-")</td>
                                     <td class="text-end align-middle">@(voucher.Kat.HasValue ? string.Format("{0:N3}", voucher.Kat.Value) : "-")</td>
@@ -302,6 +314,10 @@ else
 
     <!-- Action Buttons -->
     <div class="mt-3 d-print-none">
+        <a asp-controller="Vouchers" asp-action="AdvancedPayment" asp-route-customerId="@customer.Id"
+           class="btn btn-success">
+            <i class="bi bi-cash-coin"></i> Record Advanced Payment
+        </a>
         <button onclick="window.print()" class="btn btn-primary">
             <i class="bi bi-printer"></i> Print Ledger
         </button>

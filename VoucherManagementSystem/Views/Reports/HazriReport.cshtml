@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Hazri (Attendance) Report";
     var hazriRecords = ViewBag.HazriRecords as IEnumerable<VoucherManagementSystem.Models.Voucher>;
-    var hazriSummary = ViewBag.HazriSummary as IEnumerable<dynamic>;
+    var hazriSummary = ViewBag.HazriSummary as IEnumerable<VoucherManagementSystem.Controllers.ExpenseSummaryItem>;
     var fromDate = (DateTime)ViewBag.FromDate;
     var toDate = (DateTime)ViewBag.ToDate;
     var totalHazri = (decimal)(ViewBag.TotalHazri ?? 0);
@@ -85,12 +85,11 @@
             <div class="row">
                 @foreach (var summary in hazriSummary)
                 {
-                    decimal summaryTotal = Convert.ToDecimal(summary.Total);
-                    var percentage = totalHazri > 0 ? (summaryTotal / totalHazri * 100) : 0;
+                    var percentage = totalHazri > 0 ? (summary.Total / totalHazri * 100) : 0;
                     <div class="col-md-4 mb-2">
                         <div class="d-flex justify-content-between align-items-center">
                             <span>@summary.ExpenseHead</span>
-                            <span class="badge bg-warning text-dark">Rs. @string.Format("{0:N0}", summaryTotal)</span>
+                            <span class="badge bg-warning text-dark">Rs. @string.Format("{0:N0}", summary.Total)</span>
                         </div>
                         <div class="progress" style="height: 5px;">
                             <div class="progress-bar bg-warning" style="width: @percentage%"></div>

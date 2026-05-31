@@ -477,6 +477,68 @@ namespace VoucherManagementSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // GET: Vouchers/AdvancedPayment
+        public async Task<IActionResult> AdvancedPayment(int? customerId)
+        {
+            var voucher = new Voucher
+            {
+                VoucherType = VoucherType.AdvancedPayment,
+                VoucherDate = DateTime.Today,
+                CashType = CashType.Cash
+            };
+
+            ViewBag.PreSelectedCustomerId = customerId;
+            ViewBag.Customers = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
+            ViewBag.Banks = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                await _bankRepository.GetActiveBanksAsync(), "Id", "Name");
+            return View(voucher);
+        }
+
+        // POST: Vouchers/SaveAdvancedPayment
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveAdvancedPayment(Voucher voucher)
+        {
+            try
+            {
+                if (!voucher.ReceivingCustomerId.HasValue)
+                {
+                    TempData["Error"] = "Please select a customer.";
+                    ViewBag.Customers = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                        await _customerRepository.GetActiveCustomersAsync(), "Id", "Name");
+                    ViewBag.Banks = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                        await _bankRepository.GetActiveBanksAsync(), "Id", "Name");
+                    return View("AdvancedPayment", voucher);
+                }
+
+                voucher.VoucherType = VoucherType.AdvancedPayment;
+                voucher.TransactionNumber = await _voucherRepository.GenerateTransactionNumberAsync(VoucherType.AdvancedPayment);
+                voucher.CreatedBy = HttpContext.Session.GetString("Username") ?? "admin";
+                voucher.CreatedDate = DateTime.Now;
+
+                // Update bank balance if paid into a bank account
+                if (voucher.BankCustomerReceiverId.HasValue && voucher.CashType == CashType.Bank)
+                {
+                    await _bankRepository.UpdateBalanceAsync(voucher.BankCustomerReceiverId.Value, voucher.Amount, true);
+                }
+
+                await _voucherRepository.AddAsync(voucher);
+                TempData["Success"] = $"Advanced payment of Rs. {voucher.Amount:N0} recorded successfully!";
+                return RedirectToAction("CustomerLedger", "Reports", new { customerId = voucher.ReceivingCustomerId });
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Error saving advanced payment: {ex.Message}");
+            }
+
+            ViewBag.Customers = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                await _customerRepository.GetActiveCustomersAsync(), "Id", "Name");
+            ViewBag.Banks = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(
+                await _bankRepository.GetActiveBanksAsync(), "Id", "Name");
+            return View("AdvancedPayment", voucher);
+        }
+
         // AJAX Methods
         [HttpGet]
         public async Task<IActionResult> GetItemRate(int itemId, int? customerId)
