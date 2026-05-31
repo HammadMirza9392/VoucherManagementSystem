@@ -117,6 +117,16 @@ namespace VoucherManagementSystem.Models
         [Display(Name = "Updated By")]
         public string? UpdatedBy { get; set; }
 
+        [Display(Name = "Deleted")]
+        public bool IsDeleted { get; set; } = false;
+
+        [Display(Name = "Deleted Date")]
+        public DateTime? DeletedDate { get; set; }
+
+        [StringLength(100)]
+        [Display(Name = "Deleted By")]
+        public string? DeletedBy { get; set; }
+
         // Navigation properties
         public virtual Customer? PurchasingCustomer { get; set; }
         public virtual Customer? ReceivingCustomer { get; set; }

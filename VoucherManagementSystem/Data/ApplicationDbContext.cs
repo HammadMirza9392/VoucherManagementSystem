@@ -29,6 +29,10 @@ namespace VoucherManagementSystem.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Soft-delete filter: exclude deleted vouchers from all normal queries
+            modelBuilder.Entity<Voucher>()
+                .HasQueryFilter(v => !v.IsDeleted);
+
             // Voucher configurations
             modelBuilder.Entity<Voucher>()
                 .HasIndex(v => v.TransactionNumber)

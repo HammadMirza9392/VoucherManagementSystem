@@ -113,9 +113,10 @@
                             int counter = 1;
                             foreach (var sm in stockMovements.OrderBy(s => s.Item.Name))
                             {
-                                <tr style="font-size: 13px;">
+                                var trackUrl = Url.Action("StockTrackReport", "Reports", new { itemId = sm.Item.Id, fromDate = fromDate?.ToString("yyyy-MM-dd"), toDate = toDate?.ToString("yyyy-MM-dd") });
+                                <tr style="font-size: 13px; cursor: pointer;" onclick="window.location='@trackUrl'" title="Click to view all transactions for @sm.Item.Name">
                                     <td class="align-middle">@counter</td>
-                                    <td class="align-middle"><strong>@sm.Item.Name</strong></td>
+                                    <td class="align-middle"><strong class="text-primary">@sm.Item.Name</strong></td>
                                     <td class="align-middle">@(sm.Item.Unit ?? "N/A")</td>
                                     <td class="text-end align-middle">@string.Format("{0:N3}", sm.OpeningStock)</td>
                                     <td class="text-end align-middle text-success fw-semibold">@string.Format("{0:N3}", sm.PurchaseQty)</td>
@@ -222,11 +223,12 @@ else
                                 var statusColor = item.CurrentStock > 50 ? "success" :
                                 item.CurrentStock > 10 ? "warning" :
                                 item.CurrentStock > 0 ? "danger" : "dark";
+                                var trackUrl = Url.Action("StockTrackReport", "Reports", new { itemId = item.Id });
 
-                                <tr style="font-size: 13px;">
+                                <tr style="font-size: 13px; cursor: pointer;" onclick="window.location='@trackUrl'" title="Click to view all transactions for @item.Name">
                                     <td class="align-middle">@counter</td>
                                     <td class="align-middle">
-                                        <strong>@item.Name</strong>
+                                        <strong class="text-primary">@item.Name</strong>
                                         @if (!item.StockTrackingEnabled)
                                         {
                                             <span class="badge bg-secondary ms-2" style="font-size: 11px;">No Tracking</span>
@@ -342,7 +344,7 @@ else
         }
 
         #stockTable tbody tr:hover {
-            background-color: #f8f9fa;
+            background-color: #dbeafe;
         }
 
         #stockTable {

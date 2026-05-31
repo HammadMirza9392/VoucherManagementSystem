@@ -137,8 +137,6 @@
         </main>
     </div>
 
-    @await Html.PartialAsync("_PageLockModal")
-
     <!-- Change Password Modal -->
     <div class="modal fade" id="changePasswordModal" tabindex="-1">
         <div class="modal-dialog">
@@ -196,7 +194,24 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
+    @await Html.PartialAsync("_PageLockModal")
+
     <script>
+        // Force browsers to disable autocomplete on all non-login inputs
+        // autocomplete="new-password" is the only value browsers reliably respect
+        document.querySelectorAll('input:not([autocomplete="username"]):not([autocomplete="current-password"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="date"])').forEach(function(input) {
+            input.setAttribute('autocomplete', 'new-password');
+        });
+    </script>
+
+    <script>
+        // Also disable autocomplete on DataTables search box (added dynamically by DataTables)
+        $(document).ready(function() {
+            $(document).on('init.dt', function() {
+                $('div.dataTables_filter input').attr('autocomplete', 'new-password');
+            });
+        });
+
         // Load and apply theme on page load
         $(document).ready(function() {
             $.ajax({

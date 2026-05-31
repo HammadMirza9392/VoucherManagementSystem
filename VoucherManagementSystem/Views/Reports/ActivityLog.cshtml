@@ -4,13 +4,15 @@
     var activityDate = ViewBag.ActivityDate != null ? (DateTime)ViewBag.ActivityDate : DateTime.Today;
     var createdVouchers = ViewBag.CreatedVouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
     var updatedVouchers = ViewBag.UpdatedVouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
+    var deletedVouchers = ViewBag.DeletedVouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
     var totalCreated = (int)(ViewBag.TotalCreated ?? 0);
     var totalUpdated = (int)(ViewBag.TotalUpdated ?? 0);
+    var totalDeleted = (int)(ViewBag.TotalDeleted ?? 0);
 }
 
 <div class="d-print-none">
     <h2><i class="bi bi-clock-history"></i> Activity Log</h2>
-    <p class="text-muted">View all system changes (added/edited) by date</p>
+    <p class="text-muted">View all system changes (added/edited/deleted) by date</p>
 </div>
 
 <!-- Date Filter -->
@@ -56,11 +58,11 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-info text-white text-center">
+        <div class="card bg-danger text-white text-center">
             <div class="card-body py-2">
-                <h6 class="mb-0"><i class="bi bi-calendar"></i> Date</h6>
-                <h4 class="mb-0">@activityDate.ToString("dd MMM")</h4>
-                <small>@activityDate.ToString("yyyy")</small>
+                <h6 class="mb-0"><i class="bi bi-trash"></i> Deleted</h6>
+                <h2 class="mb-0">@totalDeleted</h2>
+                <small>entries deleted</small>
             </div>
         </div>
     </div>
@@ -68,7 +70,7 @@
         <div class="card bg-dark text-white text-center">
             <div class="card-body py-2">
                 <h6 class="mb-0"><i class="bi bi-activity"></i> Total</h6>
-                <h2 class="mb-0">@(totalCreated + totalUpdated)</h2>
+                <h2 class="mb-0">@(totalCreated + totalUpdated + totalDeleted)</h2>
                 <small>total activities</small>
             </div>
         </div>
@@ -204,6 +206,78 @@
                         </tr>
                     }
                 </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Deleted Vouchers -->
+<div class="card mb-3">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-trash"></i> Entries Deleted on @activityDate.ToString("dd-MMM-yyyy")</h5>
+        <span class="badge bg-white text-danger">@totalDeleted entries</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0" id="deletedTable">
+                <thead class="table-danger">
+                    <tr>
+                        <th>Time Deleted</th>
+                        <th>Trans No</th>
+                        <th>Type</th>
+                        <th>Voucher Date</th>
+                        <th>Customer</th>
+                        <th>Item</th>
+                        <th>Project</th>
+                        <th class="text-end">Amount</th>
+                        <th>Deleted By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (deletedVouchers != null && deletedVouchers.Any())
+                    {
+                        foreach (var v in deletedVouchers)
+                        {
+                            var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
+                            <tr class="table-danger">
+                                <td><span class="badge bg-danger">@v.DeletedDate?.ToString("HH:mm:ss")</span></td>
+                                <td><span class="text-decoration-line-through text-muted">@v.TransactionNumber</span></td>
+                                <td>
+                                    <span class="badge bg-@(v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ? "success" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense ? "danger" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Hazri ? "warning" : "secondary")">
+                                        @v.VoucherType
+                                    </span>
+                                </td>
+                                <td>@v.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@customer</td>
+                                <td>@(v.Item?.Name ?? "-")</td>
+                                <td>@(v.Project?.Name ?? "-")</td>
+                                <td class="text-end fw-bold text-danger">Rs. @string.Format("{0:N0}", v.Amount)</td>
+                                <td><span class="badge bg-danger">@(v.DeletedBy ?? "System")</span></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted fst-italic py-3">
+                                <i class="bi bi-info-circle"></i> No entries were deleted on @activityDate.ToString("dd-MMM-yyyy")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                @if (deletedVouchers != null && deletedVouchers.Any())
+                {
+                    <tfoot class="table-danger">
+                        <tr>
+                            <th colspan="7" class="text-end">Total Deleted Amount:</th>
+                            <th class="text-end">Rs. @string.Format("{0:N0}", deletedVouchers.Sum(v => v.Amount))</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                }
             </table>
         </div>
     </div>

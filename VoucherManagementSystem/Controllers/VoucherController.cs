@@ -466,7 +466,11 @@ namespace VoucherManagementSystem.Controllers
                     await _bankRepository.UpdateBalanceAsync(voucher.BankCustomerReceiverId.Value, voucher.Amount, false);
                 }
 
-                await _voucherRepository.DeleteAsync(voucher);
+                // Soft delete: flag the voucher instead of removing it
+                voucher.IsDeleted = true;
+                voucher.DeletedDate = DateTime.Now;
+                voucher.DeletedBy = HttpContext.Session.GetString("Username") ?? "admin";
+                await _voucherRepository.UpdateAsync(voucher);
                 TempData["Success"] = "Voucher deleted successfully!";
             }
 
@@ -537,7 +541,11 @@ namespace VoucherManagementSystem.Controllers
                             await _bankRepository.UpdateBalanceAsync(voucher.BankCustomerReceiverId.Value, voucher.Amount, false);
                         }
 
-                        await _voucherRepository.DeleteAsync(voucher);
+                        // Soft delete: flag the voucher instead of removing it
+                        voucher.IsDeleted = true;
+                        voucher.DeletedDate = DateTime.Now;
+                        voucher.DeletedBy = HttpContext.Session.GetString("Username") ?? "admin";
+                        await _voucherRepository.UpdateAsync(voucher);
                         deletedCount++;
                     }
                 }

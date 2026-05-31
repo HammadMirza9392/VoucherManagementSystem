@@ -418,7 +418,7 @@ namespace VoucherManagementSystem.Controllers
             return View(adjustment);
         }
 
-        // GET: Reports/ActivityLog - Show system activity (entries added/edited/deleted) by date
+        // GET: Reports/ActivityLog - Show system activity (added/edited/deleted) by date
         public async Task<IActionResult> ActivityLog(DateTime? activityDate)
         {
             try
@@ -426,7 +426,7 @@ namespace VoucherManagementSystem.Controllers
                 var logDate = activityDate ?? DateTime.Today;
                 var nextDay = logDate.AddDays(1);
 
-                // Find all vouchers created on this date
+                // Find all vouchers created on this date (not deleted)
                 var createdVouchers = await _context.Vouchers
                     .Include(v => v.PurchasingCustomer)
                     .Include(v => v.ReceivingCustomer)
@@ -437,7 +437,7 @@ namespace VoucherManagementSystem.Controllers
                     .OrderBy(v => v.CreatedDate)
                     .ToListAsync();
 
-                // Find all vouchers updated on this date (that were NOT created today)
+                // Find all vouchers updated on this date
                 var updatedVouchers = await _context.Vouchers
                     .Include(v => v.PurchasingCustomer)
                     .Include(v => v.ReceivingCustomer)
@@ -448,11 +448,25 @@ namespace VoucherManagementSystem.Controllers
                     .OrderBy(v => v.UpdatedDate)
                     .ToListAsync();
 
+                // Find all vouchers deleted on this date — must bypass the global query filter
+                var deletedVouchers = await _context.Vouchers
+                    .IgnoreQueryFilters()
+                    .Include(v => v.PurchasingCustomer)
+                    .Include(v => v.ReceivingCustomer)
+                    .Include(v => v.Item)
+                    .Include(v => v.ExpenseHead)
+                    .Include(v => v.Project)
+                    .Where(v => v.IsDeleted && v.DeletedDate >= logDate && v.DeletedDate < nextDay)
+                    .OrderBy(v => v.DeletedDate)
+                    .ToListAsync();
+
                 ViewBag.ActivityDate = logDate;
                 ViewBag.CreatedVouchers = createdVouchers;
                 ViewBag.UpdatedVouchers = updatedVouchers;
+                ViewBag.DeletedVouchers = deletedVouchers;
                 ViewBag.TotalCreated = createdVouchers.Count;
                 ViewBag.TotalUpdated = updatedVouchers.Count;
+                ViewBag.TotalDeleted = deletedVouchers.Count;
 
                 return View();
             }
