@@ -511,12 +511,25 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            $('#plReportTable').DataTable({
+            var dt = $('#plReportTable').DataTable({
                 "order": [[0, "asc"]],
                 "pageLength": 50,
-                "dom": 'Bfrtip',
+                "scrollY": "420px",
+                "scrollX": false,
+                "scrollCollapse": true,
+                "autoWidth": false,
+                "dom": '<"dt-top d-flex justify-content-between align-items-center mb-2"Bf>t<"dt-bottom d-flex justify-content-between align-items-center pt-2 border-top"ip>',
                 "buttons": ['copy', 'csv', 'excel', 'pdf', 'print']
             });
+
+            // Force full width after init and on every page/search change
+            function fixWidth() {
+                $('#plReportTable').css('width', '100%');
+                dt.columns.adjust();
+            }
+            fixWidth();
+            dt.on('draw', fixWidth);
+            $(window).on('resize', fixWidth);
         });
 
         function exportTableToExcel(tableID, filename = ''){
@@ -543,47 +556,68 @@
     </script>
 
     <style>
-        /* Enhanced table styling */
+        /* ── Transaction Details DataTable ── */
+
+        /* Card body: no inner padding so DataTable fills edge-to-edge */
+        #plReportTable_wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        #plReportTable_wrapper .dataTables_scrollHead,
+        #plReportTable_wrapper .dataTables_scrollFoot,
+        #plReportTable_wrapper .dataTables_scrollBody {
+            width: 100% !important;
+        }
+
+        #plReportTable_wrapper .dataTables_scrollHeadInner,
+        #plReportTable_wrapper .dataTables_scrollHead table,
+        #plReportTable_wrapper .dataTables_scrollBody table {
+            width: 100% !important;
+        }
+
+        /* Header row color */
         #plReportTable thead th {
-            position: sticky;
-            top: 0;
-            z-index: 10;
             background-color: #cfe2ff !important;
             border-bottom: 2px solid #0d6efd;
-            padding: 12px 8px;
+            padding: 10px 8px;
+            white-space: nowrap;
         }
 
-        #plReportTable tbody tr:hover {
-            background-color: #f8f9fa;
+        /* Footer (totals) row */
+        #plReportTable tfoot th {
+            background-color: #d1e7dd !important;
+            border-top: 2px solid #198754;
+            padding: 10px 8px;
+            white-space: nowrap;
         }
 
-        #plReportTable {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        #plReportTable tbody tr:hover td { background-color: #f0f4ff; }
+
+        /* The DataTables scroll body — give it a fixed height */
+        #plReportTable_wrapper .dataTables_scrollBody {
+            max-height: 420px !important;
+            overflow-y: auto !important;
         }
 
-        .table-responsive {
-            max-height: 600px;
-            overflow-y: auto;
+        /* Search box */
+        #plReportTable_wrapper .dt-top {
+            padding: 8px 4px 4px 4px;
         }
 
-        /* Custom scrollbar */
-        .table-responsive::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+        /* Info + pagination bar — pinned */
+        #plReportTable_wrapper .dt-bottom {
+            padding: 6px 4px;
+            background: #fff;
         }
 
-        .table-responsive::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        .table-responsive::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        .table-responsive::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
+        /* Scrollbar */
+        #plReportTable_wrapper .dataTables_scrollBody::-webkit-scrollbar { width: 7px; height: 7px; }
+        #plReportTable_wrapper .dataTables_scrollBody::-webkit-scrollbar-track { background: #f1f1f1; }
+        #plReportTable_wrapper .dataTables_scrollBody::-webkit-scrollbar-thumb { background: #aaa; border-radius: 4px; }
+        #plReportTable_wrapper .dataTables_scrollBody::-webkit-scrollbar-thumb:hover { background: #666; }
 
         /* ── Inventory Table ── */
         #inventoryTable { border-collapse: separate; border-spacing: 0; }
