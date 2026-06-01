@@ -44,6 +44,8 @@ namespace VoucherManagementSystem.Repositories
             return await _context.Vouchers
                 .Include(v => v.BankCustomerPaid)
                 .Include(v => v.BankCustomerReceiver)
+                .Include(v => v.PurchasingCustomer)
+                .Include(v => v.ReceivingCustomer)
                 .Where(v => (v.BankCustomerPaidId == bankId || v.BankCustomerReceiverId == bankId) &&
                            v.VoucherDate >= fromDate && v.VoucherDate <= toDate)
                 .OrderByDescending(v => v.VoucherDate)

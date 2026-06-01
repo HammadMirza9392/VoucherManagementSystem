@@ -118,10 +118,51 @@
                                         @transaction.TransactionNumber
                                     </a>
                                 </td>
-                                <td class="align-middle">
-                                    <span class="badge bg-@(transaction.VoucherType == VoucherManagementSystem.Models.VoucherType.BCR ? "info" : "secondary")" style="font-size: 11px;">
-                                        @transaction.VoucherType
-                                    </span>
+                                <td class="align-middle" style="font-size:12px;">
+                                    @{
+                                        // For BCR: this bank is the receiver — money came FROM the other bank
+                                        // For BCR debit: this bank is the payer — money went TO the other bank
+                                        if (transaction.VoucherType == VoucherManagementSystem.Models.VoucherType.BCR)
+                                        {
+                                            if (isCredit && transaction.BankCustomerPaid != null)
+                                            {
+                                                // This bank received money — show "Received from [other bank]"
+                                                var otherBankId = transaction.BankCustomerPaidId;
+                                                var otherBankName = transaction.BankCustomerPaid.Name;
+                                                <span class="text-success fw-semibold">Received from </span>
+                                                <a href="/Reports/BankStatement?bankId=@otherBankId&fromDate=@fromDate.ToString("yyyy-MM-dd")&toDate=@toDate.ToString("yyyy-MM-dd")"
+                                                   target="_blank" class="fw-semibold">@otherBankName</a>
+                                            }
+                                            else if (isDebit && transaction.BankCustomerReceiver != null)
+                                            {
+                                                // This bank paid money — show "Paid to [other bank]"
+                                                var otherBankId = transaction.BankCustomerReceiverId;
+                                                var otherBankName = transaction.BankCustomerReceiver.Name;
+                                                <span class="text-danger fw-semibold">Paid to </span>
+                                                <a href="/Reports/BankStatement?bankId=@otherBankId&fromDate=@fromDate.ToString("yyyy-MM-dd")&toDate=@toDate.ToString("yyyy-MM-dd")"
+                                                   target="_blank" class="fw-semibold">@otherBankName</a>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-info" style="font-size:11px;">BCR</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            // Non-BCR: show voucher type badge + customer name if available
+                                            var customerName = transaction.PurchasingCustomer?.Name
+                                                ?? transaction.ReceivingCustomer?.Name;
+                                            var customerId = transaction.PurchasingCustomerId
+                                                ?? transaction.ReceivingCustomerId;
+                                            <span class="badge bg-secondary" style="font-size:11px;">@transaction.VoucherType</span>
+                                            if (customerId.HasValue && customerName != null)
+                                            {
+                                                <br />
+                                                <a href="/Reports/CustomerLedger?customerId=@customerId&fromDate=@fromDate.ToString("yyyy-MM-dd")&toDate=@toDate.ToString("yyyy-MM-dd")"
+                                                   target="_blank" class="small">@customerName</a>
+                                            }
+                                        }
+                                    }
                                 </td>
                                 <td class="align-middle">
                                     @(transaction.BankCustomerPaidDetails ?? transaction.BankCustomerReceiverDetails ??
