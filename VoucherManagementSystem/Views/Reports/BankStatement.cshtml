@@ -38,7 +38,8 @@
                         <div class="card bg-secondary text-white">
                             <div class="card-body text-center">
                                 <h6>Opening Balance</h6>
-                                <h4 class="mb-0">Rs. @string.Format("{0:N0}", Math.Abs(ViewBag.OpeningBalance ?? 0))</h4>
+                                @{ decimal ob = ViewBag.OpeningBalance ?? 0; }
+                                <h4 class="mb-0">@(ob < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(ob))</h4>
                             </div>
                         </div>
                     </div>
@@ -46,7 +47,8 @@
                         <div class="card bg-info text-white">
                             <div class="card-body text-center">
                                 <h6>Current Balance</h6>
-                                <h4 class="mb-0">Rs. @string.Format("{0:N0}", Math.Abs(bank?.Balance ?? 0))</h4>
+                                @{ decimal cb = bank?.Balance ?? 0; }
+                                <h4 class="mb-0">@(cb < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(cb))</h4>
                             </div>
                         </div>
                     </div>
@@ -89,7 +91,7 @@
                         <td class="text-end fw-semibold">@(openingBalance < 0 ? string.Format("{0:N0}", Math.Abs(openingBalance)) : "-")</td>
                         <td class="text-end fw-semibold">@(openingBalance > 0 ? string.Format("{0:N0}", openingBalance) : "-")</td>
                         <td class="text-end fw-bold @(openingBalance >= 0 ? "text-success" : "text-danger")">
-                            @string.Format("{0:N0}", Math.Abs(openingBalance))
+                            @(openingBalance < 0 ? "-" : "")@string.Format("{0:N0}", Math.Abs(openingBalance))
                         </td>
                     </tr>
 
@@ -190,7 +192,7 @@
                                     }
                                 </td>
                                 <td class="text-end align-middle fw-bold @(runningBalance >= 0 ? "text-success" : "text-danger")">
-                                    @string.Format("{0:N0}", Math.Abs(runningBalance))
+                                    @(runningBalance < 0 ? "-" : "")@string.Format("{0:N0}", Math.Abs(runningBalance))
                                 </td>
                             </tr>
                         }
@@ -218,12 +220,13 @@
                                 decimal closingBalance = openingBalance + totalCredit - totalDebit;
                             }
                         </th>
-                        <th class="text-end fw-bold py-3 @(closingBalance >= 0 ? "text-success" : "text-danger")">Rs. @string.Format("{0:N0}", Math.Abs(closingBalance))</th>
+                        <th class="text-end fw-bold py-3 @(closingBalance >= 0 ? "text-success" : "text-danger")">@(closingBalance < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(closingBalance))</th>
                     </tr>
                     <tr class="table-info" style="font-size: 15px;">
                         <th colspan="4" class="fw-bold py-3">CURRENT BANK BALANCE:</th>
                         <th colspan="2" class="text-end"></th>
-                        <th class="text-end fw-bold py-3 text-primary">Rs. @string.Format("{0:N0}", Math.Abs(bank?.Balance ?? 0))</th>
+                        @{ decimal bankBal = bank?.Balance ?? 0; }
+                        <th class="text-end fw-bold py-3 text-primary">@(bankBal < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(bankBal))</th>
                     </tr>
                 </tfoot>
             </table>

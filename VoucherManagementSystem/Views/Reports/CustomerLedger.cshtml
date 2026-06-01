@@ -136,7 +136,7 @@ else
                         <i class="bi bi-arrow-up-circle"></i> Opening Balance
                     </h6>
                     <h3 class="balance-amount @(openingBalance >= 0 ? "text-success" : "text-danger") mb-0">
-                        Rs. @string.Format("{0:N0}", Math.Abs(openingBalance))
+                        @(openingBalance < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(openingBalance))
                     </h3>
                     <span class="badge bg-@(openingBalance >= 0 ? "success" : "danger") mt-2">
                         @(openingBalance >= 0 ? "Debit" : "Credit")
@@ -163,7 +163,7 @@ else
                                 <i class="bi bi-bank"></i> @matchedBank.Name Advanced
                             </h6>
                             <h3 class="balance-amount @(matchedBank.Balance >= 0 ? "text-warning" : "text-danger") mb-0">
-                                Rs. @string.Format("{0:N0}", Math.Abs(matchedBank.Balance))
+                                @(matchedBank.Balance < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(matchedBank.Balance))
                             </h3>
                             <span class="badge bg-warning text-dark mt-2">
                                 <i class="bi bi-box-arrow-up-right me-1"></i> View Statement
@@ -182,7 +182,7 @@ else
                         <i class="bi bi-wallet2"></i> Closing Balance
                     </h6>
                     <h3 class="balance-amount @(closingBalance >= 0 ? "text-success" : "text-danger") mb-0">
-                        Rs. @string.Format("{0:N0}", Math.Abs(closingBalance))
+                        @(closingBalance < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(closingBalance))
                     </h3>
                     <span class="badge bg-@(closingBalance >= 0 ? "success" : "danger") mt-2">
                         @(closingBalance >= 0 ? "Debit" : "Credit")
@@ -319,7 +319,7 @@ else
                                     <td class="text-end align-middle @(debit > 0 ? "text-success fw-semibold" : "")">@(debit > 0 ? string.Format("{0:N0}", debit) : "-")</td>
                                     <td class="text-end align-middle @(credit > 0 ? "text-danger fw-semibold" : "")">@(credit > 0 ? string.Format("{0:N0}", credit) : "-")</td>
                                     <td class="text-end align-middle fw-bold @(runningBalance >= 0 ? "text-success" : "text-danger")">
-                                        @string.Format("{0:N0}", Math.Abs(runningBalance)) @(runningBalance >= 0 ? "Dr" : "Cr")
+                                        @(runningBalance < 0 ? "-" : "")@string.Format("{0:N0}", Math.Abs(runningBalance)) @(runningBalance >= 0 ? "Dr" : "Cr")
                                     </td>
                                 </tr>
                             }
@@ -339,7 +339,7 @@ else
                             <th class="text-end text-success fw-bold py-3">Rs. @string.Format("{0:N0}", totalDebit)</th>
                             <th class="text-end text-danger fw-bold py-3">Rs. @string.Format("{0:N0}", totalCredit)</th>
                             <th class="text-end fw-bold py-3 @(closingBalance >= 0 ? "text-success" : "text-danger")">
-                                Rs. @string.Format("{0:N0}", Math.Abs(closingBalance)) @(closingBalance >= 0 ? "Dr" : "Cr")
+                                @(closingBalance < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(closingBalance)) @(closingBalance >= 0 ? "Dr" : "Cr")
                             </th>
                         </tr>
                     </tfoot>
