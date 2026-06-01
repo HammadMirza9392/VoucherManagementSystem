@@ -771,6 +771,19 @@
             // Handle cash type change
             $('#cashType').on('change', function() {
                 var voucherType = $('#voucherTypeSelect').val();
+
+                // CashPaid/CashReceived always keep their bank columns regardless of cash type
+                if (voucherType === 'CashPaid') {
+                    $('#bankColumn').show();
+                    $('#bankReceiverColumn').hide();
+                    return;
+                }
+                if (voucherType === 'CashReceived') {
+                    $('#bankReceiverColumn').show();
+                    $('#bankColumn').hide();
+                    return;
+                }
+
                 if ($(this).val() == 'Bank') {
                     $('#bankColumn').show();
                     // For Purchase voucher, hide Bank Receiver column
@@ -1124,14 +1137,12 @@
                     $('#expenseRateRow').hide();
                     break;
                 case 'CashPaid':
-                    $('#purchasingCustomerColumn').show();
-                    $('#projectRow').hide();
-                    $('#rateRow').hide();
+                    $('#purchasingCustomerColumn, #bankColumn').show();
+                    $('#bankReceiverColumn, #projectRow, #rateRow').hide();
                     break;
                 case 'CashReceived':
-                    $('#receivingCustomerColumn').show();
-                    $('#projectRow').hide();
-                    $('#rateRow').hide();
+                    $('#receivingCustomerColumn, #bankReceiverColumn').show();
+                    $('#bankColumn, #projectRow, #rateRow').hide();
                     break;
                 case 'CCR':
                     $('#purchasingCustomerColumn, #receivingCustomerColumn').show();
