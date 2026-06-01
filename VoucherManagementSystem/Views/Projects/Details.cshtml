@@ -19,10 +19,10 @@
             <dd class="col-sm-9">@Model.Description</dd>
 
             <dt class="col-sm-3">Start Date:</dt>
-            <dd class="col-sm-9">@Model.StartDate.ToString("dd-MMM-yyyy")</dd>
+            <dd class="col-sm-9">@Model.StartDate.ToPkDate()</dd>
 
             <dt class="col-sm-3">End Date:</dt>
-            <dd class="col-sm-9">@(Model.EndDate?.ToString("dd-MMM-yyyy") ?? "Ongoing")</dd>
+            <dd class="col-sm-9">@(Model.EndDate.ToPkDate() is "" ? "Ongoing" : Model.EndDate.ToPkDate())</dd>
 
             <dt class="col-sm-3">Status:</dt>
             <dd class="col-sm-9">
@@ -32,7 +32,7 @@
             </dd>
 
             <dt class="col-sm-3">Created Date:</dt>
-            <dd class="col-sm-9">@Model.CreatedDate.ToString("dd-MMM-yyyy")</dd>
+            <dd class="col-sm-9">@Model.CreatedDate.ToPkDate()</dd>
         </dl>
 
         @if (ViewBag.ProjectVouchers != null)
@@ -51,7 +51,7 @@
                     @foreach (var voucher in ViewBag.ProjectVouchers)
                     {
                         <tr>
-                            <td>@voucher.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                            <td>@((DateTime)voucher.VoucherDate).ToPkDate()</td>
                             <td>@voucher.TransactionNumber</td>
                             <td>@voucher.VoucherType</td>
                             <td>@string.Format("{0:N0}", voucher.Amount)</td>

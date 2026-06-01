@@ -47,7 +47,7 @@
                             <td>
                                 @if (user.LastLoginDate.HasValue)
                                 {
-                                    <small>@user.LastLoginDate.Value.ToString("dd-MMM-yyyy hh:mm tt")</small>
+                                    <small>@user.LastLoginDate.ToPkDateTime("dd-MMM-yyyy hh:mm tt")</small>
                                 }
                                 else
                                 {

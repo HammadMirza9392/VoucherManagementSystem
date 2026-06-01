@@ -106,7 +106,7 @@
                                     </span>
                                 </td>
                                 <td>@item.TransactionNumber</td>
-                                <td>@item.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@item.VoucherDate.ToPkDate()</td>
                                 <td>
                                     @{
                                         var customerId = item.PurchasingCustomerId ?? item.ReceivingCustomerId;

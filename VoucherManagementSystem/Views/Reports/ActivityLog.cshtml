@@ -106,7 +106,7 @@
                         {
                             var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
                             <tr>
-                                <td><span class="badge bg-success">@v.CreatedDate.ToString("HH:mm:ss")</span></td>
+                                <td><span class="badge bg-success">@v.CreatedDate.ToPkTime()</span></td>
                                 <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
                                 <td>
                                     <span class="badge bg-@(v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
@@ -116,7 +116,7 @@
                                         @v.VoucherType
                                     </span>
                                 </td>
-                                <td>@v.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@v.VoucherDate.ToPkDate()</td>
                                 <td>@customer</td>
                                 <td>@(v.Item?.Name ?? "-")</td>
                                 <td>@(v.Project?.Name ?? "-")</td>
@@ -178,7 +178,7 @@
                         {
                             var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
                             <tr>
-                                <td><span class="badge bg-warning text-dark">@v.UpdatedDate?.ToString("HH:mm:ss")</span></td>
+                                <td><span class="badge bg-warning text-dark">@v.UpdatedDate.ToPkTime()</span></td>
                                 <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
                                 <td>
                                     <span class="badge bg-@(v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
@@ -188,7 +188,7 @@
                                         @v.VoucherType
                                     </span>
                                 </td>
-                                <td>@v.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@v.VoucherDate.ToPkDate()</td>
                                 <td>@customer</td>
                                 <td>@(v.Item?.Name ?? "-")</td>
                                 <td>@(v.Project?.Name ?? "-")</td>
@@ -240,7 +240,7 @@
                         {
                             var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
                             <tr class="table-danger">
-                                <td><span class="badge bg-danger">@v.DeletedDate?.ToString("HH:mm:ss")</span></td>
+                                <td><span class="badge bg-danger">@v.DeletedDate.ToPkTime()</span></td>
                                 <td><span class="text-decoration-line-through text-muted">@v.TransactionNumber</span></td>
                                 <td>
                                     <span class="badge bg-@(v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
@@ -250,7 +250,7 @@
                                         @v.VoucherType
                                     </span>
                                 </td>
-                                <td>@v.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@v.VoucherDate.ToPkDate()</td>
                                 <td>@customer</td>
                                 <td>@(v.Item?.Name ?? "-")</td>
                                 <td>@(v.Project?.Name ?? "-")</td>

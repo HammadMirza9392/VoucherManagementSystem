@@ -127,7 +127,7 @@
                                     runningBalance -= voucher.Amount;
 
                                 <tr>
-                                    <td>@voucher.VoucherDate.ToString("dd-MMM-yy")</td>
+                                    <td>@voucher.VoucherDate.ToPkShortDate()</td>
                                     <td>
                                         <a asp-controller="Vouchers" asp-action="Details" asp-route-id="@voucher.Id">
                                             @voucher.TransactionNumber

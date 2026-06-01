@@ -52,7 +52,7 @@
                                     @(item.IsActive ? "Active" : "Inactive")
                                 </span>
                             </td>
-                            <td>@item.CreatedDate.ToString("dd-MMM-yyyy")</td>
+                            <td>@item.CreatedDate.ToPkDate()</td>
                             @if (Context.Session.GetString("UserRole") == "Admin")
                             {
                                 <td>@(item.CreatedBy ?? "N/A")</td>

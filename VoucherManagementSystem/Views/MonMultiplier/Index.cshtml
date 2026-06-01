@@ -55,7 +55,7 @@
                                 <span class="badge bg-secondary">Inactive</span>
                             }
                         </td>
-                        <td>@item.LastUpdated.ToString("dd-MMM-yyyy HH:mm")</td>
+                        <td>@item.LastUpdated.ToPkDateTime()</td>
                         <td>@(item.UpdatedBy ?? "-")</td>
                         <td>
                             <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">

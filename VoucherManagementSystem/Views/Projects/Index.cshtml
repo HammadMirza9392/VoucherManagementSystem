@@ -42,8 +42,8 @@
                     <tr>
                         <td>@item.Name</td>
                         <td>@item.Description</td>
-                        <td>@item.StartDate.ToString("dd-MMM-yyyy")</td>
-                        <td>@(item.EndDate?.ToString("dd-MMM-yyyy") ?? "Ongoing")</td>
+                        <td>@item.StartDate.ToPkDate()</td>
+                        <td>@(item.EndDate.ToPkDate() is "" ? "Ongoing" : item.EndDate.ToPkDate())</td>
                         <td>
                             <span class="badge bg-@(item.IsActive ? "success" : "danger")">
                                 @(item.IsActive ? "Active" : "Inactive")

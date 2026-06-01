@@ -145,7 +145,7 @@
                         foreach (var e in expenses)
                         {
                             <tr class="@(e.VoucherType == VoucherManagementSystem.Models.VoucherType.Hazri ? "table-warning" : "")">
-                                <td>@e.VoucherDate.ToString("dd-MMM-yy")</td>
+                                <td>@e.VoucherDate.ToPkShortDate()</td>
                                 <td>
                                     <a asp-controller="Vouchers" asp-action="Details" asp-route-id="@e.Id">@e.TransactionNumber</a>
                                 </td>

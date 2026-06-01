@@ -113,7 +113,7 @@
                             <td>
                                 @if (pageLock.LastModifiedDate.HasValue)
                                 {
-                                    <small>@pageLock.LastModifiedDate.Value.ToString("dd-MMM-yyyy HH:mm")</small>
+                                    <small>@pageLock.LastModifiedDate.ToPkDateTime()</small>
                                 }
                             </td>
                             <td><small>@pageLock.LastModifiedBy</small></td>

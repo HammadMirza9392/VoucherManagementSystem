@@ -65,7 +65,7 @@
                         {
                             <tr>
                                 <td>@item.TransactionNumber</td>
-                                <td>@item.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@item.VoucherDate.ToPkDate()</td>
                                 <td>@item.AdvancedReceivingCustomer?.Name</td>
                                 <td>@item.AdvancedReceivingCustomerDetails</td>
                                 <td>@item.CashType</td>

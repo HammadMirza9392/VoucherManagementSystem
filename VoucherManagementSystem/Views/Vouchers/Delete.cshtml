@@ -21,7 +21,7 @@
             <dd class="col-sm-9">@Model.VoucherType</dd>
 
             <dt class="col-sm-3">Date:</dt>
-            <dd class="col-sm-9">@Model.VoucherDate.ToString("dd-MMM-yyyy")</dd>
+            <dd class="col-sm-9">@Model.VoucherDate.ToPkDate()</dd>
 
             <dt class="col-sm-3">Amount:</dt>
             <dd class="col-sm-9">Rs. @string.Format("{0:N0}", Model.Amount)</dd>

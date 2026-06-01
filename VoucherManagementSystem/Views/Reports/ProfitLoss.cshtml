@@ -429,7 +429,7 @@
                                     totalQty += voucher.Quantity.Value;
 
                                 <tr style="font-size: 13px;">
-                                    <td class="align-middle">@voucher.VoucherDate.ToString("dd-MMM-yy")</td>
+                                    <td class="align-middle">@voucher.VoucherDate.ToPkShortDate()</td>
                                     <td class="align-middle">
                                         <a asp-controller="Vouchers" asp-action="Details" asp-route-id="@voucher.Id">
                                             @voucher.TransactionNumber

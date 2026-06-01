@@ -23,10 +23,10 @@
             <dd class="col-sm-9">@(Model.Description ?? "N/A")</dd>
 
             <dt class="col-sm-3">Start Date:</dt>
-            <dd class="col-sm-9">@Model.StartDate.ToString("dd-MMM-yyyy")</dd>
+            <dd class="col-sm-9">@Model.StartDate.ToPkDate()</dd>
 
             <dt class="col-sm-3">End Date:</dt>
-            <dd class="col-sm-9">@(Model.EndDate?.ToString("dd-MMM-yyyy") ?? "Ongoing")</dd>
+            <dd class="col-sm-9">@(Model.EndDate.ToPkDate() is "" ? "Ongoing" : Model.EndDate.ToPkDate())</dd>
         </dl>
 
         <form asp-action="Delete" method="post">

@@ -109,7 +109,7 @@
                             var isPurchase = t.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase;
                             var customer = isPurchase ? t.PurchasingCustomer?.Name ?? t.PurchasingCustomerDetails : t.ReceivingCustomer?.Name ?? t.ReceivingCustomerDetails;
                             <tr style="font-size: 13px;">
-                                <td class="align-middle">@t.VoucherDate.ToString("dd-MMM-yy")</td>
+                                <td class="align-middle">@t.VoucherDate.ToPkShortDate()</td>
                                 <td class="align-middle">
                                     <a asp-controller="Vouchers" asp-action="Details" asp-route-id="@t.Id">@t.TransactionNumber</a>
                                 </td>

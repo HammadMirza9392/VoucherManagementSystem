@@ -125,7 +125,7 @@
                         foreach (var h in hazriRecords)
                         {
                             <tr>
-                                <td>@h.VoucherDate.ToString("dd-MMM-yy")</td>
+                                <td>@h.VoucherDate.ToPkShortDate()</td>
                                 <td>
                                     <a asp-controller="Vouchers" asp-action="Details" asp-route-id="@h.Id">@h.TransactionNumber</a>
                                 </td>

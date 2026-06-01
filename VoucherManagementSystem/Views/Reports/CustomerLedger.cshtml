@@ -299,7 +299,7 @@ else
                                 runningBalance += debit - credit;
 
                                 <tr style="font-size: 13px;">
-                                    <td class="align-middle">@voucher.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                    <td class="align-middle">@voucher.VoucherDate.ToPkDate()</td>
                                     <td class="align-middle">@voucher.TransactionNumber</td>
                                     <td class="align-middle">
                                         <span class="badge bg-@(voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :

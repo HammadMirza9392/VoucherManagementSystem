@@ -23,7 +23,7 @@
                     </dd>
 
                     <dt class="col-sm-4">Date:</dt>
-                    <dd class="col-sm-8">@Model.VoucherDate.ToString("dd-MMM-yyyy")</dd>
+                    <dd class="col-sm-8">@Model.VoucherDate.ToPkDate()</dd>
 
                     <dt class="col-sm-4">Cash Type:</dt>
                     <dd class="col-sm-8">@Model.CashType</dd>

@@ -200,7 +200,7 @@ else
                                 string details = v.AdvancedReceivingCustomerDetails ?? v.AdvancedPurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "";
 
                                 <tr style="font-size:13px;">
-                                    <td class="align-middle">@v.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                    <td class="align-middle">@v.VoucherDate.ToPkDate()</td>
                                     <td class="align-middle">
                                         <a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">
                                             @v.TransactionNumber

@@ -11,9 +11,6 @@ namespace VoucherManagementSystem.Data
             using var context = new ApplicationDbContext(
                 serviceProvider.GetRequiredService<DbContextOptions<ApplicationDbContext>>());
 
-            // Ensure database is created
-            context.Database.EnsureCreated();
-
             // Seed default admin user
             if (!context.Users.Any())
             {
@@ -25,7 +22,7 @@ namespace VoucherManagementSystem.Data
                     Email = "admin@system.com",
                     Role = "Admin",
                     IsActive = true,
-                    CreatedDate = DateTime.Now,
+                    CreatedDate = DateTime.UtcNow,
                     CreatedBy = "system"
                 });
                 context.SaveChanges();
@@ -60,7 +57,7 @@ namespace VoucherManagementSystem.Data
                     NavbarBackgroundColor = "#ffffff",
                     SidebarBackgroundColor = "#ffffff",
                     FooterBackgroundColor = "#f8f9fa",
-                    LastUpdated = DateTime.Now,
+                    LastUpdated = DateTime.UtcNow,
                     IsActive = true
                 });
                 context.SaveChanges();
@@ -75,11 +72,11 @@ namespace VoucherManagementSystem.Data
             // Seed Customers
             var customers = new Customer[]
             {
-                new Customer { Name = "Wajid Mandi", Phone = "0300-0000000", Address = "Mandi shah jiwna", IsActive = true },
-                new Customer { Name = "Muddasr Jutt", Phone = "0321-1234567", Address = "Jhang city", IsActive = true },
-                new Customer { Name = "Salman Bkr", Phone = "0333-7654321", Address = "Bhakkar road", IsActive = true },
-                new Customer { Name = "Shahid Loom", Phone = "0345-5555555", Address = "Adhi wal", IsActive = true },
-                new Customer { Name = "Bhai Bilal", Phone = "0312-9999999", Address = "Chiniot road", IsActive = true }
+                new Customer { Name = "Wajid Mandi", Phone = "0300-0000000", Address = "Mandi shah jiwna", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Customer { Name = "Muddasr Jutt", Phone = "0321-1234567", Address = "Jhang city", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Customer { Name = "Salman Bkr", Phone = "0333-7654321", Address = "Bhakkar road", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Customer { Name = "Shahid Loom", Phone = "0345-5555555", Address = "Adhi wal", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Customer { Name = "Bhai Bilal", Phone = "0312-9999999", Address = "Chiniot road", IsActive = true, CreatedDate = DateTime.UtcNow }
             };
             context.Customers.AddRange(customers);
             context.SaveChanges();
@@ -87,11 +84,11 @@ namespace VoucherManagementSystem.Data
             // Seed Items
             var items = new Item[]
             {
-                new Item { Name = "Karak bottle", Unit = "", StockTrackingEnabled = true, CurrentStock = 0, DefaultRate = 0 },
-                new Item { Name = "Scrap", Unit = "", StockTrackingEnabled = true, CurrentStock = 0, DefaultRate = 0 },
-                new Item { Name = "Gatta", Unit = "", StockTrackingEnabled = true, CurrentStock = 0, DefaultRate = 0 },
-                new Item { Name = "Kapi", Unit = "", StockTrackingEnabled = true, CurrentStock = 0, DefaultRate = 0 },
-                new Item { Name = "kitab", Unit = "", StockTrackingEnabled = true, CurrentStock = 0, DefaultRate = 0 },
+                new Item { Name = "Karak bottle", Unit = "", StockTrackingEnabled = true, CurrentStock = 0, DefaultRate = 0, IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Item { Name = "Scrap", Unit = "", StockTrackingEnabled = true, CurrentStock = 0, DefaultRate = 0, IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Item { Name = "Gatta", Unit = "", StockTrackingEnabled = true, CurrentStock = 0, DefaultRate = 0, IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Item { Name = "Kapi", Unit = "", StockTrackingEnabled = true, CurrentStock = 0, DefaultRate = 0, IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Item { Name = "kitab", Unit = "", StockTrackingEnabled = true, CurrentStock = 0, DefaultRate = 0, IsActive = true, CreatedDate = DateTime.UtcNow },
             };
             context.Items.AddRange(items);
             context.SaveChanges();
@@ -99,11 +96,11 @@ namespace VoucherManagementSystem.Data
             // Seed Banks
             var banks = new Bank[]
             {
-                new Bank { Name = "HBL", AccountNumber = "1234567890", Balance = 100000, Details = "Main Branch Account" },
-                new Bank { Name = "MCB", AccountNumber = "0987654321", Balance = 100000, Details = "Corporate Account" },
-                new Bank { Name = "UBL", AccountNumber = "1122334455", Balance = 100000, Details = "Business Account" },
-                new Bank { Name = "Allied Bank", AccountNumber = "5544332211", Balance = 100000, Details = "Current Account" },
-                new Bank { Name = "Meezan Bank", AccountNumber = "9988776655", Balance = 100000, Details = "Islamic Banking Account" }
+                new Bank { Name = "HBL", AccountNumber = "1234567890", Balance = 100000, Details = "Main Branch Account", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Bank { Name = "MCB", AccountNumber = "0987654321", Balance = 100000, Details = "Corporate Account", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Bank { Name = "UBL", AccountNumber = "1122334455", Balance = 100000, Details = "Business Account", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Bank { Name = "Allied Bank", AccountNumber = "5544332211", Balance = 100000, Details = "Current Account", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new Bank { Name = "Meezan Bank", AccountNumber = "9988776655", Balance = 100000, Details = "Islamic Banking Account", IsActive = true, CreatedDate = DateTime.UtcNow }
             };
             context.Banks.AddRange(banks);
             context.SaveChanges();
@@ -111,13 +108,13 @@ namespace VoucherManagementSystem.Data
             // Seed ExpenseHeads
             var expenseHeads = new ExpenseHead[]
             {
-                new ExpenseHead { Name = "Labor Charges", DefaultRate = 1200, Notes = "Daily labor wages" },
-                new ExpenseHead { Name = "Transportation", DefaultRate = 5000, Notes = "Vehicle and fuel expenses" },
-                new ExpenseHead { Name = "Utilities", DefaultRate = 0, Notes = "Electricity, Gas, Water bills" },
-                new ExpenseHead { Name = "Office Expenses", DefaultRate = 0, Notes = "Stationery and supplies" },
-                new ExpenseHead { Name = "Maintenance", DefaultRate = 0, Notes = "Equipment and machinery maintenance" },
-                new ExpenseHead { Name = "Marketing", DefaultRate = 0, Notes = "Advertisement and promotion" },
-                new ExpenseHead { Name = "Miscellaneous", DefaultRate = 0, Notes = "Other expenses" }
+                new ExpenseHead { Name = "Labor Charges", DefaultRate = 1200, Notes = "Daily labor wages", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new ExpenseHead { Name = "Transportation", DefaultRate = 5000, Notes = "Vehicle and fuel expenses", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new ExpenseHead { Name = "Utilities", DefaultRate = 0, Notes = "Electricity, Gas, Water bills", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new ExpenseHead { Name = "Office Expenses", DefaultRate = 0, Notes = "Stationery and supplies", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new ExpenseHead { Name = "Maintenance", DefaultRate = 0, Notes = "Equipment and machinery maintenance", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new ExpenseHead { Name = "Marketing", DefaultRate = 0, Notes = "Advertisement and promotion", IsActive = true, CreatedDate = DateTime.UtcNow },
+                new ExpenseHead { Name = "Miscellaneous", DefaultRate = 0, Notes = "Other expenses", IsActive = true, CreatedDate = DateTime.UtcNow }
             };
             context.ExpenseHeads.AddRange(expenseHeads);
             context.SaveChanges();
@@ -129,29 +126,33 @@ namespace VoucherManagementSystem.Data
                 {
                     Name = "Project Karak bottle",
                     Description = "5-story commercial plaza project",
-                    StartDate = DateTime.Now.AddMonths(-3),
-                    IsActive = true
+                    StartDate = DateTime.UtcNow.AddMonths(-3),
+                    IsActive = true,
+                    CreatedDate = DateTime.UtcNow
                 },
                 new Project
                 {
                     Name = "Project Scrap",
                     Description = "50 houses residential project",
-                    StartDate = DateTime.Now.AddMonths(-6),
-                    IsActive = true
+                    StartDate = DateTime.UtcNow.AddMonths(-6),
+                    IsActive = true,
+                    CreatedDate = DateTime.UtcNow
                 },
                 new Project
                 {
                     Name = "Project Gata",
                     Description = "Government infrastructure project",
-                    StartDate = DateTime.Now.AddMonths(-1),
-                    IsActive = true
+                    StartDate = DateTime.UtcNow.AddMonths(-1),
+                    IsActive = true,
+                    CreatedDate = DateTime.UtcNow
                 },
                 new Project
                 {
                     Name = "Project Kapi",
                     Description = "Modern shopping center development",
-                    StartDate = DateTime.Now.AddMonths(-2),
-                    IsActive = true
+                    StartDate = DateTime.UtcNow.AddMonths(-2),
+                    IsActive = true,
+                    CreatedDate = DateTime.UtcNow
                 }
             };
             context.Projects.AddRange(projects);

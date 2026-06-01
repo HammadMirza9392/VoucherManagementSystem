@@ -70,7 +70,7 @@
                         {
                             <tr>
                                 <td>@item.TransactionNumber</td>
-                                <td>@item.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@item.VoucherDate.ToPkDate()</td>
                                 <td>
                                     @{
                                         var customerName = item.PurchasingCustomer?.Name ?? item.ReceivingCustomer?.Name;

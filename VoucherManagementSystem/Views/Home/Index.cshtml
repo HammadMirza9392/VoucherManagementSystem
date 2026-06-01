@@ -359,7 +359,7 @@
                             {
                                 var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
                                 <tr>
-                                    <td>@v.VoucherDate.ToString("dd-MMM")</td>
+                                    <td>@((DateTime)v.VoucherDate).ToPkDateAlt()</td>
                                     <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
                                     <td><span class="badge bg-@GetVoucherColor(v.VoucherType.ToString())">@v.VoucherType</span></td>
                                     <td class="text-truncate" style="max-width: 150px;">@customer</td>

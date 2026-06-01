@@ -4,6 +4,9 @@ using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Repositories;
 using VoucherManagementSystem.Filters;
 
+// Tell Npgsql to treat all DateTime as UTC globally — avoids errors across the whole app
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -16,11 +19,11 @@ builder.Services.AddControllersWithViews(options =>
 // Configure Entity Framework with performance optimizations
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsqlOptions =>
         {
-            sqlOptions.CommandTimeout(30); // Fast timeout
-            sqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null);
+            npgsqlOptions.CommandTimeout(30);
+            npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorCodesToAdd: null);
         });
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking); // Faster read operations
     options.EnableSensitiveDataLogging(false); // Reduce overhead
