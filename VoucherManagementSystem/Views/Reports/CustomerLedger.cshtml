@@ -55,6 +55,7 @@ else
     var vouchers = ViewBag.Vouchers as List<VoucherManagementSystem.Models.Voucher>;
     var fromDate = (DateTime)ViewBag.FromDate;
     var toDate = (DateTime)ViewBag.ToDate;
+    var matchedBank = ViewBag.MatchedBank as VoucherManagementSystem.Models.Bank;
 
     <!-- Filter Form -->
     <div class="card mb-3 d-print-none">
@@ -103,54 +104,84 @@ else
         </div>
     </div>
 
-    <!-- Report Header -->
-    <div class="card mb-3 shadow-sm">
-        <div class="card-header bg-info text-white">
-            <h5 class="mb-0"><i class="bi bi-person-badge"></i> @customer.Name - Ledger Account</h5>
-            <small><i class="bi bi-calendar-range"></i> Period: @fromDate.ToString("dd-MMM-yyyy") to @toDate.ToString("dd-MMM-yyyy")</small>
+    <!-- Customer Name Banner -->
+    <div class="card mb-3 shadow-sm border-0" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+        <div class="card-body py-3 px-4">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-white d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:56px; height:56px;">
+                    <i class="bi bi-person-fill text-primary" style="font-size:1.8rem;"></i>
+                </div>
+                <div>
+                    <h3 class="text-white fw-bold mb-0">@customer.Name</h3>
+                    <small class="text-white opacity-75">
+                        @if (!string.IsNullOrEmpty(customer.Phone)) { <span><i class="bi bi-telephone me-1"></i>@customer.Phone</span> }
+                        @if (!string.IsNullOrEmpty(customer.Address)) { <span class="ms-3"><i class="bi bi-geo-alt me-1"></i>@customer.Address</span> }
+                    </small>
+                </div>
+                <div class="ms-auto text-white text-end opacity-75">
+                    <small><i class="bi bi-calendar-range me-1"></i>@fromDate.ToString("dd-MMM-yyyy") to @toDate.ToString("dd-MMM-yyyy")</small>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="border-end pe-3">
-                        <p class="mb-2"><strong><i class="bi bi-person"></i> Customer Name:</strong> @customer.Name</p>
-                        <p class="mb-2"><strong><i class="bi bi-telephone"></i> Phone:</strong> @customer.Phone</p>
-                        <p class="mb-0"><strong><i class="bi bi-geo-alt"></i> Address:</strong> @customer.Address</p>
+    </div>
+
+    <!-- Balance Cards -->
+    <div class="row g-3 mb-3">
+        <!-- Opening Balance -->
+        <div class="@(matchedBank != null ? "col-md-4" : "col-md-6")">
+            <div class="card border-success shadow-sm h-100">
+                <div class="card-body bg-light text-center">
+                    <h6 class="text-muted mb-2 fw-bold">
+                        <i class="bi bi-arrow-up-circle"></i> Opening Balance
+                    </h6>
+                    <h3 class="balance-amount @(openingBalance >= 0 ? "text-success" : "text-danger") mb-0">
+                        Rs. @string.Format("{0:N0}", Math.Abs(openingBalance))
+                    </h3>
+                    <span class="badge bg-@(openingBalance >= 0 ? "success" : "danger") mt-2">
+                        @(openingBalance >= 0 ? "Debit" : "Credit")
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bank Balance (only if a matching bank found) -->
+        @if (matchedBank != null)
+        {
+            <div class="col-md-4">
+                <div class="card border-warning shadow-sm h-100">
+                    <div class="card-body bg-light text-center">
+                        <h6 class="text-muted mb-2 fw-bold">
+                            <i class="bi bi-bank"></i> Bank Balance
+                        </h6>
+                        <h3 class="balance-amount @(matchedBank.Balance >= 0 ? "text-warning" : "text-danger") mb-0">
+                            Rs. @string.Format("{0:N0}", Math.Abs(matchedBank.Balance))
+                        </h3>
+                        <a asp-controller="Reports" asp-action="BankStatement"
+                           asp-route-bankId="@matchedBank.Id"
+                           asp-route-fromDate="@fromDate.ToString("yyyy-MM-dd")"
+                           asp-route-toDate="@toDate.ToString("yyyy-MM-dd")"
+                           class="badge bg-warning text-dark mt-2 text-decoration-none" target="_blank">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>@matchedBank.Name
+                        </a>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="row text-center g-3">
-                        <div class="col-6">
-                            <div class="card border-success shadow-sm">
-                                <div class="card-body bg-light">
-                                    <h6 class="text-muted mb-2 fw-bold">
-                                        <i class="bi bi-arrow-up-circle"></i> Opening Balance
-                                    </h6>
-                                    <h3 class="balance-amount @(openingBalance >= 0 ? "text-success" : "text-danger") mb-0">
-                                        Rs. @string.Format("{0:N0}", Math.Abs(openingBalance))
-                                    </h3>
-                                    <span class="badge bg-@(openingBalance >= 0 ? "success" : "danger") mt-2">
-                                        @(openingBalance >= 0 ? "Debit" : "Credit")
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="card border-primary shadow-sm">
-                                <div class="card-body bg-light">
-                                    <h6 class="text-muted mb-2 fw-bold">
-                                        <i class="bi bi-wallet2"></i> Closing Balance
-                                    </h6>
-                                    <h3 class="balance-amount @(closingBalance >= 0 ? "text-success" : "text-danger") mb-0">
-                                        Rs. @string.Format("{0:N0}", Math.Abs(closingBalance))
-                                    </h3>
-                                    <span class="badge bg-@(closingBalance >= 0 ? "success" : "danger") mt-2">
-                                        @(closingBalance >= 0 ? "Debit" : "Credit")
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            </div>
+        }
+
+        <!-- Closing Balance -->
+        <div class="@(matchedBank != null ? "col-md-4" : "col-md-6")">
+            <div class="card border-primary shadow-sm h-100">
+                <div class="card-body bg-light text-center">
+                    <h6 class="text-muted mb-2 fw-bold">
+                        <i class="bi bi-wallet2"></i> Closing Balance
+                    </h6>
+                    <h3 class="balance-amount @(closingBalance >= 0 ? "text-success" : "text-danger") mb-0">
+                        Rs. @string.Format("{0:N0}", Math.Abs(closingBalance))
+                    </h3>
+                    <span class="badge bg-@(closingBalance >= 0 ? "success" : "danger") mt-2">
+                        @(closingBalance >= 0 ? "Debit" : "Credit")
+                    </span>
                 </div>
             </div>
         </div>

@@ -1107,6 +1107,11 @@ namespace VoucherManagementSystem.Controllers
                 }
 
                 // Populate filter dropdowns
+                // Find a bank whose name matches this customer's name (for bank balance card)
+                var allBanks = await _bankRepository.GetActiveBanksAsync();
+                var matchedBank = allBanks.FirstOrDefault(b =>
+                    b.Name.Trim().Equals(customer.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+
                 ViewBag.Items = new SelectList(await _itemRepository.GetActiveItemsAsync(), "Id", "Name", itemId);
                 ViewBag.Customer = customer;
                 ViewBag.FromDate = startDate;
@@ -1119,6 +1124,7 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
                 ViewBag.SelectedItemId = itemId;
                 ViewBag.SelectedVoucherType = voucherType;
+                ViewBag.MatchedBank = matchedBank;
 
                 return View();
             }

@@ -14,10 +14,10 @@ namespace VoucherManagementSystem.Data
             // Ensure database is created
             context.Database.EnsureCreated();
 
-            // Seed default admin user if no users exist
+            // Seed default admin user
             if (!context.Users.Any())
             {
-                var adminUser = new User
+                context.Users.Add(new User
                 {
                     Username = "admin",
                     Password = "admin123",
@@ -27,8 +27,42 @@ namespace VoucherManagementSystem.Data
                     IsActive = true,
                     CreatedDate = DateTime.Now,
                     CreatedBy = "system"
-                };
-                context.Users.Add(adminUser);
+                });
+                context.SaveChanges();
+            }
+
+            // Seed master password
+            if (!context.MasterPasswords.Any())
+            {
+                context.MasterPasswords.Add(new MasterPassword
+                {
+                    PasswordType = "MasterLock",
+                    Password = "admin123"
+                });
+                context.SaveChanges();
+            }
+
+            // Seed default theme settings
+            if (!context.ThemeSettings.Any())
+            {
+                context.ThemeSettings.Add(new ThemeSettings
+                {
+                    ThemeMode = "Light",
+                    PrimaryColor = "#0d6efd",
+                    SecondaryColor = "#6c757d",
+                    SuccessColor = "#198754",
+                    DangerColor = "#dc3545",
+                    WarningColor = "#ffc107",
+                    InfoColor = "#0dcaf0",
+                    BackgroundColor = "#ffffff",
+                    TextColor = "#212529",
+                    CardBackgroundColor = "#ffffff",
+                    NavbarBackgroundColor = "#ffffff",
+                    SidebarBackgroundColor = "#ffffff",
+                    FooterBackgroundColor = "#f8f9fa",
+                    LastUpdated = DateTime.Now,
+                    IsActive = true
+                });
                 context.SaveChanges();
             }
 

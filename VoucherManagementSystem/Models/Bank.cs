@@ -16,7 +16,6 @@ namespace VoucherManagementSystem.Models
         public string? AccountNumber { get; set; }
 
         [Display(Name = "Current Balance")]
-        [Range(0, double.MaxValue, ErrorMessage = "Balance cannot be negative")]
         public decimal Balance { get; set; } = 0;
 
         [StringLength(500, ErrorMessage = "Details cannot exceed 500 characters")]

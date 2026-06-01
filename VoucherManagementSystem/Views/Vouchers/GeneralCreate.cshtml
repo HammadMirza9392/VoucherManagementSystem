@@ -197,6 +197,9 @@
     <div class="card-body">
         <form asp-action="Create" id="voucherForm">
             <input type="hidden" name="returnToGeneral" value="true" />
+            <!-- Hidden backup inputs — always submitted even when bank columns are display:none -->
+            <input type="hidden" id="hiddenBankPaidId" name="BankCustomerPaidId" value="" />
+            <input type="hidden" id="hiddenBankReceiverId" name="BankCustomerReceiverId" value="" />
             <!-- Top Fields: Transaction Number, Date, and Voucher Type -->
             <div class="row mb-3 top-fields-row">
                 <div class="col-equal">
@@ -254,7 +257,14 @@
                                         <td style="padding: 2px;">
                                             <label asp-for="BankCustomerPaidId" class="form-label mb-1" style="font-size: 0.85rem;">Bank Paid</label>
                                             <div class="input-group input-group-sm">
-                                                @Html.DropDownListFor(m => m.BankCustomerPaidId, ViewBag.Banks as SelectList, "Select Bank", new { @class = "form-select form-select-sm", id = "bankPaid" })
+                                                <select class="form-select form-select-sm" id="bankPaid">
+                                                    <option value="">Select Bank</option>
+                                                    @if (ViewBag.Banks != null) {
+                                                        foreach (var b in ViewBag.Banks as SelectList) {
+                                                            <option value="@b.Value">@b.Text</option>
+                                                        }
+                                                    }
+                                                </select>
                                                 <button type="button" class="btn btn-outline-primary btn-sm" id="viewBankPaidStatement" title="View Bank Statement">
                                                     <i class="bi bi-file-text"></i>
                                                 </button>
@@ -280,7 +290,14 @@
                                         <td style="padding: 2px;">
                                             <label asp-for="BankCustomerReceiverId" class="form-label mb-1" style="font-size: 0.85rem;">Bank Receiver</label>
                                             <div class="input-group input-group-sm">
-                                                @Html.DropDownListFor(m => m.BankCustomerReceiverId, ViewBag.Banks as SelectList, "Select Bank", new { @class = "form-select form-select-sm", id = "bankReceiver" })
+                                                <select class="form-select form-select-sm" id="bankReceiver">
+                                                    <option value="">Select Bank</option>
+                                                    @if (ViewBag.Banks != null) {
+                                                        foreach (var b in ViewBag.Banks as SelectList) {
+                                                            <option value="@b.Value">@b.Text</option>
+                                                        }
+                                                    }
+                                                </select>
                                                 <button type="button" class="btn btn-outline-primary btn-sm" id="viewBankReceiverStatement" title="View Bank Statement">
                                                     <i class="bi bi-file-text"></i>
                                                 </button>
@@ -649,6 +666,11 @@
                 var value = $('#stockIncludeText').val();
                 $('#stockInclude').val(value === '1' ? 'True' : 'False');
 
+                // Sync visible bank selects → hidden inputs before submit
+                // (display:none parent elements cause browsers to skip child fields)
+                $('#hiddenBankPaidId').val($('#bankPaid').val() || '');
+                $('#hiddenBankReceiverId').val($('#bankReceiver').val() || '');
+
                 // Validate Project is required for Purchase, Sale, Expense, and Hazri
                 var voucherType = $('#voucherTypeSelect').val();
                 var projectId = $('#ProjectId').val();
@@ -944,6 +966,14 @@
                 }
             });
 
+            // Keep hidden bank inputs in sync with visible selects
+            $('#bankPaid').on('change', function() {
+                $('#hiddenBankPaidId').val($(this).val() || '');
+            });
+            $('#bankReceiver').on('change', function() {
+                $('#hiddenBankReceiverId').val($(this).val() || '');
+            });
+
             // Copy Bank Paid name
             $('#copyBankPaidName').on('click', function() {
                 var selectedText = $('#bankPaid option:selected').text();
@@ -1040,10 +1070,11 @@
         }
 
         function clearFormFields() {
-            // Clear all input fields except voucher type, transaction number, and date
             $('input[type="text"]:not(#TransactionNumber), input[type="number"]').val('');
             $('select:not(#voucherTypeSelect)').prop('selectedIndex', 0);
             $('#purchasingCustomer, #receivingCustomer, #itemSelect').val(null).trigger('change');
+            $('#bankPaid, #bankReceiver').val('');
+            $('#hiddenBankPaidId, #hiddenBankReceiverId').val('');
         }
 
         function openCustomerLedger(customerId) {

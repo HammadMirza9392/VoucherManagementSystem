@@ -21,16 +21,15 @@ namespace VoucherManagementSystem.Repositories
 
         public async Task UpdateBalanceAsync(int bankId, decimal amount, bool isAddition)
         {
-            var bank = await _context.Banks.FindAsync(bankId);
-            if (bank != null)
-            {
-                if (isAddition)
-                    bank.Balance += amount;
-                else
-                    bank.Balance -= amount;
-
-                await _context.SaveChangesAsync();
-            }
+            // Use direct SQL update to bypass NoTracking global query behavior
+            if (isAddition)
+                await _context.Banks
+                    .Where(b => b.Id == bankId)
+                    .ExecuteUpdateAsync(s => s.SetProperty(b => b.Balance, b => b.Balance + amount));
+            else
+                await _context.Banks
+                    .Where(b => b.Id == bankId)
+                    .ExecuteUpdateAsync(s => s.SetProperty(b => b.Balance, b => b.Balance - amount));
         }
 
         public async Task<decimal> GetBankBalanceAsync(int bankId)
