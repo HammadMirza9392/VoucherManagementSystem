@@ -1226,25 +1226,33 @@ namespace VoucherManagementSystem.Controllers
                 var purchaseAmount = purchases.Sum(p => p.Amount);
                 var saleAmount = sales.Sum(s => s.Amount);
 
-                // Calculate opening stock (purchases - sales before fromDate for this project+item)
+                // Opening stock qty = purchases qty - sales qty before fromDate
                 var openingStockQty = await GetOpeningStockAsync(item.Id, fromDate);
 
-                // Calculate average purchase rate
-                var avgPurchaseRate = purchaseQty > 0 ? purchaseAmount / purchaseQty : 0;
-                var stockValue = stockQty * avgPurchaseRate;
+                // Opening stock amount = remaining qty × avg purchase rate of all prior purchases
+                // (we value stock at cost, not at selling price)
+                var openingPurchases = await _context.Vouchers
+                    .Where(v => v.ItemId == item.Id &&
+                                v.VoucherType == VoucherType.Purchase &&
+                                v.VoucherDate < fromDate)
+                    .ToListAsync();
+                var openingTotalPurchaseQty = openingPurchases.Sum(p => p.Quantity ?? 0);
+                var openingTotalPurchaseAmt = openingPurchases.Sum(p => p.Amount);
+                var openingAvgRate = openingTotalPurchaseQty > 0
+                    ? openingTotalPurchaseAmt / openingTotalPurchaseQty
+                    : 0;
+                var openingStockAmount = openingStockQty * openingAvgRate;
 
                 summary.Add(new ProjectItemSummary
                 {
                     ItemName = item?.Name ?? "Unknown",
+                    Unit = item?.Unit ?? "",
                     OpeningStockQty = openingStockQty,
+                    OpeningStockAmount = openingStockAmount,
                     PurchaseQty = purchaseQty,
-                    SaleQty = saleQty,
-                    StockQty = stockQty,
                     PurchaseAmount = purchaseAmount,
+                    SaleQty = saleQty,
                     SaleAmount = saleAmount,
-                    AvgPurchaseRate = avgPurchaseRate,
-                    StockValue = stockValue,
-                    Unit = item?.Unit ?? ""
                 });
             }
 
@@ -1980,15 +1988,45 @@ namespace VoucherManagementSystem.Controllers
     public class ProjectItemSummary
     {
         public string ItemName { get; set; }
-        public decimal OpeningStockQty { get; set; }
-        public decimal PurchaseQty { get; set; }
-        public decimal SaleQty { get; set; }
-        public decimal StockQty { get; set; }
-        public decimal PurchaseAmount { get; set; }
-        public decimal SaleAmount { get; set; }
-        public decimal AvgPurchaseRate { get; set; }
-        public decimal StockValue { get; set; }
         public string Unit { get; set; }
+
+        // Opening Stock
+        public decimal OpeningStockQty { get; set; }
+        public decimal OpeningStockAmount { get; set; }
+        public decimal OpeningStockRate => OpeningStockQty > 0 ? OpeningStockAmount / OpeningStockQty : 0;
+
+        // Purchase (period)
+        public decimal PurchaseQty { get; set; }
+        public decimal PurchaseAmount { get; set; }
+        public decimal PurchaseRate => PurchaseQty > 0 ? PurchaseAmount / PurchaseQty : 0;
+
+        // Total Qty (Opening + Purchase)
+        public decimal TotalQty => OpeningStockQty + PurchaseQty;
+        public decimal TotalQtyAmount => OpeningStockAmount + PurchaseAmount;
+        public decimal TotalQtyRate => TotalQty > 0 ? TotalQtyAmount / TotalQty : 0;
+
+        // Total Purchase Amount (alias kept for backward compat — same as PurchaseAmount)
+        public decimal TotalPurchaseQty => PurchaseQty;
+        public decimal TotalPurchaseAmount => PurchaseAmount;
+        public decimal TotalPurchaseRate => PurchaseRate;
+
+        // Sale
+        public decimal SaleQty { get; set; }
+        public decimal SaleAmount { get; set; }
+        public decimal SaleRate => SaleQty > 0 ? SaleAmount / SaleQty : 0;
+
+        // Total Sale Amount (alias)
+        public decimal TotalSaleQty => SaleQty;
+        public decimal TotalSaleAmount => SaleAmount;
+        public decimal TotalSaleRate => SaleRate;
+
+        // Stock Balance
+        public decimal StockQty => TotalQty - SaleQty;
+        public decimal StockValue => TotalQtyAmount - SaleAmount;
+        public decimal StockRate => StockQty > 0 ? StockValue / StockQty : 0;
+
+        // Legacy — kept so existing code doesn't break
+        public decimal AvgPurchaseRate => PurchaseRate;
     }
 
     // Helper class for expense summary
