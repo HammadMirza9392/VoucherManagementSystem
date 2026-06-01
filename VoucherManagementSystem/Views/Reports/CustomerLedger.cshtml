@@ -349,7 +349,7 @@ else
     </div>
 
     <!-- Action Buttons -->
-    <div class="mt-3 d-print-none">
+    <div class="mt-3 d-print-none btn-group-mobile">
         <a asp-controller="Vouchers" asp-action="AdvancedCashReceived" class="btn btn-success">
             <i class="bi bi-cash-coin"></i> Record Advance Received
         </a>
@@ -450,114 +450,101 @@ else
         }
 
         async function sendToWhatsApp() {
-            // Show loading indicator
             const button = event.target.closest('button');
             const originalText = button.innerHTML;
             button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating PDF...';
             button.disabled = true;
 
-            // Get data from button attributes
             const customerName = button.getAttribute('data-customer-name') || 'Customer';
-            const customerId = new URLSearchParams(window.location.search).get('customerId');
+            const customerPhone = button.getAttribute('data-customer-phone') || '';
             const fromDate = button.getAttribute('data-from-date') || '';
             const toDate = button.getAttribute('data-to-date') || '';
             const closingBalance = button.getAttribute('data-closing-balance') || '0';
             const balanceType = button.getAttribute('data-balance-type') || 'Dr';
 
-            // Create filename
-            const timestamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
-            const filename = 'CustomerLedger_' + customerName.replace(/\s+/g, '_') + '_' + timestamp + '.pdf';
+            const now = new Date();
+            const timestamp = now.getFullYear().toString() +
+                String(now.getMonth()+1).padStart(2,'0') +
+                String(now.getDate()).padStart(2,'0') + '-' +
+                String(now.getHours()).padStart(2,'0') +
+                String(now.getMinutes()).padStart(2,'0') +
+                String(now.getSeconds()).padStart(2,'0');
+            const filename = timestamp + '-CustomerLedger_' + customerName.replace(/\s+/g, '_') + '.pdf';
 
             try {
-                // Clone the entire report content
                 const element = document.querySelector('body').cloneNode(true);
-
-                // Remove all elements with d-print-none class from clone
                 element.querySelectorAll('.d-print-none').forEach(el => el.remove());
 
-                // Configure PDF options
                 const opt = {
                     margin: [10, 10, 10, 10],
                     filename: filename,
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: {
-                        scale: 2,
-                        useCORS: true,
-                        logging: false,
-                        scrollY: 0,
-                        scrollX: 0
-                    },
-                    jsPDF: {
-                        unit: 'mm',
-                        format: 'a4',
-                        orientation: 'portrait'
-                    },
+                    html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, scrollX: 0 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                     pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
                 };
 
-                // Generate PDF
+                // Step 1: Generate PDF blob
                 const pdf = await html2pdf().set(opt).from(element).toPdf().get('pdf');
                 const pdfBlob = pdf.output('blob');
 
-                // Update button text
-                button.innerHTML = '<i class="bi bi-cloud-upload"></i> Uploading to server...';
+                // Step 2: Auto-download the PDF to user's device
+                const downloadUrl = URL.createObjectURL(pdfBlob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = downloadUrl;
+                downloadLink.download = filename;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                setTimeout(() => URL.revokeObjectURL(downloadUrl), 3000);
 
-                // Create FormData to send PDF to backend
-                const formData = new FormData();
-                formData.append('pdfFile', pdfBlob, filename);
-                formData.append('customerId', customerId);
-                formData.append('fromDate', fromDate);
-                formData.append('toDate', toDate);
-                formData.append('closingBalance', closingBalance);
-                formData.append('balanceType', balanceType);
+                // Step 3: Build WhatsApp message
+                const message = `*Customer Ledger Report*\n` +
+                                `━━━━━━━━━━━━━━━━━━━━\n` +
+                                `Customer: ${customerName}\n` +
+                                `Period: ${fromDate} to ${toDate}\n` +
+                                `Closing Balance: Rs. ${closingBalance} ${balanceType}\n\n` +
+                                `PDF has been downloaded on your device.\n` +
+                                `Please attach the file named:\n${filename}`;
 
-                // Send PDF to backend
-                const response = await fetch('@Url.Action("SendCustomerLedgerToWhatsApp", "Reports")', {
-                    method: 'POST',
-                    body: formData
-                });
+                // Step 4: Format phone number with Pakistan code
+                let phone = customerPhone.replace(/\D/g, '');
+                if (phone.startsWith('0')) phone = '92' + phone.substring(1);
+                else if (!phone.startsWith('92')) phone = '92' + phone;
 
-                const result = await response.json();
+                const encodedMessage = encodeURIComponent(message);
 
-                if (result.success) {
-                    // Reset button
-                    button.innerHTML = originalText;
-                    button.disabled = false;
+                // Step 5: Detect mobile vs desktop and open correct WhatsApp
+                const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-                    // Show success message with better formatting
-                    const successMsg = `✅ PDF Generated Successfully!\n\n` +
-                                      `📁 Saved as: ${result.fileName}\n` +
-                                      `📂 Location: WhatsAppData folder\n\n` +
-                                      `Next Steps:\n` +
-                                      `1️⃣ WhatsApp Web will open with pre-filled message\n` +
-                                      `2️⃣ Folder will open automatically\n` +
-                                      `3️⃣ Drag & drop the PDF into WhatsApp chat`;
-
-                    alert(successMsg);
-
-                    // Open WhatsApp Web
-                    window.open(result.whatsappUrl, '_blank');
-
-                    // Open folder containing the PDF
-                    setTimeout(async () => {
-                        try {
-                            const folderResponse = await fetch('@Url.Action("OpenWhatsAppFolder", "Reports")');
-                            const folderResult = await folderResponse.json();
-
-                            if (!folderResult.success) {
-                                console.warn('Could not open folder:', folderResult.message);
-                            }
-                        } catch (err) {
-                            console.error('Error opening folder:', err);
-                        }
-                    }, 500);
+                let whatsappUrl;
+                if (isMobile) {
+                    // Mobile: open WhatsApp app directly
+                    whatsappUrl = phone
+                        ? `whatsapp://send?phone=${phone}&text=${encodedMessage}`
+                        : `whatsapp://send?text=${encodedMessage}`;
                 } else {
-                    throw new Error(result.message || 'Failed to send to WhatsApp');
+                    // Desktop: open WhatsApp Web
+                    whatsappUrl = phone
+                        ? `https://web.whatsapp.com/send?phone=${phone}&text=${encodedMessage}`
+                        : `https://web.whatsapp.com/send?text=${encodedMessage}`;
                 }
+
+                button.innerHTML = originalText;
+                button.disabled = false;
+
+                // Step 6: Small delay so PDF download starts first, then open WhatsApp
+                setTimeout(() => {
+                    if (isMobile) {
+                        window.location.href = whatsappUrl;
+                    } else {
+                        window.open(whatsappUrl, '_blank');
+                    }
+                }, 1500);
 
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error: ' + error.message);
+                alert('Error generating PDF: ' + error.message);
                 button.innerHTML = originalText;
                 button.disabled = false;
             }

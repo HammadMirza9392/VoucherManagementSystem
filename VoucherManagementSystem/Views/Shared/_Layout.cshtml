@@ -27,6 +27,14 @@
         .footer {
             flex-shrink: 0;
         }
+        /* Mobile: ensure all table wrappers scroll horizontally */
+        @media (max-width: 768px) {
+            .table-responsive { overflow-x: auto !important; }
+            main { padding-left: 4px; padding-right: 4px; }
+            /* Report action button rows wrap on mobile */
+            .d-print-none > .btn,
+            .d-print-none > a.btn { margin-right: 4px; margin-bottom: 6px; }
+        }
         /* Fix DataTables dropdown arrow visibility */
         .dataTables_length select {
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
@@ -45,7 +53,7 @@
         <nav class="navbar navbar-expand-lg navbar-light shadow-sm border-bottom">
             <div class="container-fluid px-4">
                 <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">
-                    <i class="bi bi-receipt-cutoff me-2"></i>AL-Hafiz Voucher System
+                    <i class="bi bi-receipt-cutoff me-2"></i><span class="d-none d-sm-inline">AL-Hafiz Voucher System</span><span class="d-inline d-sm-none">AL-Hafiz</span>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">

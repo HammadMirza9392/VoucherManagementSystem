@@ -420,19 +420,112 @@ a:hover {
     }
 }
 
-/* Responsive adjustments */
+/* ============================================================
+   MOBILE RESPONSIVE — max-width: 768px
+   Desktop layout is NOT touched anywhere above this block.
+   ============================================================ */
 @media (max-width: 768px) {
-    .card-body {
-        padding: 15px;
-    }
 
-    .table {
-        font-size: 12px;
-    }
+    /* --- Base --- */
+    html { font-size: 13px; }
 
-    .btn {
-        padding: 6px 12px;
-        font-size: 14px;
+    .container-fluid { padding-left: 10px; padding-right: 10px; }
+
+    /* --- Navbar --- */
+    .navbar { padding: 0.5rem 0.75rem; }
+    .navbar-brand { font-size: 1rem; }
+    .navbar-collapse { border-top: 1px solid #e9ecef; margin-top: 0.5rem; padding-top: 0.5rem; }
+    .navbar-nav .nav-link { padding: 0.6rem 0.5rem; }
+    .dropdown-menu { box-shadow: none; border: none; padding-left: 1rem; }
+
+    /* --- Cards --- */
+    .card { margin-bottom: 12px; border-radius: 6px; }
+    .card-body { padding: 12px; }
+    .card-header { padding: 0.75rem 1rem; font-size: 0.95rem; }
+
+    /* --- Buttons: stack on mobile, full width in button groups --- */
+    .btn { padding: 8px 12px; font-size: 0.85rem; }
+    .btn-sm { padding: 5px 8px; font-size: 0.8rem; }
+
+    /* Button groups inside cards/forms wrap and go full width */
+    .d-print-none .btn,
+    .card-body > .btn,
+    .card-body > a.btn,
+    form .btn { margin-bottom: 6px; }
+
+    /* Action button rows wrap nicely */
+    .btn-group-mobile {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .btn-group-mobile .btn { flex: 1 1 auto; min-width: 120px; }
+
+    /* --- Tables: horizontally scrollable --- */
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .table { font-size: 11px; min-width: 500px; }
+    .table th, .table td { padding: 6px 8px; white-space: nowrap; }
+    .table .btn-sm { padding: 3px 6px; font-size: 0.75rem; }
+
+    /* Badge smaller on mobile */
+    .badge { padding: 4px 7px; font-size: 0.7rem; }
+
+    /* --- Forms --- */
+    .form-label { font-size: 0.85rem; margin-bottom: 0.25rem; }
+    .form-control, .form-select { font-size: 0.85rem; padding: 0.4rem 0.6rem; }
+    .input-group-text { font-size: 0.85rem; }
+    .row.g-3 > [class*="col-"] { margin-bottom: 4px; }
+
+    /* --- DataTables --- */
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter { margin-bottom: 10px; font-size: 0.8rem; }
+    .dataTables_wrapper .dataTables_filter input { width: 120px; }
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate { font-size: 0.8rem; padding-top: 10px; }
+    .dataTables_wrapper .dataTables_paginate .paginate_button { padding: 3px 8px !important; }
+
+    /* --- Dashboard: summary cards 2 per row --- */
+    .row .col-6.col-md-2 { width: 50% !important; }
+
+    /* Dashboard scroll tables smaller */
+    .dashboard-scroll-body { max-height: 180px; }
+
+    /* Dashboard charts stack vertically */
+    .col-md-3, .col-md-4, .col-md-5 { width: 100% !important; margin-bottom: 12px; }
+
+    /* --- Report filter forms --- */
+    .col-md-2, .col-md-3 { width: 100% !important; }
+    /* But keep 2-column layout for paired inputs like from/to date */
+    .col-6 { width: 50% !important; }
+
+    /* --- Headings --- */
+    h2 { font-size: 1.2rem; }
+    h3 { font-size: 1.1rem; }
+    h4 { font-size: 1rem; }
+    h5 { font-size: 0.95rem; }
+
+    /* --- Modal --- */
+    .modal-dialog { margin: 10px; }
+    .modal-body { padding: 12px; }
+
+    /* --- Footer --- */
+    .footer { padding: 12px 0; text-align: center; }
+    .footer .col-md-6 { text-align: center !important; margin-bottom: 8px; }
+
+    /* --- Page-specific: Customer Ledger balance cards --- */
+    .col-md-4 { width: 100% !important; }
+
+    /* --- Select2 --- */
+    .select2-container { width: 100% !important; }
+
+    /* --- Alert --- */
+    .alert { padding: 0.6rem 0.9rem; font-size: 0.85rem; }
+
+    /* --- Action buttons in tables: icon only on very small screens --- */
+    @media (max-width: 480px) {
+        .table .btn-sm span.btn-label { display: none; }
+        .table .btn-sm { padding: 4px 6px; }
+        .table { font-size: 10px; }
     }
 }
 
