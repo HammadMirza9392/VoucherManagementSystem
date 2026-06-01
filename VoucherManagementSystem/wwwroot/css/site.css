@@ -426,107 +426,173 @@ a:hover {
    ============================================================ */
 @media (max-width: 768px) {
 
-    /* --- Base --- */
+    /* --- Base & Layout --- */
     html { font-size: 13px; }
-
-    .container-fluid { padding-left: 10px; padding-right: 10px; }
+    body { overflow-x: hidden; }
+    .container-fluid { padding-left: 8px; padding-right: 8px; }
+    main { padding-top: 8px; }
 
     /* --- Navbar --- */
-    .navbar { padding: 0.5rem 0.75rem; }
+    .navbar { padding: 0.4rem 0.75rem; }
     .navbar-brand { font-size: 1rem; }
-    .navbar-collapse { border-top: 1px solid #e9ecef; margin-top: 0.5rem; padding-top: 0.5rem; }
-    .navbar-nav .nav-link { padding: 0.6rem 0.5rem; }
-    .dropdown-menu { box-shadow: none; border: none; padding-left: 1rem; }
+    .navbar-collapse {
+        border-top: 1px solid #e9ecef;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    .navbar-nav .nav-link { padding: 0.55rem 0.5rem; font-size: 0.9rem; }
+    .dropdown-menu { box-shadow: none !important; border: none; padding-left: 1rem; position: static !important; float: none; }
+    .dropdown-item { padding: 0.4rem 1rem; font-size: 0.85rem; }
 
     /* --- Cards --- */
     .card { margin-bottom: 12px; border-radius: 6px; }
-    .card-body { padding: 12px; }
-    .card-header { padding: 0.75rem 1rem; font-size: 0.95rem; }
-
-    /* --- Buttons: stack on mobile, full width in button groups --- */
-    .btn { padding: 8px 12px; font-size: 0.85rem; }
-    .btn-sm { padding: 5px 8px; font-size: 0.8rem; }
-
-    /* Button groups inside cards/forms wrap and go full width */
-    .d-print-none .btn,
-    .card-body > .btn,
-    .card-body > a.btn,
-    form .btn { margin-bottom: 6px; }
-
-    /* Action button rows wrap nicely */
-    .btn-group-mobile {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-    .btn-group-mobile .btn { flex: 1 1 auto; min-width: 120px; }
-
-    /* --- Tables: horizontally scrollable --- */
-    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .table { font-size: 11px; min-width: 500px; }
-    .table th, .table td { padding: 6px 8px; white-space: nowrap; }
-    .table .btn-sm { padding: 3px 6px; font-size: 0.75rem; }
-
-    /* Badge smaller on mobile */
-    .badge { padding: 4px 7px; font-size: 0.7rem; }
-
-    /* --- Forms --- */
-    .form-label { font-size: 0.85rem; margin-bottom: 0.25rem; }
-    .form-control, .form-select { font-size: 0.85rem; padding: 0.4rem 0.6rem; }
-    .input-group-text { font-size: 0.85rem; }
-    .row.g-3 > [class*="col-"] { margin-bottom: 4px; }
-
-    /* --- DataTables --- */
-    .dataTables_wrapper .dataTables_length,
-    .dataTables_wrapper .dataTables_filter { margin-bottom: 10px; font-size: 0.8rem; }
-    .dataTables_wrapper .dataTables_filter input { width: 120px; }
-    .dataTables_wrapper .dataTables_info,
-    .dataTables_wrapper .dataTables_paginate { font-size: 0.8rem; padding-top: 10px; }
-    .dataTables_wrapper .dataTables_paginate .paginate_button { padding: 3px 8px !important; }
-
-    /* --- Dashboard: summary cards 2 per row --- */
-    .row .col-6.col-md-2 { width: 50% !important; }
-
-    /* Dashboard scroll tables smaller */
-    .dashboard-scroll-body { max-height: 180px; }
-
-    /* Dashboard charts stack vertically */
-    .col-md-3, .col-md-4, .col-md-5 { width: 100% !important; margin-bottom: 12px; }
-
-    /* --- Report filter forms --- */
-    .col-md-2, .col-md-3 { width: 100% !important; }
-    /* But keep 2-column layout for paired inputs like from/to date */
-    .col-6 { width: 50% !important; }
+    .card-body { padding: 10px 12px; }
+    .card-header { padding: 0.6rem 0.9rem; font-size: 0.9rem; }
 
     /* --- Headings --- */
-    h2 { font-size: 1.2rem; }
-    h3 { font-size: 1.1rem; }
-    h4 { font-size: 1rem; }
-    h5 { font-size: 0.95rem; }
+    h2 { font-size: 1.15rem; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.05rem; }
+    h4 { font-size: 0.95rem; }
+    h5 { font-size: 0.9rem; }
+    h6 { font-size: 0.85rem; }
 
-    /* --- Modal --- */
-    .modal-dialog { margin: 10px; }
-    .modal-body { padding: 12px; }
+    /* --- Buttons --- */
+    .btn { padding: 7px 11px; font-size: 0.82rem; border-radius: 5px; }
+    .btn-sm { padding: 4px 8px; font-size: 0.78rem; }
 
-    /* --- Footer --- */
-    .footer { padding: 12px 0; text-align: center; }
-    .footer .col-md-6 { text-align: center !important; margin-bottom: 8px; }
+    /* All buttons in action areas get spacing */
+    .btn + .btn,
+    .btn + a.btn,
+    a.btn + .btn,
+    a.btn + a.btn { margin-left: 0; }
 
-    /* --- Page-specific: Customer Ledger balance cards --- */
-    .col-md-4 { width: 100% !important; }
+    /* Button rows — flex wrap so buttons don't overflow */
+    .btn-group-mobile,
+    .mt-3.d-print-none,
+    .mb-3.d-print-none,
+    .d-flex.gap-2 {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+    }
+    .btn-group-mobile .btn,
+    .mt-3.d-print-none .btn,
+    .mt-3.d-print-none a.btn,
+    .mb-3.d-print-none .btn,
+    .mb-3.d-print-none a.btn {
+        flex: 1 1 auto;
+        min-width: 130px;
+        text-align: center;
+        margin-bottom: 0 !important;
+    }
+
+    /* --- Tables --- */
+    .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 4px;
+    }
+    .table { font-size: 11px; min-width: 480px; margin-bottom: 0; }
+    .table th { padding: 7px 8px; white-space: nowrap; font-size: 11px; }
+    .table td { padding: 6px 8px; white-space: nowrap; font-size: 11px; vertical-align: middle; }
+    .table .btn-sm { padding: 3px 6px; font-size: 0.72rem; }
+
+    /* --- Badges --- */
+    .badge { padding: 3px 7px; font-size: 0.68rem; }
+
+    /* --- Forms --- */
+    .form-label { font-size: 0.82rem; margin-bottom: 0.2rem; font-weight: 600; }
+    .form-control, .form-select { font-size: 0.85rem; padding: 0.38rem 0.6rem; }
+    .input-group-text { font-size: 0.82rem; padding: 0.38rem 0.6rem; }
+    .row.g-3 > [class*="col-"] { margin-bottom: 2px; }
+    .mb-3 { margin-bottom: 0.6rem !important; }
+
+    /* Form grid: all cols go full width except explicit col-6 pairs */
+    .col-md-1, .col-md-2, .col-md-3,
+    .col-md-4, .col-md-5, .col-md-6,
+    .col-md-7, .col-md-8, .col-md-9,
+    .col-md-10, .col-md-11, .col-md-12 { width: 100% !important; }
+
+    /* Keep explicit half-width cols (from/to date pairs etc) */
+    .col-6 { width: 50% !important; }
+    .col-4 { width: 33.33% !important; }
+    .col-3 { width: 25% !important; }
+
+    /* Summary stat cards — 2 per row */
+    .col-6.col-md-2 { width: 50% !important; }
+
+    /* --- DataTables --- */
+    .dataTables_wrapper .dataTables_length label,
+    .dataTables_wrapper .dataTables_filter label { font-size: 0.8rem; }
+    .dataTables_wrapper .dataTables_filter input { width: 110px; font-size: 0.8rem; }
+    .dataTables_wrapper .dataTables_info { font-size: 0.78rem; padding-top: 8px; }
+    .dataTables_wrapper .dataTables_paginate { padding-top: 8px; }
+    .dataTables_wrapper .dataTables_paginate .paginate_button { padding: 2px 7px !important; font-size: 0.78rem !important; }
+    .dataTables_length select { font-size: 0.8rem; }
+
+    /* --- Dashboard scroll tables --- */
+    .dashboard-scroll-body { max-height: 160px; }
 
     /* --- Select2 --- */
     .select2-container { width: 100% !important; }
+    .select2-container--bootstrap-5 .select2-selection { font-size: 0.85rem; }
 
-    /* --- Alert --- */
-    .alert { padding: 0.6rem 0.9rem; font-size: 0.85rem; }
+    /* --- Alerts --- */
+    .alert { padding: 0.5rem 0.8rem; font-size: 0.82rem; }
+    .alert i { font-size: 0.9rem; }
 
-    /* --- Action buttons in tables: icon only on very small screens --- */
-    @media (max-width: 480px) {
-        .table .btn-sm span.btn-label { display: none; }
-        .table .btn-sm { padding: 4px 6px; }
-        .table { font-size: 10px; }
-    }
+    /* --- Modal --- */
+    .modal-dialog { margin: 8px; max-width: calc(100vw - 16px); }
+    .modal-header { padding: 0.6rem 1rem; }
+    .modal-body { padding: 10px 12px; }
+    .modal-footer { padding: 0.5rem 0.75rem; gap: 6px; }
+    .modal-title { font-size: 0.95rem; }
+
+    /* --- dl rows (Details pages) --- */
+    dl.row dt, dl.row dd { font-size: 0.85rem; padding: 4px 0; }
+
+    /* --- Footer --- */
+    .footer { padding: 10px 0; font-size: 0.8rem; }
+    .footer .col-md-6 { text-align: center !important; margin-bottom: 6px; }
+    .footer p { margin-bottom: 2px; }
+
+    /* --- Page top spacing --- */
+    .mt-3 { margin-top: 0.6rem !important; }
+    .mt-4 { margin-top: 0.8rem !important; }
+    .mb-4 { margin-bottom: 0.8rem !important; }
+    .py-4 { padding-top: 0.8rem !important; padding-bottom: 0.8rem !important; }
+
+    /* --- Input groups full width --- */
+    .input-group { width: 100%; }
+
+    /* --- Large stat number in dashboard banner --- */
+    .display-4 { font-size: 2rem !important; }
+    .display-6 { font-size: 1.3rem !important; }
+
+    /* --- Report filter submit buttons --- */
+    .card-body .btn[type="submit"],
+    .card-body button[type="submit"] { width: 100%; margin-top: 4px; }
+}
+
+/* ============================================================
+   EXTRA SMALL — max-width: 480px (phones in portrait)
+   ============================================================ */
+@media (max-width: 480px) {
+    html { font-size: 12px; }
+    .container-fluid { padding-left: 6px; padding-right: 6px; }
+    .table { font-size: 10px; min-width: 420px; }
+    .table th, .table td { padding: 5px 6px; }
+    .btn { padding: 6px 9px; font-size: 0.78rem; }
+    .btn-sm { padding: 3px 6px; font-size: 0.72rem; }
+    .card-body { padding: 8px 10px; }
+    .navbar-brand { font-size: 0.9rem; }
+    h2 { font-size: 1.05rem; }
+    .badge { font-size: 0.62rem; padding: 2px 5px; }
+    .btn-group-mobile .btn,
+    .mt-3.d-print-none .btn,
+    .mt-3.d-print-none a.btn { min-width: 100px; font-size: 0.76rem; }
 }
 
 /* Loading spinner */
