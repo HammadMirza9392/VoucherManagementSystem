@@ -68,10 +68,10 @@
             <i class="bi bi-trash"></i> Delete Selected
         </button>
     </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-striped table-sm">
-                <thead>
+    <div class="card-body p-0 d-flex flex-column" style="height:420px;">
+        <div class="table-responsive flex-grow-1" style="overflow-y:auto; overflow-x:auto;">
+            <table class="table table-striped table-sm mb-0">
+                <thead class="sticky-top" style="z-index:1;">
                     <tr>
                         <th><input type="checkbox" id="selectAll" title="Select All" /></th>
                         <th>Type</th>
@@ -160,28 +160,32 @@
             </table>
         </div>
 
-        <!-- Pagination -->
-        @if (ViewBag.TotalPages > 1)
-        {
-            <nav aria-label="Voucher pagination">
-                <ul class="pagination pagination-sm justify-content-center mb-0">
-                    <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
-                        <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(ViewBag.CurrentPage - 1)">Previous</a>
-                    </li>
-
-                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
-                    {
-                        <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
-                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@i">@i</a>
+        <!-- Sticky pagination bar -->
+        <div class="border-top bg-white px-3 py-2 flex-shrink-0">
+            @if (ViewBag.TotalPages > 1)
+            {
+                <nav aria-label="Voucher pagination">
+                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                        <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(ViewBag.CurrentPage - 1)">Previous</a>
                         </li>
-                    }
-
-                    <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
-                        <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(ViewBag.CurrentPage + 1)">Next</a>
-                    </li>
-                </ul>
-            </nav>
-        }
+                        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                        {
+                            <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                                <a class="page-link" asp-action="GeneralCreate" asp-route-page="@i">@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(ViewBag.CurrentPage + 1)">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+            else
+            {
+                <p class="text-muted text-center mb-0 small">Page @ViewBag.CurrentPage of @ViewBag.TotalPages &nbsp;|&nbsp; @ViewBag.TotalRecords total records</p>
+            }
+        </div>
     </div>
 </div>
 

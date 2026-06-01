@@ -357,8 +357,8 @@
                                     }
                                 </tbody>
                                 <tfoot>
-                                    <tr class="text-end fw-bold" style="font-size:12px; background:#1a1a2e; color:#fff;">
-                                        <td class="text-start inv-item-col">TOTAL</td>
+                                    <tr class="text-end fw-bold" style="font-size:12px;">
+                                        <td class="text-start" style="background:#1a1a2e; color:#fff; white-space:nowrap;">TOTAL</td>
                                         <td class="inv-g1">@itemSummary.Sum(s => s.OpeningStockQty).ToString("N3")</td>
                                         <td class="inv-g1">—</td>
                                         <td class="inv-g1">@string.Format("{0:N0}", itemSummary.Sum(s => s.OpeningStockAmount))</td>
@@ -399,6 +399,7 @@
                         <th class="fw-bold" style="font-size: 14px;">Type</th>
                         <th class="fw-bold" style="font-size: 14px;">Customer/Item</th>
                         <th class="fw-bold" style="font-size: 14px;">Description</th>
+                        <th class="text-end fw-bold" style="font-size: 14px;">Qty</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Debit (Expense)</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Credit (Revenue)</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Running Balance</th>
@@ -407,6 +408,7 @@
                 <tbody>
                     @{
                         decimal runningBalance = 0;
+                        decimal totalQty = 0;
                         if (vouchers != null)
                         {
                             foreach (var voucher in vouchers.OrderBy(v => v.VoucherDate))
@@ -423,6 +425,9 @@
                                 else if (isExpense)
                                     runningBalance -= voucher.Amount;
 
+                                if (voucher.Quantity.HasValue)
+                                    totalQty += voucher.Quantity.Value;
+
                                 <tr style="font-size: 13px;">
                                     <td class="align-middle">@voucher.VoucherDate.ToString("dd-MMM-yy")</td>
                                     <td class="align-middle">
@@ -438,7 +443,6 @@
                                         @if (voucher.Item != null)
                                         {
                                             <br />
-
                                             <small class="text-muted">@voucher.Item.Name</small>
                                         }
                                     </td>
@@ -446,6 +450,9 @@
                                         @(voucher.Item?.Name ?? voucher.ExpenseHead?.Name ??
                                         voucher.PurchasingCustomerDetails ?? voucher.ReceivingCustomerDetails ??
                                         "Cash Transaction")
+                                    </td>
+                                    <td class="text-end align-middle fw-semibold">
+                                        @(voucher.Quantity.HasValue ? voucher.Quantity.Value.ToString("N3") : "-")
                                     </td>
                                     <td class="text-end align-middle @(isExpense ? "text-danger fw-semibold" : "")">
                                         @if (isExpense)
@@ -478,6 +485,7 @@
                 <tfoot class="table-success">
                     <tr style="font-size: 15px;">
                         <th colspan="5" class="fw-bold py-3">TOTAL:</th>
+                        <th class="text-end fw-bold py-3">@totalQty.ToString("N3")</th>
                         <th class="text-end text-danger fw-bold py-3">Rs. @string.Format("{0:N0}", expenses)</th>
                         <th class="text-end text-success fw-bold py-3">Rs. @string.Format("{0:N0}", revenue)</th>
                         <th class="text-end fw-bold py-3 @(profitLoss >= 0 ? "text-success" : "text-danger")">Rs. @string.Format("{0:N0}", Math.Abs(profitLoss))</th>
@@ -626,6 +634,12 @@
         #inventoryTable th, #inventoryTable td { padding: 5px 7px; white-space: nowrap; }
 
         #inventoryTable .inv-row:hover td { filter: brightness(0.93); }
+
+        /* Footer row: force dark background on all cells */
+        #inventoryTable tfoot td {
+            background: #1a1a2e !important;
+            color: #fff !important;
+        }
 
         @@media print {
             .card {
