@@ -2000,32 +2000,25 @@ namespace VoucherManagementSystem.Controllers
         public decimal PurchaseAmount { get; set; }
         public decimal PurchaseRate => PurchaseQty > 0 ? PurchaseAmount / PurchaseQty : 0;
 
-        // Total Qty (Opening + Purchase)
+        // Total Qty (Opening + Purchase only — no sale involved)
         public decimal TotalQty => OpeningStockQty + PurchaseQty;
         public decimal TotalQtyAmount => OpeningStockAmount + PurchaseAmount;
         public decimal TotalQtyRate => TotalQty > 0 ? TotalQtyAmount / TotalQty : 0;
-
-        // Total Purchase Amount (alias kept for backward compat — same as PurchaseAmount)
-        public decimal TotalPurchaseQty => PurchaseQty;
-        public decimal TotalPurchaseAmount => PurchaseAmount;
-        public decimal TotalPurchaseRate => PurchaseRate;
 
         // Sale
         public decimal SaleQty { get; set; }
         public decimal SaleAmount { get; set; }
         public decimal SaleRate => SaleQty > 0 ? SaleAmount / SaleQty : 0;
 
-        // Total Sale Amount (alias)
-        public decimal TotalSaleQty => SaleQty;
-        public decimal TotalSaleAmount => SaleAmount;
-        public decimal TotalSaleRate => SaleRate;
-
         // Stock Balance
+        // Qty  = TotalQty - SaleQty
+        // Rate = TotalQtyRate (avg purchase cost — stock is valued at cost, not sale price)
+        // Amount = StockQty × TotalQtyRate
         public decimal StockQty => TotalQty - SaleQty;
-        public decimal StockValue => TotalQtyAmount - SaleAmount;
-        public decimal StockRate => StockQty > 0 ? StockValue / StockQty : 0;
+        public decimal StockRate => TotalQtyRate;
+        public decimal StockValue => StockQty * TotalQtyRate;
 
-        // Legacy — kept so existing code doesn't break
+        // Legacy
         public decimal AvgPurchaseRate => PurchaseRate;
     }
 
