@@ -1057,13 +1057,13 @@ namespace VoucherManagementSystem.Controllers
                 decimal openingBalance = 0;
                 foreach (var v in prevVouchers)
                 {
-                    // AdvancedCashReceived / AdvancedPayment = we RECEIVED money from customer → customer owes less → +
-                    // AdvancedCashPaid = we PAID money to customer → customer owes more → -
+                    // AdvancedCashReceived = we received money → we OWE customer → negative (-)
+                    // AdvancedCashPaid = we paid to customer → customer OWES us → positive (+)
                     if ((v.VoucherType == VoucherType.AdvancedCashReceived && v.AdvancedReceivingCustomerId == customerId.Value) ||
                         (v.VoucherType == VoucherType.AdvancedPayment && v.ReceivingCustomerId == customerId.Value))
-                        openingBalance += v.Amount;
-                    else if (v.VoucherType == VoucherType.AdvancedCashPaid && v.AdvancedPurchasingCustomerId == customerId.Value)
                         openingBalance -= v.Amount;
+                    else if (v.VoucherType == VoucherType.AdvancedCashPaid && v.AdvancedPurchasingCustomerId == customerId.Value)
+                        openingBalance += v.Amount;
                 }
 
                 decimal totalReceived = 0;
@@ -1078,7 +1078,8 @@ namespace VoucherManagementSystem.Controllers
                         totalPaid += v.Amount;
                 }
 
-                decimal closingBalance = openingBalance + totalReceived - totalPaid;
+                // Received = negative (we owe), Paid = positive (customer owes us)
+                decimal closingBalance = openingBalance - totalReceived + totalPaid;
 
                 ViewBag.Customer = customer;
                 ViewBag.FromDate = startDate;
@@ -1209,11 +1210,13 @@ namespace VoucherManagementSystem.Controllers
                 decimal advancedBalance = 0;
                 foreach (var av in allAdvancedVouchers)
                 {
+                    // Received = we owe customer → negative
+                    // Paid = customer owes us → positive
                     if ((av.VoucherType == VoucherType.AdvancedCashReceived && av.AdvancedReceivingCustomerId == customerId.Value) ||
                         (av.VoucherType == VoucherType.AdvancedPayment && av.ReceivingCustomerId == customerId.Value))
-                        advancedBalance += av.Amount;
-                    else if (av.VoucherType == VoucherType.AdvancedCashPaid && av.AdvancedPurchasingCustomerId == customerId.Value)
                         advancedBalance -= av.Amount;
+                    else if (av.VoucherType == VoucherType.AdvancedCashPaid && av.AdvancedPurchasingCustomerId == customerId.Value)
+                        advancedBalance += av.Amount;
                 }
 
                 ViewBag.Items = new SelectList(await _itemRepository.GetActiveItemsAsync(), "Id", "Name", itemId);

@@ -867,14 +867,18 @@
                 var isBank = $(this).val() == 'Bank';
 
                 // Each voucher type strictly controls which bank column shows
-                if (voucherType === 'CashPaid' || voucherType === 'AdvancedCashPaid') {
+                if (voucherType === 'CashPaid') {
                     $('#bankColumn').toggle(isBank);
                     $('#bankReceiverColumn').hide();
                     return;
                 }
-                if (voucherType === 'CashReceived' || voucherType === 'AdvancedCashReceived') {
+                if (voucherType === 'CashReceived') {
                     $('#bankReceiverColumn').toggle(isBank);
                     $('#bankColumn').hide();
+                    return;
+                }
+                // Advanced types: bank columns always stay visible, ignore cash type change
+                if (voucherType === 'AdvancedCashPaid' || voucherType === 'AdvancedCashReceived') {
                     return;
                 }
 
@@ -1271,6 +1275,7 @@
             // Reset all columns - hide all by default
             $('#purchasingCustomerColumn, #receivingCustomerColumn, #bankColumn, #bankReceiverColumn').hide();
             $('#itemColumn, #monWeightColumn, #katQuantityColumn, #expenseHeadColumn, #gariStockColumn').hide();
+            $('#advancedPurchasingCustomerColumn, #advancedReceivingCustomerColumn').hide();
 
             // Always show these by default
             $('#projectCashTypeColumn, #rateAmountColumn').show();
@@ -1317,12 +1322,12 @@
                     $('#projectRow, #rateRow').hide();
                     break;
                 case 'AdvancedCashPaid':
-                    $('#advancedPurchasingCustomerColumn').show();
-                    $('#bankColumn, #bankReceiverColumn, #projectRow, #rateRow').hide();
+                    $('#advancedPurchasingCustomerColumn, #bankColumn').show();
+                    $('#bankReceiverColumn, #projectRow, #rateRow').hide();
                     break;
                 case 'AdvancedCashReceived':
-                    $('#advancedReceivingCustomerColumn').show();
-                    $('#bankColumn, #bankReceiverColumn, #projectRow, #rateRow').hide();
+                    $('#advancedReceivingCustomerColumn, #bankReceiverColumn').show();
+                    $('#bankColumn, #projectRow, #rateRow').hide();
                     break;
             }
         }

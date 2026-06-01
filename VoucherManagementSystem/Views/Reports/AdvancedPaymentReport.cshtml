@@ -111,20 +111,20 @@ else
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-success shadow-sm h-100">
+            <div class="card border-danger shadow-sm h-100">
                 <div class="card-body bg-light text-center">
-                    <h6 class="text-muted mb-2 fw-bold"><i class="bi bi-arrow-down-circle text-success"></i> Total Received</h6>
-                    <h3 class="fw-bold text-success mb-0">+Rs. @string.Format("{0:N0}", totalReceived)</h3>
-                    <small class="text-muted">Advances received from customer</small>
+                    <h6 class="text-muted mb-2 fw-bold"><i class="bi bi-arrow-down-circle text-danger"></i> Total Received</h6>
+                    <h3 class="fw-bold text-danger mb-0">- Rs. @string.Format("{0:N0}", totalReceived)</h3>
+                    <small class="text-muted">We received — we owe this to customer</small>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-danger shadow-sm h-100">
+            <div class="card border-success shadow-sm h-100">
                 <div class="card-body bg-light text-center">
-                    <h6 class="text-muted mb-2 fw-bold"><i class="bi bi-arrow-up-circle text-danger"></i> Total Paid</h6>
-                    <h3 class="fw-bold text-danger mb-0">-Rs. @string.Format("{0:N0}", totalPaid)</h3>
-                    <small class="text-muted">Advances paid to customer</small>
+                    <h6 class="text-muted mb-2 fw-bold"><i class="bi bi-arrow-up-circle text-success"></i> Total Paid</h6>
+                    <h3 class="fw-bold text-success mb-0">+ Rs. @string.Format("{0:N0}", totalPaid)</h3>
+                    <small class="text-muted">We paid — customer owes us</small>
                 </div>
             </div>
         </div>
@@ -138,7 +138,7 @@ else
                 @(closingBalance < 0 ? "-" : "+")Rs. @string.Format("{0:N0}", Math.Abs(closingBalance))
             </h2>
             <span class="badge bg-@(closingBalance >= 0 ? "success" : "danger") fs-6">
-                @(closingBalance >= 0 ? "We hold customer's advance (customer to receive back)" : "We owe this amount to customer")
+                @(closingBalance >= 0 ? "Customer owes us this amount" : "We owe this amount to customer")
             </span>
         </div>
     </div>
@@ -157,8 +157,8 @@ else
                             <th style="font-size:14px;">Transaction No.</th>
                             <th style="font-size:14px;">Type</th>
                             <th style="font-size:14px;">Details</th>
-                            <th class="text-end" style="font-size:14px;">Received (+)</th>
-                            <th class="text-end" style="font-size:14px;">Paid (-)</th>
+                            <th class="text-end" style="font-size:14px;">Received (-)</th>
+                            <th class="text-end" style="font-size:14px;">Paid (+)</th>
                             <th class="text-end" style="font-size:14px;">Balance</th>
                         </tr>
                     </thead>
@@ -167,8 +167,8 @@ else
                         <tr class="table-warning">
                             <td class="fw-semibold">@fromDate.ToString("dd-MMM-yyyy")</td>
                             <td colspan="3" class="fw-bold">Opening Balance</td>
-                            <td class="text-end fw-semibold">@(openingBalance > 0 ? "+" + string.Format("{0:N0}", openingBalance) : "-")</td>
-                            <td class="text-end fw-semibold">@(openingBalance < 0 ? "-" + string.Format("{0:N0}", Math.Abs(openingBalance)) : "-")</td>
+                            <td class="text-end fw-semibold">@(openingBalance > 0 ? string.Format("{0:N0}", openingBalance) : "-")</td>
+                            <td class="text-end fw-semibold">@(openingBalance < 0 ? string.Format("{0:N0}", Math.Abs(openingBalance)) : "-")</td>
                             <td class="text-end fw-bold @(openingBalance >= 0 ? "text-success" : "text-danger")">
                                 @(openingBalance < 0 ? "-" : "+")Rs. @string.Format("{0:N0}", Math.Abs(openingBalance))
                             </td>
@@ -186,8 +186,8 @@ else
                                 bool isPaid = v.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedCashPaid
                                               && v.AdvancedPurchasingCustomerId == customer.Id;
 
-                                if (isReceived) runningBalance += v.Amount;
-                                else if (isPaid) runningBalance -= v.Amount;
+                                if (isReceived) runningBalance -= v.Amount;
+                                else if (isPaid) runningBalance += v.Amount;
 
                                 string typeLabel = v.VoucherType switch {
                                     VoucherManagementSystem.Models.VoucherType.AdvancedCashReceived => "Adv. Cash Received",
@@ -210,11 +210,11 @@ else
                                         <span class="badge bg-@typeBadge" style="font-size:11px;">@typeLabel</span>
                                     </td>
                                     <td class="align-middle">@details</td>
-                                    <td class="text-end align-middle text-success fw-semibold">
-                                        @(isReceived ? "+" + string.Format("{0:N0}", v.Amount) : "-")
-                                    </td>
                                     <td class="text-end align-middle text-danger fw-semibold">
-                                        @(isPaid ? "-" + string.Format("{0:N0}", v.Amount) : "-")
+                                        @(isReceived ? "- " + string.Format("{0:N0}", v.Amount) : "-")
+                                    </td>
+                                    <td class="text-end align-middle text-success fw-semibold">
+                                        @(isPaid ? "+ " + string.Format("{0:N0}", v.Amount) : "-")
                                     </td>
                                     <td class="text-end align-middle fw-bold @(runningBalance >= 0 ? "text-success" : "text-danger")">
                                         @(runningBalance < 0 ? "-" : "+")Rs. @string.Format("{0:N0}", Math.Abs(runningBalance))
@@ -234,10 +234,10 @@ else
                     <tfoot class="table-dark">
                         <tr style="font-size:15px;">
                             <th colspan="4" class="fw-bold py-3">PERIOD TOTAL:</th>
-                            <th class="text-end text-success fw-bold py-3">+Rs. @string.Format("{0:N0}", totalReceived)</th>
-                            <th class="text-end text-danger fw-bold py-3">-Rs. @string.Format("{0:N0}", totalPaid)</th>
+                            <th class="text-end text-danger fw-bold py-3">- Rs. @string.Format("{0:N0}", totalReceived)</th>
+                            <th class="text-end text-success fw-bold py-3">+ Rs. @string.Format("{0:N0}", totalPaid)</th>
                             <th class="text-end fw-bold py-3 @(closingBalance >= 0 ? "text-success" : "text-danger")">
-                                @(closingBalance < 0 ? "-" : "+")Rs. @string.Format("{0:N0}", Math.Abs(closingBalance))
+                                @(closingBalance >= 0 ? "+" : "-")Rs. @string.Format("{0:N0}", Math.Abs(closingBalance))
                             </th>
                         </tr>
                     </tfoot>

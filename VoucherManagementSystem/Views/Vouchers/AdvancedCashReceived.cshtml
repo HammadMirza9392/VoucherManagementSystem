@@ -133,8 +133,8 @@
                                 </table>
                             </td>
 
-                            <!-- Bank Receiver Column (shown when Bank selected) -->
-                            <td id="bankColumn" style="display:none; vertical-align: top; padding: 8px;">
+                            <!-- Bank Receiver Column -->
+                            <td id="bankColumn" style="vertical-align: top; padding: 8px;">
                                 <table class="w-100">
                                     <tr>
                                         <td style="padding: 2px;">
@@ -227,15 +227,6 @@
                 width: '100%'
             });
 
-            // Show/hide bank field
-            $('#cashType').on('change', function () {
-                if ($(this).val() === '@((int)VoucherManagementSystem.Models.CashType.Bank)' || $(this).val() === 'Bank') {
-                    $('#bankColumn').show();
-                } else {
-                    $('#bankColumn').hide();
-                    $('[name="BankCustomerReceiverId"]').val('');
-                }
-            });
 
             // Copy customer name
             $('#copyAdvReceivingName').on('click', function () {
