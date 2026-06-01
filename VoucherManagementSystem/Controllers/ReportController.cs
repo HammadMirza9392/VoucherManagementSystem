@@ -1266,11 +1266,10 @@ namespace VoucherManagementSystem.Controllers
         }
 
         // Helper method to get opening bank balance
+        // Opening balance = sum of all transactions strictly before the given date (starting from zero)
         private async Task<decimal> GetBankOpeningBalanceAsync(int bankId, DateTime date)
         {
-            // Get initial bank balance from Bank model
-            var bank = await _bankRepository.GetByIdAsync(bankId);
-            decimal balance = bank?.Balance ?? 0;
+            decimal balance = 0;
 
             var previousVouchers = await _context.Vouchers
                 .Where(v => (v.BankCustomerPaidId == bankId || v.BankCustomerReceiverId == bankId) &&
@@ -1279,17 +1278,11 @@ namespace VoucherManagementSystem.Controllers
 
             foreach (var voucher in previousVouchers)
             {
-                // Money paid from bank (debit - reduces bank balance)
-                if (voucher.BankCustomerPaidId == bankId)
-                {
-                    balance -= voucher.Amount;
-                }
-
-                // Money received into bank (credit - increases bank balance)
                 if (voucher.BankCustomerReceiverId == bankId)
-                {
-                    balance += voucher.Amount;
-                }
+                    balance += voucher.Amount;   // credit — money came in
+
+                if (voucher.BankCustomerPaidId == bankId)
+                    balance -= voucher.Amount;   // debit — money went out
             }
             return balance;
         }

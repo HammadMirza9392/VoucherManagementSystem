@@ -148,24 +148,29 @@ else
         <!-- Bank Balance (only if a matching bank found) -->
         @if (matchedBank != null)
         {
+            var bankStatementUrl = Url.Action("BankStatement", "Reports", new {
+                bankId = matchedBank.Id,
+                fromDate = fromDate.ToString("yyyy-MM-dd"),
+                toDate = toDate.ToString("yyyy-MM-dd")
+            });
             <div class="col-md-4">
-                <div class="card border-warning shadow-sm h-100">
-                    <div class="card-body bg-light text-center">
-                        <h6 class="text-muted mb-2 fw-bold">
-                            <i class="bi bi-bank"></i> Bank Balance
-                        </h6>
-                        <h3 class="balance-amount @(matchedBank.Balance >= 0 ? "text-warning" : "text-danger") mb-0">
-                            Rs. @string.Format("{0:N0}", Math.Abs(matchedBank.Balance))
-                        </h3>
-                        <a asp-controller="Reports" asp-action="BankStatement"
-                           asp-route-bankId="@matchedBank.Id"
-                           asp-route-fromDate="@fromDate.ToString("yyyy-MM-dd")"
-                           asp-route-toDate="@toDate.ToString("yyyy-MM-dd")"
-                           class="badge bg-warning text-dark mt-2 text-decoration-none" target="_blank">
-                            <i class="bi bi-box-arrow-up-right me-1"></i>@matchedBank.Name
-                        </a>
+                <a href="@bankStatementUrl" target="_blank" class="text-decoration-none">
+                    <div class="card border-warning shadow-sm h-100" style="cursor:pointer; transition: transform 0.15s, box-shadow 0.15s;"
+                         onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 16px rgba(255,193,7,0.4)'"
+                         onmouseout="this.style.transform='';this.style.boxShadow=''">
+                        <div class="card-body bg-light text-center">
+                            <h6 class="text-muted mb-2 fw-bold">
+                                <i class="bi bi-bank"></i> @matchedBank.Name Balance
+                            </h6>
+                            <h3 class="balance-amount @(matchedBank.Balance >= 0 ? "text-warning" : "text-danger") mb-0">
+                                Rs. @string.Format("{0:N0}", Math.Abs(matchedBank.Balance))
+                            </h3>
+                            <span class="badge bg-warning text-dark mt-2">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> View Statement
+                            </span>
+                        </div>
                     </div>
-                </div>
+                </a>
             </div>
         }
 
