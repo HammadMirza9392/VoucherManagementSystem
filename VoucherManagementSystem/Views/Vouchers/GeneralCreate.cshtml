@@ -253,7 +253,15 @@
                                     <tr id="bankPaidRow">
                                         <td style="padding: 2px;">
                                             <label asp-for="BankCustomerPaidId" class="form-label mb-1" style="font-size: 0.85rem;">Bank Paid</label>
-                                            @Html.DropDownListFor(m => m.BankCustomerPaidId, ViewBag.Banks as SelectList, "Select Bank", new { @class = "form-select form-select-sm" })
+                                            <div class="input-group input-group-sm">
+                                                @Html.DropDownListFor(m => m.BankCustomerPaidId, ViewBag.Banks as SelectList, "Select Bank", new { @class = "form-select form-select-sm", id = "bankPaid" })
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="viewBankPaidStatement" title="View Bank Statement">
+                                                    <i class="bi bi-file-text"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyBankPaidName" title="Copy Bank Name">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr id="bankPaidDetailsRow">
@@ -271,7 +279,15 @@
                                     <tr id="bankReceiverRow">
                                         <td style="padding: 2px;">
                                             <label asp-for="BankCustomerReceiverId" class="form-label mb-1" style="font-size: 0.85rem;">Bank Receiver</label>
-                                            @Html.DropDownListFor(m => m.BankCustomerReceiverId, ViewBag.Banks as SelectList, "Select Bank", new { @class = "form-select form-select-sm" })
+                                            <div class="input-group input-group-sm">
+                                                @Html.DropDownListFor(m => m.BankCustomerReceiverId, ViewBag.Banks as SelectList, "Select Bank", new { @class = "form-select form-select-sm", id = "bankReceiver" })
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="viewBankReceiverStatement" title="View Bank Statement">
+                                                    <i class="bi bi-file-text"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyBankReceiverName" title="Copy Bank Name">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr id="bankReceiverDetailsRow">
@@ -915,6 +931,52 @@
                 }
             });
 
+            // Copy Bank Paid name
+            $('#copyBankPaidName').on('click', function() {
+                var selectedText = $('#bankPaid option:selected').text();
+                if (selectedText && selectedText !== 'Select Bank') {
+                    navigator.clipboard.writeText(selectedText).then(function() {
+                        var btn = $('#copyBankPaidName');
+                        var originalHTML = btn.html();
+                        btn.html('<i class="bi bi-check"></i>');
+                        setTimeout(function() { btn.html(originalHTML); }, 1000);
+                    });
+                }
+            });
+
+            // Copy Bank Receiver name
+            $('#copyBankReceiverName').on('click', function() {
+                var selectedText = $('#bankReceiver option:selected').text();
+                if (selectedText && selectedText !== 'Select Bank') {
+                    navigator.clipboard.writeText(selectedText).then(function() {
+                        var btn = $('#copyBankReceiverName');
+                        var originalHTML = btn.html();
+                        btn.html('<i class="bi bi-check"></i>');
+                        setTimeout(function() { btn.html(originalHTML); }, 1000);
+                    });
+                }
+            });
+
+            // View Bank Paid Statement
+            $('#viewBankPaidStatement').on('click', function() {
+                var bankId = $('#bankPaid').val();
+                if (bankId) {
+                    openBankStatement(bankId);
+                } else {
+                    alert('Please select a bank first.');
+                }
+            });
+
+            // View Bank Receiver Statement
+            $('#viewBankReceiverStatement').on('click', function() {
+                var bankId = $('#bankReceiver').val();
+                if (bankId) {
+                    openBankStatement(bankId);
+                } else {
+                    alert('Please select a bank first.');
+                }
+            });
+
             // Select All / Deselect All
             $('#selectAll').on('change', function() {
                 $('.voucher-checkbox').prop('checked', $(this).prop('checked'));
@@ -988,6 +1050,19 @@
                       '&toDate=' + toDate;
 
             // Open in new tab
+            window.open(url, '_blank');
+        }
+
+        function openBankStatement(bankId) {
+            var today = new Date();
+            var toDate = today.toISOString().split('T')[0];
+            var fromDate = new Date();
+            fromDate.setMonth(fromDate.getMonth() - 1);
+            var fromDateStr = fromDate.toISOString().split('T')[0];
+            var url = '@Url.Action("BankStatement", "Reports")' +
+                      '?bankId=' + bankId +
+                      '&fromDate=' + fromDateStr +
+                      '&toDate=' + toDate;
             window.open(url, '_blank');
         }
 
