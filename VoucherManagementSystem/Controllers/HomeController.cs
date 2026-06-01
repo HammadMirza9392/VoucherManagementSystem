@@ -284,7 +284,7 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.TotalExpenses = totalExpenses;
 
             // 8. Total Capital
-            ViewBag.TotalCapital = totalStockValue + totalReceivables + cashInHand + totalBankBalance - totalPayables - totalExpenses;
+            ViewBag.TotalCapital = totalStockValue + totalReceivables + cashInHand + totalBankBalance + totalAdvancedBalance - totalPayables - totalExpenses;
 
             // 9. Voucher Type Distribution (Last 30 days)
             var voucherTypeData = todayVouchers
