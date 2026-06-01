@@ -198,7 +198,53 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.TotalBankBalance = totalBankBalance;
             ViewBag.BankData = bankData;
 
-            // 5. Expense Summary (Last 30 days)
+            // 5. Advanced Customers Balances
+            var advancedCustomerData = new List<DashboardAdvancedCustomer>();
+            decimal totalAdvancedBalance = 0;
+
+            var allAdvVouchers = await _context.Vouchers
+                .Where(v => v.VoucherType == VoucherType.AdvancedCashPaid ||
+                            v.VoucherType == VoucherType.AdvancedCashReceived ||
+                            v.VoucherType == VoucherType.AdvancedPayment)
+                .ToListAsync();
+
+            // Get all unique customer IDs involved in advanced vouchers
+            var advCustomerIds = allAdvVouchers
+                .SelectMany(v => new[] {
+                    v.AdvancedPurchasingCustomerId,
+                    v.AdvancedReceivingCustomerId,
+                    v.ReceivingCustomerId
+                })
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+
+            var advCustomers = await _context.Customers
+                .Where(c => advCustomerIds.Contains(c.Id) && c.IsActive)
+                .ToListAsync();
+
+            foreach (var cust in advCustomers)
+            {
+                decimal bal = 0;
+                foreach (var v in allAdvVouchers)
+                {
+                    if ((v.VoucherType == VoucherType.AdvancedCashReceived && v.AdvancedReceivingCustomerId == cust.Id) ||
+                        (v.VoucherType == VoucherType.AdvancedPayment && v.ReceivingCustomerId == cust.Id))
+                        bal -= v.Amount;
+                    else if (v.VoucherType == VoucherType.AdvancedCashPaid && v.AdvancedPurchasingCustomerId == cust.Id)
+                        bal += v.Amount;
+                }
+                if (bal != 0)
+                {
+                    advancedCustomerData.Add(new DashboardAdvancedCustomer { Name = cust.Name, Balance = bal });
+                    totalAdvancedBalance += bal;
+                }
+            }
+            ViewBag.AdvancedCustomerData = advancedCustomerData.OrderByDescending(x => Math.Abs(x.Balance)).ToList();
+            ViewBag.TotalAdvancedBalance = totalAdvancedBalance;
+
+            // 6. Expense Summary (Last 30 days)
             var last30Days = today.AddDays(-30);
             var expenseVouchers = await _context.Vouchers
                 .Include(v => v.ExpenseHead)
@@ -339,5 +385,11 @@ namespace VoucherManagementSystem.Controllers
         public string Type { get; set; } = "";
         public int Count { get; set; }
         public decimal Amount { get; set; }
+    }
+
+    public class DashboardAdvancedCustomer
+    {
+        public string Name { get; set; } = "";
+        public decimal Balance { get; set; }
     }
 }

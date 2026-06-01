@@ -14,6 +14,8 @@
     var receivablesData = ViewBag.ReceivablesData as List<DashboardNameAmount> ?? new List<DashboardNameAmount>();
     var payablesData = ViewBag.PayablesData as List<DashboardNameAmount> ?? new List<DashboardNameAmount>();
     var bankData = ViewBag.BankData as List<DashboardBankBalance> ?? new List<DashboardBankBalance>();
+    var advancedCustomerData = ViewBag.AdvancedCustomerData as List<DashboardAdvancedCustomer> ?? new List<DashboardAdvancedCustomer>();
+    var totalAdvancedBalance = (decimal)(ViewBag.TotalAdvancedBalance ?? 0);
     var expenseData = ViewBag.ExpenseData as List<DashboardNameAmount> ?? new List<DashboardNameAmount>();
     var monthlyData = ViewBag.MonthlyData as List<DashboardMonthlyData> ?? new List<DashboardMonthlyData>();
     var voucherTypeData = ViewBag.VoucherTypeData as List<DashboardVoucherType> ?? new List<DashboardVoucherType>();
@@ -177,7 +179,7 @@
 <!-- Data Tables Row -->
 <div class="row g-2 mb-3">
     <!-- Receivables -->
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card h-100 dashboard-card">
             <div class="card-header py-1 bg-success text-white d-flex justify-content-between align-items-center">
                 <small><i class="bi bi-arrow-down-circle"></i> Receivables (@receivablesData.Count)</small>
@@ -207,7 +209,7 @@
     </div>
 
     <!-- Payables -->
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card h-100 dashboard-card">
             <div class="card-header py-1 bg-danger text-white d-flex justify-content-between align-items-center">
                 <small><i class="bi bi-arrow-up-circle"></i> Payables (@payablesData.Count)</small>
@@ -237,7 +239,7 @@
     </div>
 
     <!-- Stock -->
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card h-100 dashboard-card">
             <div class="card-header py-1 bg-primary text-white d-flex justify-content-between align-items-center">
                 <small><i class="bi bi-box-seam"></i> Stock Items (@stockData.Count)</small>
@@ -268,11 +270,11 @@
     </div>
 
     <!-- Banks -->
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card h-100 dashboard-card">
             <div class="card-header py-1 text-white d-flex justify-content-between align-items-center" style="background-color: #6f42c1;">
                 <small><i class="bi bi-bank"></i> Bank Accounts (@bankData.Count)</small>
-                <small class="fw-bold">@string.Format("{0:N0}", totalBankBalance)</small>
+                <small class="fw-bold @(totalBankBalance >= 0 ? "" : "text-warning")">@string.Format("{0:N0}", totalBankBalance)</small>
             </div>
             <div class="card-body p-0 dashboard-scroll-body">
                 <table class="table table-sm mb-0" style="font-size: 0.8rem;">
@@ -280,9 +282,9 @@
                         @foreach (var bank in bankData)
                         {
                             <tr>
-                                <td class="text-truncate" style="max-width: 100px;">@bank.Name</td>
+                                <td class="text-truncate" style="max-width: 80px;">@bank.Name</td>
                                 <td class="text-end fw-bold @(bank.Balance >= 0 ? "text-success" : "text-danger")">
-                                    @string.Format("{0:N0}", bank.Balance)
+                                    @(bank.Balance < 0 ? "-" : "")@string.Format("{0:N0}", Math.Abs(bank.Balance))
                                 </td>
                             </tr>
                         }
@@ -292,6 +294,40 @@
                         }
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Customers -->
+    <div class="col-md-2">
+        <div class="card h-100 dashboard-card">
+            <div class="card-header py-1 text-white d-flex justify-content-between align-items-center" style="background-color: #0d6efd;">
+                <small><i class="bi bi-cash-coin"></i> Advanced (@advancedCustomerData.Count)</small>
+                <small class="fw-bold @(totalAdvancedBalance >= 0 ? "" : "text-warning")">
+                    @(totalAdvancedBalance < 0 ? "-" : "+")@string.Format("{0:N0}", Math.Abs(totalAdvancedBalance))
+                </small>
+            </div>
+            <div class="card-body p-0 dashboard-scroll-body">
+                <table class="table table-sm mb-0" style="font-size: 0.8rem;">
+                    <tbody>
+                        @foreach (var adv in advancedCustomerData)
+                        {
+                            <tr>
+                                <td class="text-truncate" style="max-width: 80px;">@adv.Name</td>
+                                <td class="text-end fw-bold @(adv.Balance >= 0 ? "text-success" : "text-danger")">
+                                    @(adv.Balance < 0 ? "-" : "+")@string.Format("{0:N0}", Math.Abs(adv.Balance))
+                                </td>
+                            </tr>
+                        }
+                        @if (!advancedCustomerData.Any())
+                        {
+                            <tr><td colspan="2" class="text-center text-muted fst-italic py-2">No advanced</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer py-1 bg-white">
+                <a asp-controller="Reports" asp-action="AdvancedPaymentReport" class="btn btn-sm btn-outline-primary w-100 py-0">View Report</a>
             </div>
         </div>
     </div>
