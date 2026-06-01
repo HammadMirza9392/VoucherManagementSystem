@@ -24,6 +24,8 @@ namespace VoucherManagementSystem.Repositories
                 VoucherType.CCR => "CCR",
                 VoucherType.BCR => "BCR",
                 VoucherType.AdvancedPayment => "ADV",
+                VoucherType.AdvancedCashPaid => "ACP",
+                VoucherType.AdvancedCashReceived => "ACR",
                 _ => "VCH"
             };
 

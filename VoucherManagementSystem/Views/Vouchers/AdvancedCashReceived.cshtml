@@ -1,0 +1,271 @@
+@model VoucherManagementSystem.Models.Voucher
+@{
+    ViewData["Title"] = "Advanced Cash Received";
+    var voucherList = ViewBag.VoucherList as List<VoucherManagementSystem.Models.Voucher>;
+}
+
+@section Styles {
+    <style>
+        #voucherForm label,
+        #voucherForm .form-label {
+            background-color: #006400;
+            color: white;
+            padding: 8px;
+            border-radius: 3px;
+            display: block;
+            margin-bottom: 2px;
+            font-weight: normal;
+            text-align: center;
+            width: 100%;
+            font-size: calc(1rem + 2px);
+        }
+    </style>
+}
+
+<h2><i class="bi bi-cash-coin text-success"></i> Advanced Cash Received Voucher</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Recent Vouchers List -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h5>Recent Advanced Cash Received Vouchers (Total: @(ViewBag.TotalRecords ?? 0))</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th>Transaction No</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Details</th>
+                        <th>Cash Type</th>
+                        <th class="text-end">Amount</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (voucherList != null && voucherList.Any())
+                    {
+                        foreach (var item in voucherList)
+                        {
+                            <tr>
+                                <td>@item.TransactionNumber</td>
+                                <td>@item.VoucherDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@item.AdvancedReceivingCustomer?.Name</td>
+                                <td>@item.AdvancedReceivingCustomerDetails</td>
+                                <td>@item.CashType</td>
+                                <td class="text-end text-success fw-semibold">@string.Format("{0:N0}", item.Amount)</td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info" title="Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="7" class="text-center text-muted">No advanced cash received vouchers found.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create Form -->
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Add New Advanced Cash Received Voucher</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="SaveAdvancedCashReceived" method="post" id="voucherForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="VoucherType" value="@VoucherManagementSystem.Models.VoucherType.AdvancedCashReceived" />
+
+            <!-- Transaction Number and Date -->
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label asp-for="TransactionNumber" class="form-label"><strong>Transaction Number</strong></label>
+                    <input asp-for="TransactionNumber" class="form-control" readonly />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="VoucherDate" class="form-label"><strong>Voucher Date</strong></label>
+                    <input asp-for="VoucherDate" type="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+            </div>
+
+            <!-- Table Layout (same as CashReceived in Create.cshtml) -->
+            <div class="table-responsive">
+                <table class="table table-bordered" style="table-layout: auto; white-space: nowrap;">
+                    <tbody>
+                        <tr>
+                            <!-- Cash Type Column -->
+                            <td style="vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="CashType" class="form-label mb-1" style="font-size: 0.85rem;">Cash Type</label>
+                                            <select asp-for="CashType" class="form-select form-select-sm" id="cashType">
+                                                <option value="@VoucherManagementSystem.Models.CashType.Cash">Cash</option>
+                                                <option value="@VoucherManagementSystem.Models.CashType.Bank">Bank</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Bank Receiver Column (shown when Bank selected) -->
+                            <td id="bankColumn" style="display:none; vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="BankCustomerReceiverId" class="form-label mb-1" style="font-size: 0.85rem;">Bank Receiver</label>
+                                            @Html.DropDownListFor(m => m.BankCustomerReceiverId, ViewBag.Banks as SelectList, "Select Bank", new { @class = "form-select form-select-sm" })
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="BankCustomerReceiverDetails" class="form-label mb-1" style="font-size: 0.85rem;">Bank Receiver Details</label>
+                                            <input asp-for="BankCustomerReceiverDetails" class="form-control form-control-sm" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Receiving Advanced Customer Column -->
+                            <td style="vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label class="form-label mb-1" style="font-size: 0.85rem;">Receiving Advanced Customer</label>
+                                            <div class="input-group input-group-sm">
+                                                @Html.DropDownListFor(m => m.AdvancedReceivingCustomerId, ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select form-select-sm", id = "advReceivingCustomer", required = "required" })
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyAdvReceivingName" title="Copy">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="AdvancedReceivingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Advanced Details</label>
+                                            <input asp-for="AdvancedReceivingCustomerDetails" class="form-control form-control-sm" id="advReceivingCustomerDetails" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Amount Column -->
+                            <td style="vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="Amount" class="form-label mb-1" style="font-size: 0.85rem;">Amount</label>
+                                            <input asp-for="Amount" type="number" step="0.01" min="1" class="form-control form-control-sm" id="amount" required />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Submit Button -->
+                            <td style="vertical-align: middle; padding: 8px;">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="bi bi-check-circle"></i> Save
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-12">
+                    <a asp-action="Index" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> Back to List
+                    </a>
+                    <a asp-controller="Reports" asp-action="AdvancedPaymentReport" class="btn btn-outline-success btn-sm ms-2">
+                        <i class="bi bi-graph-up"></i> View Advanced Payment Report
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Load transaction number
+            $.get('@Url.Action("GetTransactionNumber", "Vouchers")', { type: @((int)VoucherManagementSystem.Models.VoucherType.AdvancedCashReceived) }, function (data) {
+                $('#TransactionNumber').val(data.transactionNumber);
+            });
+
+            // Initialize Select2
+            $('#advReceivingCustomer').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Customer',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // Show/hide bank field
+            $('#cashType').on('change', function () {
+                if ($(this).val() === '@((int)VoucherManagementSystem.Models.CashType.Bank)' || $(this).val() === 'Bank') {
+                    $('#bankColumn').show();
+                } else {
+                    $('#bankColumn').hide();
+                    $('[name="BankCustomerReceiverId"]').val('');
+                }
+            });
+
+            // Copy customer name
+            $('#copyAdvReceivingName').on('click', function () {
+                var selectedText = $('#advReceivingCustomer option:selected').text();
+                if (selectedText && selectedText !== 'Select Customer') {
+                    navigator.clipboard.writeText(selectedText).then(function () {
+                        var btn = $('#copyAdvReceivingName');
+                        var orig = btn.html();
+                        btn.html('<i class="bi bi-check"></i>');
+                        setTimeout(function () { btn.html(orig); }, 1000);
+                    });
+                }
+            });
+
+            // Arrow key navigation
+            var formInputs = 'input:not([readonly]):visible, select:visible';
+            $(document).on('keydown', formInputs, function (e) {
+                var $all = $(formInputs).not(':disabled');
+                var idx = $all.index(this);
+                if (e.keyCode === 39 && idx < $all.length - 1) {
+                    e.preventDefault();
+                    var $next = $all.eq(idx + 1);
+                    $next.hasClass('select2-hidden-accessible') ? $next.select2('open') : $next.focus().select();
+                }
+                if (e.keyCode === 37 && idx > 0) {
+                    e.preventDefault();
+                    var $prev = $all.eq(idx - 1);
+                    $prev.hasClass('select2-hidden-accessible') ? $prev.select2('open') : $prev.focus().select();
+                }
+            });
+        });
+    </script>
+}

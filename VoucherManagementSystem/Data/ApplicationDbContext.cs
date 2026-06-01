@@ -76,6 +76,18 @@ namespace VoucherManagementSystem.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Voucher>()
+                .HasOne(v => v.AdvancedPurchasingCustomer)
+                .WithMany(c => c.AdvancedPurchasingVouchers)
+                .HasForeignKey(v => v.AdvancedPurchasingCustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Voucher>()
+                .HasOne(v => v.AdvancedReceivingCustomer)
+                .WithMany(c => c.AdvancedReceivingVouchers)
+                .HasForeignKey(v => v.AdvancedReceivingCustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Voucher>()
                 .HasOne(v => v.BankCustomerPaid)
                 .WithMany(b => b.PaidVouchers)
                 .HasForeignKey(v => v.BankCustomerPaidId)

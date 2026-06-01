@@ -55,7 +55,7 @@ else
     var vouchers = ViewBag.Vouchers as List<VoucherManagementSystem.Models.Voucher>;
     var fromDate = (DateTime)ViewBag.FromDate;
     var toDate = (DateTime)ViewBag.ToDate;
-    var matchedBank = ViewBag.MatchedBank as VoucherManagementSystem.Models.Bank;
+    var advancedBalance = (decimal)(ViewBag.AdvancedBalance ?? 0m);
 
     <!-- Filter Form -->
     <div class="card mb-3 d-print-none">
@@ -129,7 +129,7 @@ else
     <!-- Balance Cards -->
     <div class="row g-3 mb-3">
         <!-- Opening Balance -->
-        <div class="@(matchedBank != null ? "col-md-4" : "col-md-6")">
+        <div class="col-md-4">
             <div class="card border-success shadow-sm h-100">
                 <div class="card-body bg-light text-center">
                     <h6 class="text-muted mb-2 fw-bold">
@@ -145,37 +145,37 @@ else
             </div>
         </div>
 
-        <!-- Bank Balance (only if a matching bank found) -->
-        @if (matchedBank != null)
-        {
-            var bankStatementUrl = Url.Action("BankStatement", "Reports", new {
-                bankId = matchedBank.Id,
+        <!-- Advanced Payment Balance Card -->
+        @{
+            var advancedReportUrl = Url.Action("AdvancedPaymentReport", "Reports", new {
+                customerId = customer.Id,
                 fromDate = fromDate.ToString("yyyy-MM-dd"),
                 toDate = toDate.ToString("yyyy-MM-dd")
             });
-            <div class="col-md-4">
-                <a href="@bankStatementUrl" target="_blank" class="text-decoration-none">
-                    <div class="card border-warning shadow-sm h-100" style="cursor:pointer; transition: transform 0.15s, box-shadow 0.15s;"
-                         onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 16px rgba(255,193,7,0.4)'"
-                         onmouseout="this.style.transform='';this.style.boxShadow=''">
-                        <div class="card-body bg-light text-center">
-                            <h6 class="text-muted mb-2 fw-bold">
-                                <i class="bi bi-bank"></i> @matchedBank.Name Advanced
-                            </h6>
-                            <h3 class="balance-amount @(matchedBank.Balance >= 0 ? "text-warning" : "text-danger") mb-0">
-                                @(matchedBank.Balance < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(matchedBank.Balance))
-                            </h3>
-                            <span class="badge bg-warning text-dark mt-2">
-                                <i class="bi bi-box-arrow-up-right me-1"></i> View Statement
-                            </span>
-                        </div>
-                    </div>
-                </a>
-            </div>
         }
+        <div class="col-md-4">
+            <a href="@advancedReportUrl" class="text-decoration-none">
+                <div class="card border-warning shadow-sm h-100" style="cursor:pointer; transition: transform 0.15s, box-shadow 0.15s;"
+                     onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 16px rgba(255,193,7,0.4)'"
+                     onmouseout="this.style.transform='';this.style.boxShadow=''">
+                    <div class="card-body bg-light text-center">
+                        <h6 class="text-muted mb-2 fw-bold">
+                            <i class="bi bi-cash-coin"></i> Advanced Balance
+                        </h6>
+                        <h3 class="balance-amount @(advancedBalance >= 0 ? "text-success" : "text-danger") mb-0">
+                            @(advancedBalance < 0 ? "-" : "+")Rs. @string.Format("{0:N0}", Math.Abs(advancedBalance))
+                        </h3>
+                        <span class="badge bg-warning text-dark mt-2">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>
+                            @(advancedBalance >= 0 ? "Holding Customer Advance" : "We Owe Customer")
+                        </span>
+                    </div>
+                </div>
+            </a>
+        </div>
 
         <!-- Closing Balance -->
-        <div class="@(matchedBank != null ? "col-md-4" : "col-md-6")">
+        <div class="col-md-4">
             <div class="card border-primary shadow-sm h-100">
                 <div class="card-body bg-light text-center">
                     <h6 class="text-muted mb-2 fw-bold">
@@ -350,9 +350,11 @@ else
 
     <!-- Action Buttons -->
     <div class="mt-3 d-print-none">
-        <a asp-controller="Vouchers" asp-action="AdvancedPayment" asp-route-customerId="@customer.Id"
-           class="btn btn-success">
-            <i class="bi bi-cash-coin"></i> Record Advanced Payment
+        <a asp-controller="Vouchers" asp-action="AdvancedCashReceived" class="btn btn-success">
+            <i class="bi bi-cash-coin"></i> Record Advance Received
+        </a>
+        <a asp-controller="Vouchers" asp-action="AdvancedCashPaid" class="btn btn-danger">
+            <i class="bi bi-cash-stack"></i> Record Advance Paid
         </a>
         <button onclick="window.print()" class="btn btn-primary">
             <i class="bi bi-printer"></i> Print Ledger

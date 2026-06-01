@@ -29,6 +29,12 @@ namespace VoucherManagementSystem.Models
         [Display(Name = "Receiving Customer")]
         public int? ReceivingCustomerId { get; set; }
 
+        [Display(Name = "Purchasing Advanced Customer")]
+        public int? AdvancedPurchasingCustomerId { get; set; }
+
+        [Display(Name = "Receiving Advanced Customer")]
+        public int? AdvancedReceivingCustomerId { get; set; }
+
         [Display(Name = "Bank Paid")]
         public int? BankCustomerPaidId { get; set; }
 
@@ -101,6 +107,14 @@ namespace VoucherManagementSystem.Models
         [Display(Name = "Bank Receiver Details")]
         public string? BankCustomerReceiverDetails { get; set; }
 
+        [StringLength(500)]
+        [Display(Name = "Advanced Purchasing Customer Details")]
+        public string? AdvancedPurchasingCustomerDetails { get; set; }
+
+        [StringLength(500)]
+        [Display(Name = "Advanced Receiving Customer Details")]
+        public string? AdvancedReceivingCustomerDetails { get; set; }
+
         [Display(Name = "Status")]
         public TransactionStatus Status { get; set; } = TransactionStatus.Completed;
 
@@ -130,6 +144,8 @@ namespace VoucherManagementSystem.Models
         // Navigation properties
         public virtual Customer? PurchasingCustomer { get; set; }
         public virtual Customer? ReceivingCustomer { get; set; }
+        public virtual Customer? AdvancedPurchasingCustomer { get; set; }
+        public virtual Customer? AdvancedReceivingCustomer { get; set; }
         public virtual Bank? BankCustomerPaid { get; set; }
         public virtual Bank? BankCustomerReceiver { get; set; }
         public virtual Item? Item { get; set; }

@@ -200,6 +200,8 @@
             <!-- Hidden backup inputs — always submitted even when bank columns are display:none -->
             <input type="hidden" id="hiddenBankPaidId" name="BankCustomerPaidId" value="" />
             <input type="hidden" id="hiddenBankReceiverId" name="BankCustomerReceiverId" value="" />
+            <input type="hidden" id="hiddenAdvancedPurchasingCustomerId" name="AdvancedPurchasingCustomerId" value="" />
+            <input type="hidden" id="hiddenAdvancedReceivingCustomerId" name="AdvancedReceivingCustomerId" value="" />
             <!-- Top Fields: Transaction Number, Date, and Voucher Type -->
             <div class="row mb-3 top-fields-row">
                 <div class="col-equal">
@@ -213,7 +215,8 @@
                 <div class="col-equal">
                     <label asp-for="VoucherType" class="form-label">Voucher Type</label>
                     <select asp-for="VoucherType" class="form-select" id="voucherTypeSelect">
-                        @foreach (var type in Enum.GetValues<VoucherManagementSystem.Models.VoucherType>())
+                        @foreach (var type in Enum.GetValues<VoucherManagementSystem.Models.VoucherType>()
+                            .Where(t => t != VoucherManagementSystem.Models.VoucherType.AdvancedPayment))
                         {
                             <option value="@type">@type</option>
                         }
@@ -363,6 +366,72 @@
                                         <td style="padding: 2px;">
                                             <label asp-for="ReceivingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Details</label>
                                             <input asp-for="ReceivingCustomerDetails" class="form-control form-control-sm" id="receivingCustomerDetails" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Column 4a: Advanced Purchasing Customer (AdvancedCashPaid) -->
+                            <td id="advancedPurchasingCustomerColumn" style="display:none; vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label class="form-label mb-1" style="font-size: 0.85rem;">Purchasing Advanced Customer</label>
+                                            <div class="input-group input-group-sm">
+                                                <select class="form-select form-select-sm" id="advancedPurchasingCustomer">
+                                                    <option value="">Select Customer</option>
+                                                    @if (ViewBag.Customers != null) {
+                                                        foreach (var c in ViewBag.Customers as SelectList) {
+                                                            <option value="@c.Value">@c.Text</option>
+                                                        }
+                                                    }
+                                                </select>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="viewAdvPurchasingLedger" title="View Ledger">
+                                                    <i class="bi bi-file-text"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyAdvPurchasingName" title="Copy">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="AdvancedPurchasingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Advanced Details</label>
+                                            <input asp-for="AdvancedPurchasingCustomerDetails" class="form-control form-control-sm" id="advancedPurchasingCustomerDetails" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+
+                            <!-- Column 4b: Advanced Receiving Customer (AdvancedCashReceived) -->
+                            <td id="advancedReceivingCustomerColumn" style="display:none; vertical-align: top; padding: 8px;">
+                                <table class="w-100">
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label class="form-label mb-1" style="font-size: 0.85rem;">Receiving Advanced Customer</label>
+                                            <div class="input-group input-group-sm">
+                                                <select class="form-select form-select-sm" id="advancedReceivingCustomer">
+                                                    <option value="">Select Customer</option>
+                                                    @if (ViewBag.Customers != null) {
+                                                        foreach (var c in ViewBag.Customers as SelectList) {
+                                                            <option value="@c.Value">@c.Text</option>
+                                                        }
+                                                    }
+                                                </select>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="viewAdvReceivingLedger" title="View Ledger">
+                                                    <i class="bi bi-file-text"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyAdvReceivingName" title="Copy">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 2px;">
+                                            <label asp-for="AdvancedReceivingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Advanced Details</label>
+                                            <input asp-for="AdvancedReceivingCustomerDetails" class="form-control form-control-sm" id="advancedReceivingCustomerDetails" />
                                         </td>
                                     </tr>
                                 </table>
@@ -666,10 +735,12 @@
                 var value = $('#stockIncludeText').val();
                 $('#stockInclude').val(value === '1' ? 'True' : 'False');
 
-                // Sync visible bank selects → hidden inputs before submit
+                // Sync visible selects → hidden inputs before submit
                 // (display:none parent elements cause browsers to skip child fields)
                 $('#hiddenBankPaidId').val($('#bankPaid').val() || '');
                 $('#hiddenBankReceiverId').val($('#bankReceiver').val() || '');
+                $('#hiddenAdvancedPurchasingCustomerId').val($('#advancedPurchasingCustomer').val() || '');
+                $('#hiddenAdvancedReceivingCustomerId').val($('#advancedReceivingCustomer').val() || '');
 
                 // Validate Project is required for Purchase, Sale, Expense, and Hazri
                 var voucherType = $('#voucherTypeSelect').val();
@@ -793,22 +864,22 @@
             // Handle cash type change
             $('#cashType').on('change', function() {
                 var voucherType = $('#voucherTypeSelect').val();
+                var isBank = $(this).val() == 'Bank';
 
-                // CashPaid/CashReceived always keep their bank columns regardless of cash type
-                if (voucherType === 'CashPaid') {
-                    $('#bankColumn').show();
+                // Each voucher type strictly controls which bank column shows
+                if (voucherType === 'CashPaid' || voucherType === 'AdvancedCashPaid') {
+                    $('#bankColumn').toggle(isBank);
                     $('#bankReceiverColumn').hide();
                     return;
                 }
-                if (voucherType === 'CashReceived') {
-                    $('#bankReceiverColumn').show();
+                if (voucherType === 'CashReceived' || voucherType === 'AdvancedCashReceived') {
+                    $('#bankReceiverColumn').toggle(isBank);
                     $('#bankColumn').hide();
                     return;
                 }
 
-                if ($(this).val() == 'Bank') {
+                if (isBank) {
                     $('#bankColumn').show();
-                    // For Purchase voucher, hide Bank Receiver column
                     if (voucherType === 'Purchase') {
                         $('#bankReceiverColumn').hide();
                     } else {
@@ -974,6 +1045,62 @@
                 $('#hiddenBankReceiverId').val($(this).val() || '');
             });
 
+            // Initialize Select2 for advanced customer dropdowns
+            $('#advancedPurchasingCustomer, #advancedReceivingCustomer').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select Customer',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // Sync advanced customer hidden inputs
+            $('#advancedPurchasingCustomer').on('change', function() {
+                $('#hiddenAdvancedPurchasingCustomerId').val($(this).val() || '');
+            });
+            $('#advancedReceivingCustomer').on('change', function() {
+                $('#hiddenAdvancedReceivingCustomerId').val($(this).val() || '');
+            });
+
+            // Copy Advanced Purchasing Customer name
+            $('#copyAdvPurchasingName').on('click', function() {
+                var selectedText = $('#advancedPurchasingCustomer option:selected').text();
+                if (selectedText && selectedText !== 'Select Customer') {
+                    navigator.clipboard.writeText(selectedText).then(function() {
+                        var btn = $('#copyAdvPurchasingName');
+                        var orig = btn.html();
+                        btn.html('<i class="bi bi-check"></i>');
+                        setTimeout(function() { btn.html(orig); }, 1000);
+                    });
+                }
+            });
+
+            // Copy Advanced Receiving Customer name
+            $('#copyAdvReceivingName').on('click', function() {
+                var selectedText = $('#advancedReceivingCustomer option:selected').text();
+                if (selectedText && selectedText !== 'Select Customer') {
+                    navigator.clipboard.writeText(selectedText).then(function() {
+                        var btn = $('#copyAdvReceivingName');
+                        var orig = btn.html();
+                        btn.html('<i class="bi bi-check"></i>');
+                        setTimeout(function() { btn.html(orig); }, 1000);
+                    });
+                }
+            });
+
+            // View Advanced Purchasing Ledger
+            $('#viewAdvPurchasingLedger').on('click', function() {
+                var customerId = $('#advancedPurchasingCustomer').val();
+                if (customerId) { openCustomerLedger(customerId); }
+                else { alert('Please select a customer first.'); }
+            });
+
+            // View Advanced Receiving Ledger
+            $('#viewAdvReceivingLedger').on('click', function() {
+                var customerId = $('#advancedReceivingCustomer').val();
+                if (customerId) { openCustomerLedger(customerId); }
+                else { alert('Please select a customer first.'); }
+            });
+
             // Copy Bank Paid name
             $('#copyBankPaidName').on('click', function() {
                 var selectedText = $('#bankPaid option:selected').text();
@@ -1073,8 +1200,10 @@
             $('input[type="text"]:not(#TransactionNumber), input[type="number"]').val('');
             $('select:not(#voucherTypeSelect)').prop('selectedIndex', 0);
             $('#purchasingCustomer, #receivingCustomer, #itemSelect').val(null).trigger('change');
+            $('#advancedPurchasingCustomer, #advancedReceivingCustomer').val(null).trigger('change');
             $('#bankPaid, #bankReceiver').val('');
             $('#hiddenBankPaidId, #hiddenBankReceiverId').val('');
+            $('#hiddenAdvancedPurchasingCustomerId, #hiddenAdvancedReceivingCustomerId').val('');
         }
 
         function openCustomerLedger(customerId) {
@@ -1168,12 +1297,12 @@
                     $('#expenseRateRow').hide();
                     break;
                 case 'CashPaid':
-                    $('#purchasingCustomerColumn, #bankColumn').show();
-                    $('#bankReceiverColumn, #projectRow, #rateRow').hide();
+                    $('#purchasingCustomerColumn').show();
+                    $('#bankColumn, #bankReceiverColumn, #projectRow, #rateRow').hide();
                     break;
                 case 'CashReceived':
-                    $('#receivingCustomerColumn, #bankReceiverColumn').show();
-                    $('#bankColumn, #projectRow, #rateRow').hide();
+                    $('#receivingCustomerColumn').show();
+                    $('#bankColumn, #bankReceiverColumn, #projectRow, #rateRow').hide();
                     break;
                 case 'CCR':
                     $('#purchasingCustomerColumn, #receivingCustomerColumn').show();
@@ -1186,6 +1315,14 @@
                 case 'AdvancedPayment':
                     $('#receivingCustomerColumn').show();
                     $('#projectRow, #rateRow').hide();
+                    break;
+                case 'AdvancedCashPaid':
+                    $('#advancedPurchasingCustomerColumn').show();
+                    $('#bankColumn, #bankReceiverColumn, #projectRow, #rateRow').hide();
+                    break;
+                case 'AdvancedCashReceived':
+                    $('#advancedReceivingCustomerColumn').show();
+                    $('#bankColumn, #bankReceiverColumn, #projectRow, #rateRow').hide();
                     break;
             }
         }

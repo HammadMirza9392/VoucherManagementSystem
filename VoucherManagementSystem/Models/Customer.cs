@@ -40,6 +40,8 @@ namespace VoucherManagementSystem.Models
         public virtual ICollection<CustomerItemRate>? CustomerItemRates { get; set; }
         public virtual ICollection<Voucher>? PurchasingVouchers { get; set; }
         public virtual ICollection<Voucher>? ReceivingVouchers { get; set; }
+        public virtual ICollection<Voucher>? AdvancedPurchasingVouchers { get; set; }
+        public virtual ICollection<Voucher>? AdvancedReceivingVouchers { get; set; }
     }
 
 }

@@ -1009,6 +1009,96 @@ namespace VoucherManagementSystem.Controllers
             }
         }
 
+        // GET: Reports/AdvancedPaymentReport
+        public async Task<IActionResult> AdvancedPaymentReport(int? customerId, DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
+
+                if (!customerId.HasValue)
+                    return View();
+
+                var customer = await _customerRepository.GetByIdAsync(customerId.Value);
+                if (customer == null)
+                {
+                    TempData["Error"] = "Customer not found.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var endDate = toDate ?? DateTime.Today;
+                var startDate = fromDate ?? DateTime.Today.AddDays(-90);
+
+                // All advanced-type vouchers for this customer in range
+                var vouchers = await _context.Vouchers
+                    .Where(v => (v.VoucherType == VoucherType.AdvancedPayment ||
+                                 v.VoucherType == VoucherType.AdvancedCashPaid ||
+                                 v.VoucherType == VoucherType.AdvancedCashReceived) &&
+                               (v.AdvancedPurchasingCustomerId == customerId.Value ||
+                                v.AdvancedReceivingCustomerId == customerId.Value ||
+                                v.ReceivingCustomerId == customerId.Value) &&
+                               v.VoucherDate >= startDate &&
+                               v.VoucherDate <= endDate.AddDays(1))
+                    .OrderBy(v => v.VoucherDate)
+                    .ThenBy(v => v.Id)
+                    .ToListAsync();
+
+                // Opening balance: all advanced transactions before startDate
+                var prevVouchers = await _context.Vouchers
+                    .Where(v => (v.VoucherType == VoucherType.AdvancedPayment ||
+                                 v.VoucherType == VoucherType.AdvancedCashPaid ||
+                                 v.VoucherType == VoucherType.AdvancedCashReceived) &&
+                               (v.AdvancedPurchasingCustomerId == customerId.Value ||
+                                v.AdvancedReceivingCustomerId == customerId.Value ||
+                                v.ReceivingCustomerId == customerId.Value) &&
+                               v.VoucherDate < startDate)
+                    .ToListAsync();
+
+                decimal openingBalance = 0;
+                foreach (var v in prevVouchers)
+                {
+                    // AdvancedCashReceived / AdvancedPayment = we RECEIVED money from customer → customer owes less → +
+                    // AdvancedCashPaid = we PAID money to customer → customer owes more → -
+                    if ((v.VoucherType == VoucherType.AdvancedCashReceived && v.AdvancedReceivingCustomerId == customerId.Value) ||
+                        (v.VoucherType == VoucherType.AdvancedPayment && v.ReceivingCustomerId == customerId.Value))
+                        openingBalance += v.Amount;
+                    else if (v.VoucherType == VoucherType.AdvancedCashPaid && v.AdvancedPurchasingCustomerId == customerId.Value)
+                        openingBalance -= v.Amount;
+                }
+
+                decimal totalReceived = 0;
+                decimal totalPaid = 0;
+
+                foreach (var v in vouchers)
+                {
+                    if ((v.VoucherType == VoucherType.AdvancedCashReceived && v.AdvancedReceivingCustomerId == customerId.Value) ||
+                        (v.VoucherType == VoucherType.AdvancedPayment && v.ReceivingCustomerId == customerId.Value))
+                        totalReceived += v.Amount;
+                    else if (v.VoucherType == VoucherType.AdvancedCashPaid && v.AdvancedPurchasingCustomerId == customerId.Value)
+                        totalPaid += v.Amount;
+                }
+
+                decimal closingBalance = openingBalance + totalReceived - totalPaid;
+
+                ViewBag.Customer = customer;
+                ViewBag.FromDate = startDate;
+                ViewBag.ToDate = endDate;
+                ViewBag.OpeningBalance = openingBalance;
+                ViewBag.TotalReceived = totalReceived;
+                ViewBag.TotalPaid = totalPaid;
+                ViewBag.ClosingBalance = closingBalance;
+                ViewBag.Vouchers = vouchers;
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating advanced payment report");
+                TempData["Error"] = "Error generating report.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
         // GET: Reports/CustomerLedger
         public async Task<IActionResult> CustomerLedger(int? customerId, DateTime? fromDate, DateTime? toDate, int? itemId, string? voucherType)
         {
@@ -1106,11 +1196,25 @@ namespace VoucherManagementSystem.Controllers
                     }
                 }
 
-                // Populate filter dropdowns
-                // Find a bank whose name matches this customer's name (for bank balance card)
-                var allBanks = await _bankRepository.GetActiveBanksAsync();
-                var matchedBank = allBanks.FirstOrDefault(b =>
-                    b.Name.Trim().Equals(customer.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+                // Calculate advanced payment net balance for this customer (all time, not date-filtered)
+                var allAdvancedVouchers = await _context.Vouchers
+                    .Where(v => (v.VoucherType == VoucherType.AdvancedPayment ||
+                                 v.VoucherType == VoucherType.AdvancedCashPaid ||
+                                 v.VoucherType == VoucherType.AdvancedCashReceived) &&
+                               (v.AdvancedPurchasingCustomerId == customerId.Value ||
+                                v.AdvancedReceivingCustomerId == customerId.Value ||
+                                v.ReceivingCustomerId == customerId.Value))
+                    .ToListAsync();
+
+                decimal advancedBalance = 0;
+                foreach (var av in allAdvancedVouchers)
+                {
+                    if ((av.VoucherType == VoucherType.AdvancedCashReceived && av.AdvancedReceivingCustomerId == customerId.Value) ||
+                        (av.VoucherType == VoucherType.AdvancedPayment && av.ReceivingCustomerId == customerId.Value))
+                        advancedBalance += av.Amount;
+                    else if (av.VoucherType == VoucherType.AdvancedCashPaid && av.AdvancedPurchasingCustomerId == customerId.Value)
+                        advancedBalance -= av.Amount;
+                }
 
                 ViewBag.Items = new SelectList(await _itemRepository.GetActiveItemsAsync(), "Id", "Name", itemId);
                 ViewBag.Customer = customer;
@@ -1124,7 +1228,7 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
                 ViewBag.SelectedItemId = itemId;
                 ViewBag.SelectedVoucherType = voucherType;
-                ViewBag.MatchedBank = matchedBank;
+                ViewBag.AdvancedBalance = advancedBalance;
 
                 return View();
             }

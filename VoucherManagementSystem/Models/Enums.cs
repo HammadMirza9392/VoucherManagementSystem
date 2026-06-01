@@ -10,7 +10,9 @@
         CashReceived,
         CCR,
         BCR,
-        AdvancedPayment
+        AdvancedPayment,
+        AdvancedCashPaid,
+        AdvancedCashReceived
     }
 
     public enum CashType
