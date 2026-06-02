@@ -965,37 +965,88 @@ namespace VoucherManagementSystem.Controllers
             return stock;
         }
 
-        // GET: Reports/DailyCashBook
-        public async Task<IActionResult> DailyCashBook(DateTime? fromDate, DateTime? toDate)
+        // GET: Reports/DailyCashBook - Tracks cash from vouchers (CashType = DailyCashBook)
+        // Mirrors the Cash Statement report (same fields and calculations) but for the DailyCashBook cash type.
+        public async Task<IActionResult> DailyCashBook(DateTime? fromDate, DateTime? toDate, int? customerId, string? voucherType)
         {
             try
             {
-                var startDate = fromDate ?? DateTime.Today;
                 var endDate = toDate ?? DateTime.Today;
-                var nextDay = endDate.AddDays(1);
+                var startDate = fromDate ?? DateTime.Today.AddMonths(-1);
 
-                // Get opening balance (based on start date)
-                var openingBalance = await GetOpeningCashBalanceAsync(startDate);
+                // Get customers for filter dropdown
+                ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
 
-                // Get transactions in range
-                var vouchers = await _context.Vouchers
+                // Voucher types for filter
+                var voucherTypes = new List<SelectListItem>
+                {
+                    new SelectListItem { Value = "", Text = "-- All Types --" },
+                    new SelectListItem { Value = "Sale", Text = "Sale" },
+                    new SelectListItem { Value = "Purchase", Text = "Purchase" },
+                    new SelectListItem { Value = "CashReceived", Text = "Cash Received" },
+                    new SelectListItem { Value = "CashPaid", Text = "Cash Paid" },
+                    new SelectListItem { Value = "Expense", Text = "Expense" },
+                    new SelectListItem { Value = "Hazri", Text = "Hazri" }
+                };
+                ViewBag.VoucherTypes = new SelectList(voucherTypes, "Value", "Text", voucherType);
+                ViewBag.SelectedVoucherType = voucherType;
+
+                // Build query for Daily Cash Book vouchers
+                var query = _context.Vouchers
                     .Include(v => v.PurchasingCustomer)
                     .Include(v => v.ReceivingCustomer)
                     .Include(v => v.Item)
                     .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
-                    .Where(v => v.VoucherDate >= startDate &&
-                               v.VoucherDate < nextDay &&
-                               (v.CashType == CashType.Cash ||
-                                v.VoucherType == VoucherType.CashPaid ||
-                                v.VoucherType == VoucherType.CashReceived))
-                    .OrderBy(v => v.VoucherDate)
-                    .ToListAsync();
+                    .Where(v => v.CashType == CashType.DailyCashBook &&
+                               v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
+
+                // Apply customer filter if selected
+                if (customerId.HasValue)
+                {
+                    query = query.Where(v => v.PurchasingCustomerId == customerId || v.ReceivingCustomerId == customerId);
+                    ViewBag.SelectedCustomerId = customerId;
+                    ViewBag.SelectedCustomer = await _customerRepository.GetByIdAsync(customerId.Value);
+                }
+
+                // Apply voucher type filter if selected
+                if (!string.IsNullOrEmpty(voucherType) && Enum.TryParse<VoucherType>(voucherType, out var vType))
+                {
+                    query = query.Where(v => v.VoucherType == vType);
+                }
+
+                var vouchers = await query.OrderBy(v => v.VoucherDate).ThenBy(v => v.Id).ToListAsync();
+
+                // Calculate opening balance (all Daily Cash Book transactions before start date)
+                var openingBalance = await GetDailyCashBookOpeningBalanceAsync(startDate, customerId);
+
+                // Calculate totals from vouchers
+                decimal totalReceipts = 0;
+                decimal totalPayments = 0;
+
+                foreach (var v in vouchers)
+                {
+                    switch (v.VoucherType)
+                    {
+                        case VoucherType.Sale:
+                        case VoucherType.CashReceived:
+                            totalReceipts += v.Amount;
+                            break;
+                        case VoucherType.Purchase:
+                        case VoucherType.Expense:
+                        case VoucherType.CashPaid:
+                        case VoucherType.Hazri:
+                            totalPayments += v.Amount;
+                            break;
+                    }
+                }
 
                 ViewBag.FromDate = startDate;
                 ViewBag.ToDate = endDate;
                 ViewBag.ReportDate = startDate; // kept for backward compat
                 ViewBag.OpeningBalance = openingBalance;
+                ViewBag.TotalReceipts = totalReceipts;
+                ViewBag.TotalPayments = totalPayments;
+                ViewBag.ClosingBalance = openingBalance + totalReceipts - totalPayments;
                 ViewBag.Vouchers = vouchers;
 
                 return View();
@@ -1006,6 +1057,41 @@ namespace VoucherManagementSystem.Controllers
                 TempData["Error"] = "Error generating daily cash book.";
                 return RedirectToAction(nameof(Index));
             }
+        }
+
+        // Helper method to get opening Daily Cash Book balance (mirrors GetCashOpeningBalanceAsync but for CashType.DailyCashBook)
+        private async Task<decimal> GetDailyCashBookOpeningBalanceAsync(DateTime date, int? customerId = null)
+        {
+            decimal balance = 0;
+
+            var voucherQuery = _context.Vouchers
+                .Where(v => v.CashType == CashType.DailyCashBook && v.VoucherDate < date);
+
+            if (customerId.HasValue)
+            {
+                voucherQuery = voucherQuery.Where(v => v.PurchasingCustomerId == customerId || v.ReceivingCustomerId == customerId);
+            }
+
+            var previousVouchers = await voucherQuery.ToListAsync();
+
+            foreach (var v in previousVouchers)
+            {
+                switch (v.VoucherType)
+                {
+                    case VoucherType.Sale:
+                    case VoucherType.CashReceived:
+                        balance += v.Amount;
+                        break;
+                    case VoucherType.Purchase:
+                    case VoucherType.Expense:
+                    case VoucherType.CashPaid:
+                    case VoucherType.Hazri:
+                        balance -= v.Amount;
+                        break;
+                }
+            }
+
+            return balance;
         }
 
         // GET: Reports/AdvancedPaymentReport

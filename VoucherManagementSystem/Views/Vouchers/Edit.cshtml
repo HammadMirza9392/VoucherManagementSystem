@@ -39,7 +39,14 @@
                         <option value="">Select Type</option>
                         @foreach (var type in Enum.GetValues<VoucherManagementSystem.Models.CashType>())
                         {
-                            <option value="@type">@type</option>
+                            @if (type == VoucherManagementSystem.Models.CashType.DailyCashBook)
+                            {
+                                <option value="@type" class="dailyCashBookOption">Daily Cash Book</option>
+                            }
+                            else
+                            {
+                                <option value="@type">@type</option>
+                            }
                         }
                     </select>
                 </div>
@@ -499,6 +506,9 @@
             $('#rateSection, #stockIncludeSection, #projectSection, #cashTypeSection').show();
             $('.col-md-3.mb-3:has(label[for="GariNo"])').show();
 
+            // "Daily Cash Book" cash type is only available for Cash Paid / Cash Received vouchers
+            toggleDailyCashBookOption(type === 'CashPaid' || type === 'CashReceived');
+
             switch(type) {
                 case 'Purchase':
                     $('#purchasingCustomerSection, #itemSection, #expenseSection').show();
@@ -541,6 +551,19 @@
                     $('#rateSection, #stockIncludeSection, #cashTypeSection, #projectSection').hide();
                     $('.col-md-3.mb-3:has(label[for="GariNo"])').hide();
                     break;
+            }
+        }
+
+        // Show/hide the "Daily Cash Book" cash type option (only valid for Cash Paid / Cash Received)
+        function toggleDailyCashBookOption(show) {
+            var $opt = $('#cashType .dailyCashBookOption');
+            if (show) {
+                $opt.prop('disabled', false).show();
+            } else {
+                if ($('#cashType').val() === 'DailyCashBook') {
+                    $('#cashType').val('');
+                }
+                $opt.prop('disabled', true).hide();
             }
         }
     </script>

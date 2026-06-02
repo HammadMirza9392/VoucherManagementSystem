@@ -170,7 +170,14 @@
                                                 <option value="">Select Type</option>
                                                 @foreach (var type in Enum.GetValues<VoucherManagementSystem.Models.CashType>())
                                                 {
-                                                    <option value="@type">@type</option>
+                                                    @if (type == VoucherManagementSystem.Models.CashType.DailyCashBook)
+                                                    {
+                                                        <option value="@type" class="dailyCashBookOption">Daily Cash Book</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@type">@type</option>
+                                                    }
                                                 }
                                             </select>
                                         </td>
@@ -665,6 +672,9 @@
             $('#projectCashTypeColumn, #rateAmountColumn').show();
             $('#projectRow, #cashTypeRow, #rateRow').show();
 
+            // "Daily Cash Book" cash type is only available for Cash Paid / Cash Received vouchers
+            toggleDailyCashBookOption(type === 'CashPaid' || type === 'CashReceived');
+
             switch(type) {
                 case 'Purchase':
                     $('#purchasingCustomerColumn, #itemColumn, #monWeightColumn, #katQuantityColumn').show();
@@ -703,6 +713,20 @@
                     $('#bankColumn, #bankReceiverColumn').show();
                     $('#projectRow, #cashTypeRow, #rateRow').hide();
                     break;
+            }
+        }
+
+        // Show/hide the "Daily Cash Book" cash type option (only valid for Cash Paid / Cash Received)
+        function toggleDailyCashBookOption(show) {
+            var $opt = $('#cashType .dailyCashBookOption');
+            if (show) {
+                $opt.prop('disabled', false).show();
+            } else {
+                // If currently selected but no longer allowed, reset the selection
+                if ($('#cashType').val() === 'DailyCashBook') {
+                    $('#cashType').val('');
+                }
+                $opt.prop('disabled', true).hide();
             }
         }
     </script>

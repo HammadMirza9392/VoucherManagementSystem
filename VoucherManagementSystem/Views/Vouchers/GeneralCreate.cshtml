@@ -245,7 +245,14 @@
                                                 <option value="">Select Type</option>
                                                 @foreach (var type in Enum.GetValues<VoucherManagementSystem.Models.CashType>())
                                                 {
-                                                    <option value="@type">@type</option>
+                                                    @if (type == VoucherManagementSystem.Models.CashType.DailyCashBook)
+                                                    {
+                                                        <option value="@type" class="dailyCashBookOption">Daily Cash Book</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@type">@type</option>
+                                                    }
                                                 }
                                             </select>
                                         </td>
@@ -597,9 +604,15 @@
                 $('#ProjectId').val(savedProjectId);
             }
             if (savedCashType) {
-                $('#cashType').val(savedCashType);
-                if (savedCashType === 'Bank') {
-                    $('#bankColumn').show();
+                // Don't restore "Daily Cash Book" unless the current voucher type allows it
+                if (savedCashType === 'DailyCashBook' &&
+                    !(savedVoucherType === 'CashPaid' || savedVoucherType === 'CashReceived')) {
+                    localStorage.removeItem('gc_cashType');
+                } else {
+                    $('#cashType').val(savedCashType);
+                    if (savedCashType === 'Bank') {
+                        $('#bankColumn').show();
+                    }
                 }
             }
             if (savedPurchasingCustomer) {
@@ -1295,6 +1308,9 @@
             $('#projectCashTypeColumn, #rateAmountColumn').show();
             $('#projectRow, #cashTypeRow, #rateRow').show();
 
+            // "Daily Cash Book" cash type is only available for Cash Paid / Cash Received vouchers
+            toggleDailyCashBookOption(type === 'CashPaid' || type === 'CashReceived');
+
             switch(type) {
                 case 'Purchase':
                     $('#purchasingCustomerColumn, #itemColumn, #monWeightColumn, #katQuantityColumn').show();
@@ -1343,6 +1359,20 @@
                     $('#advancedReceivingCustomerColumn, #bankReceiverColumn').show();
                     $('#bankColumn, #projectRow, #rateRow').hide();
                     break;
+            }
+        }
+
+        // Show/hide the "Daily Cash Book" cash type option (only valid for Cash Paid / Cash Received)
+        function toggleDailyCashBookOption(show) {
+            var $opt = $('#cashType .dailyCashBookOption');
+            if (show) {
+                $opt.prop('disabled', false).show();
+            } else {
+                if ($('#cashType').val() === 'DailyCashBook') {
+                    $('#cashType').val('');
+                    localStorage.removeItem('gc_cashType');
+                }
+                $opt.prop('disabled', true).hide();
             }
         }
     </script>

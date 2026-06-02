@@ -19,7 +19,8 @@
     {
         Credit,
         Cash,
-        Bank
+        Bank,
+        DailyCashBook
     }
 
     public enum TransactionStatus
