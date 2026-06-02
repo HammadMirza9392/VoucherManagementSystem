@@ -1,8 +1,9 @@
 @* Views/Reports/ExpenseReport.cshtml - Expense Report *@
+@using VoucherManagementSystem.Controllers
 @{
     ViewData["Title"] = "Expense Report";
-    var expenses = ViewBag.Expenses as IEnumerable<VoucherManagementSystem.Models.Voucher>;
-    var expenseSummary = ViewBag.ExpenseSummary as IEnumerable<dynamic>;
+    var expenses = ViewBag.Expenses as List<ExpenseReportRow>;
+    var expenseSummary = ViewBag.ExpenseSummary as IEnumerable<ExpenseSummaryItem>;
     var fromDate = (DateTime)ViewBag.FromDate;
     var toDate = (DateTime)ViewBag.ToDate;
     var totalExpenses = (decimal)(ViewBag.TotalExpenses ?? 0);
@@ -60,7 +61,7 @@
         <div class="card bg-warning text-dark">
             <div class="card-body text-center">
                 <h6>Total Transactions</h6>
-                <h3>@(expenses?.Count() ?? 0)</h3>
+                <h3>@(expenses?.Count ?? 0)</h3>
             </div>
         </div>
     </div>
@@ -113,6 +114,7 @@
                     <tr>
                         <th>Date</th>
                         <th>Transaction No</th>
+                        <th>Source</th>
                         <th>Expense Head</th>
                         <th>Details</th>
                         <th>Project</th>
@@ -127,14 +129,17 @@
                             <tr>
                                 <td>@e.VoucherDate.ToPkShortDate()</td>
                                 <td>
-                                    <a asp-controller="Vouchers" asp-action="Details" asp-route-id="@e.Id">@e.TransactionNumber</a>
+                                    <a asp-controller="Vouchers" asp-action="Details" asp-route-id="@e.VoucherId">@e.TransactionNumber</a>
                                 </td>
-                                <td>@e.ExpenseHead?.Name</td>
-                                <td>@e.ExpenseHeadDetails</td>
+                                <td>
+                                    <span class="badge @(e.Source == "Purchase" ? "bg-primary" : "bg-danger")">@e.Source</span>
+                                </td>
+                                <td>@e.ExpenseHeadName</td>
+                                <td>@e.Details</td>
                                 <td>
                                     @if (e.ProjectId.HasValue)
                                     {
-                                        <a asp-controller="Reports" asp-action="ProjectReport" asp-route-projectId="@e.ProjectId">@e.Project?.Name</a>
+                                        <a asp-controller="Reports" asp-action="ProjectReport" asp-route-projectId="@e.ProjectId">@e.ProjectName</a>
                                     }
                                 </td>
                                 <td class="text-end text-danger fw-bold">Rs. @string.Format("{0:N0}", e.Amount)</td>
@@ -144,7 +149,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="6" class="text-center">No expenses found for the selected criteria.</td>
+                            <td colspan="7" class="text-center">No expenses found for the selected criteria.</td>
                         </tr>
                     }
                 </tbody>
@@ -152,7 +157,7 @@
                 {
                     <tfoot class="table-dark">
                         <tr>
-                            <th colspan="5" class="text-end">Total:</th>
+                            <th colspan="6" class="text-end">Total:</th>
                             <th class="text-end">Rs. @string.Format("{0:N0}", totalExpenses)</th>
                         </tr>
                     </tfoot>

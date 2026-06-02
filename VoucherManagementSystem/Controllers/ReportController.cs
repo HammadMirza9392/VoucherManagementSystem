@@ -1519,29 +1519,80 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.ExpenseHeads = new SelectList(await _expenseHeadRepository.GetActiveExpenseHeadsAsync(), "Id", "Name", expenseHeadId);
                 ViewBag.Projects = new SelectList(await _projectRepository.GetActiveProjectsAsync(), "Id", "Name", projectId);
 
-                var query = _context.Vouchers
+                // 1. Dedicated Expense vouchers
+                var expenseQuery = _context.Vouchers
                     .Include(v => v.ExpenseHead)
                     .Include(v => v.Project)
-                    .Include(v => v.PurchasingCustomer)
                     .Where(v => v.VoucherType == VoucherType.Expense &&
                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
                 if (expenseHeadId.HasValue)
-                {
-                    query = query.Where(v => v.ExpenseHeadId == expenseHeadId);
-                }
-
+                    expenseQuery = expenseQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
                 if (projectId.HasValue)
+                    expenseQuery = expenseQuery.Where(v => v.ProjectId == projectId);
+
+                var expenseVouchers = await expenseQuery.ToListAsync();
+
+                // 2. Purchase vouchers that have an Expense Head filled
+                var purchaseQuery = _context.Vouchers
+                    .Include(v => v.ExpenseHead)
+                    .Include(v => v.Project)
+                    .Where(v => v.VoucherType == VoucherType.Purchase &&
+                               v.ExpenseHeadId != null &&
+                               v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
+
+                if (expenseHeadId.HasValue)
+                    purchaseQuery = purchaseQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
+                if (projectId.HasValue)
+                    purchaseQuery = purchaseQuery.Where(v => v.ProjectId == projectId);
+
+                var purchaseVouchers = await purchaseQuery.ToListAsync();
+
+                // 3. Build unified rows
+                var rows = new List<ExpenseReportRow>();
+
+                foreach (var v in expenseVouchers)
                 {
-                    query = query.Where(v => v.ProjectId == projectId);
+                    rows.Add(new ExpenseReportRow
+                    {
+                        VoucherId       = v.Id,
+                        VoucherDate     = v.VoucherDate,
+                        TransactionNumber = v.TransactionNumber,
+                        ExpenseHeadName = v.ExpenseHead?.Name ?? "-",
+                        Details         = v.ExpenseHeadDetails ?? "",
+                        ProjectName     = v.Project?.Name,
+                        ProjectId       = v.ProjectId,
+                        Amount          = v.Amount,
+                        Source          = "Expense"
+                    });
                 }
 
-                var expenses = await query.OrderByDescending(v => v.VoucherDate).ThenByDescending(v => v.Id).ToListAsync();
+                foreach (var v in purchaseVouchers)
+                {
+                    var rate = v.ExpenseHeadRate ?? 0;
+                    var qty  = v.Quantity ?? 0;
+                    var amount = rate * qty;
 
-                // Group by expense head for summary
-                var expenseSummary = expenses
-                    .GroupBy(e => e.ExpenseHead?.Name ?? "Unknown")
-                    .Select(g => new ExpenseSummaryItem { ExpenseHead = g.Key, Total = g.Sum(e => e.Amount) })
+                    rows.Add(new ExpenseReportRow
+                    {
+                        VoucherId       = v.Id,
+                        VoucherDate     = v.VoucherDate,
+                        TransactionNumber = v.TransactionNumber,
+                        ExpenseHeadName = v.ExpenseHead?.Name ?? "-",
+                        Details         = v.ExpenseHeadDetails ?? "",
+                        ProjectName     = v.Project?.Name,
+                        ProjectId       = v.ProjectId,
+                        Amount          = amount,
+                        Source          = "Purchase"
+                    });
+                }
+
+                rows = rows.OrderByDescending(r => r.VoucherDate).ThenByDescending(r => r.VoucherId).ToList();
+
+                // Summary by expense head
+                var expenseSummary = rows
+                    .GroupBy(r => r.ExpenseHeadName)
+                    .Select(g => new ExpenseSummaryItem { ExpenseHead = g.Key, Total = g.Sum(r => r.Amount) })
                     .OrderByDescending(x => x.Total)
                     .ToList();
 
@@ -1549,9 +1600,9 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.ToDate = endDate;
                 ViewBag.SelectedExpenseHeadId = expenseHeadId;
                 ViewBag.SelectedProjectId = projectId;
-                ViewBag.Expenses = expenses;
+                ViewBag.Expenses = rows;
                 ViewBag.ExpenseSummary = expenseSummary;
-                ViewBag.TotalExpenses = expenses.Sum(e => e.Amount);
+                ViewBag.TotalExpenses = rows.Sum(r => r.Amount);
 
                 return View();
             }
@@ -2240,5 +2291,19 @@ namespace VoucherManagementSystem.Controllers
     {
         public string ExpenseHead { get; set; }
         public decimal Total { get; set; }
+    }
+
+    // Unified row for Expense Report (covers both Expense vouchers and Purchase vouchers with expense head)
+    public class ExpenseReportRow
+    {
+        public int VoucherId { get; set; }
+        public DateTime VoucherDate { get; set; }
+        public string TransactionNumber { get; set; }
+        public string ExpenseHeadName { get; set; }
+        public string Details { get; set; }
+        public string ProjectName { get; set; }
+        public int? ProjectId { get; set; }
+        public decimal Amount { get; set; }
+        public string Source { get; set; } // "Expense" or "Purchase"
     }
 }
