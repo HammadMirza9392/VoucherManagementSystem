@@ -29,9 +29,10 @@ namespace VoucherManagementSystem.Repositories
                 _ => "VCH"
             };
 
-            // Simple sequential numbering: PUR-1, PUR-2, SAL-1, etc.
+            // Include deleted vouchers so unique index is never violated on soft-deleted numbers
             var lastVoucher = await _context.Vouchers
                 .AsNoTracking()
+                .IgnoreQueryFilters()
                 .Where(v => v.TransactionNumber.StartsWith($"{prefix}-"))
                 .OrderByDescending(v => v.Id)
                 .Select(v => v.TransactionNumber)
