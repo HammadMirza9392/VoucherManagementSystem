@@ -451,13 +451,13 @@
                                             <label asp-for="Mon" class="form-label mb-1" style="font-size: 0.85rem;">
                                                 Mon <small id="monMultiplierHint" class="text-white opacity-75" style="font-size:0.7rem;"></small>
                                             </label>
-                                            <input asp-for="Mon" class="form-control form-control-sm" id="Mon" type="number" step="0.001" />
+                                            <input asp-for="Mon" class="form-control form-control-sm" id="Mon" type="number" step="0.01" />
                                         </td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 2px;">
                                             <label asp-for="Weight" class="form-label mb-1" style="font-size: 0.85rem;">Weight</label>
-                                            <input asp-for="Weight" type="number" step="0.001" class="form-control form-control-sm" id="weight" />
+                                            <input asp-for="Weight" type="number" step="0.01" class="form-control form-control-sm" id="weight" />
                                         </td>
                                     </tr>
                                 </table>
@@ -469,13 +469,13 @@
                                     <tr>
                                         <td style="padding: 2px;">
                                             <label asp-for="Kat" class="form-label mb-1" style="font-size: 0.85rem;">Kat</label>
-                                            <input asp-for="Kat" type="number" step="0.001" class="form-control form-control-sm" id="kat" />
+                                            <input asp-for="Kat" type="number" step="0.01" class="form-control form-control-sm" id="kat" />
                                         </td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 2px;">
                                             <label asp-for="Quantity" class="form-label mb-1" style="font-size: 0.85rem;">Quantity</label>
-                                            <input asp-for="Quantity" type="number" step="0.001" class="form-control form-control-sm" id="quantity" />
+                                            <input asp-for="Quantity" type="number" step="0.01" class="form-control form-control-sm" id="quantity" />
                                         </td>
                                     </tr>
                                 </table>
@@ -916,10 +916,10 @@
             $('#Mon').on('input', function() {
                 var mon = parseFloat($(this).val()) || 0;
                 var weight = mon * currentMonMultiplier;
-                $('#weight').val(weight.toFixed(3));
+                $('#weight').val(weight.toFixed(2));
                 $('#kat').val(0);
                 var quantity = weight - 0;
-                $('#quantity').val(quantity.toFixed(3));
+                $('#quantity').val(quantity.toFixed(2));
                 // Trigger amount calculation
                 $('#quantity').trigger('change');
             });
@@ -929,7 +929,7 @@
                 var weight = parseFloat($('#weight').val()) || 0;
                 var kat = parseFloat($('#kat').val()) || 0;
                 var quantity = weight - kat;
-                $('#quantity').val(quantity.toFixed(3));
+                $('#quantity').val(quantity.toFixed(2));
                 // Trigger amount calculation
                 $('#quantity').trigger('change');
             });
@@ -938,17 +938,31 @@
             $('#quantity, #rate').on('input change', function() {
                 var qty = parseFloat($('#quantity').val()) || 0;
                 var rate = parseFloat($('#rate').val()) || 0;
-                $('#amount').val((qty * rate).toFixed(2));
+                if (qty > 0 && rate > 0) {
+                    $('#amount').val((qty * rate).toFixed(2));
+                }
             });
 
-            // Auto-calculate rate from weight and amount (with decimals)
-            $('#weight, #amount').on('input change', function() {
+            // When Amount is typed directly, back-calculate Rate from quantity (or weight)
+            $('#amount').on('input', function() {
+                var amount = parseFloat($(this).val()) || 0;
+                var qty = parseFloat($('#quantity').val()) || 0;
+                var weight = parseFloat($('#weight').val()) || 0;
+
+                if (amount > 0 && qty > 0) {
+                    $('#rate').val((amount / qty).toFixed(2));
+                } else if (amount > 0 && weight > 0) {
+                    $('#rate').val((amount / weight).toFixed(2));
+                }
+            });
+
+            // When Weight changes, recalculate Rate if amount is already set
+            $('#weight').on('input', function() {
                 var weight = parseFloat($('#weight').val()) || 0;
                 var amount = parseFloat($('#amount').val()) || 0;
 
                 if (weight > 0 && amount > 0) {
-                    var calculatedRate = amount / weight;
-                    $('#rate').val(calculatedRate.toFixed(4)); // Show up to 4 decimal places
+                    $('#rate').val((amount / weight).toFixed(2));
                 }
             });
 

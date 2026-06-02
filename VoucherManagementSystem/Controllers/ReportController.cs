@@ -133,7 +133,6 @@ namespace VoucherManagementSystem.Controllers
                 // Separate Purchase and Expense
                 var totalPurchase = vouchers.Where(v => v.VoucherType == VoucherType.Purchase).Sum(v => v.Amount);
                 var totalExpense = vouchers.Where(v => v.VoucherType == VoucherType.Expense ||
-                                                       v.VoucherType == VoucherType.CashPaid ||
                                                        v.VoucherType == VoucherType.Hazri).Sum(v => v.Amount);
                 var totalExpenses = totalPurchase + totalExpense; // Total Expenses = Purchase + Expense
 
@@ -1637,9 +1636,15 @@ namespace VoucherManagementSystem.Controllers
                                    v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1))
                         .ToListAsync();
 
-                    var revenue = vouchers.Where(v => v.VoucherType == VoucherType.Sale).Sum(v => v.Amount);
+                    var itemSummary = await GetProjectItemSummaryAsync(project.Id, startDate, endDate);
+                    var stockValue = itemSummary.Sum(i => i.StockValue);
+
+                    var totalSale = vouchers.Where(v => v.VoucherType == VoucherType.Sale || v.VoucherType == VoucherType.CashReceived).Sum(v => v.Amount);
+                    var revenue = totalSale + stockValue; // Revenue = Sale + CashReceived + Stock
+
                     var purchases = vouchers.Where(v => v.VoucherType == VoucherType.Purchase).Sum(v => v.Amount);
                     var expenses = vouchers.Where(v => v.VoucherType == VoucherType.Expense || v.VoucherType == VoucherType.Hazri).Sum(v => v.Amount);
+                    var totalExpenses = purchases + expenses;
 
                     projectReports.Add(new ProjectReportItem
                     {
@@ -1647,7 +1652,7 @@ namespace VoucherManagementSystem.Controllers
                         Revenue = revenue,
                         Purchases = purchases,
                         Expenses = expenses,
-                        ProfitLoss = revenue - purchases - expenses,
+                        ProfitLoss = revenue - totalExpenses,
                         VoucherCount = vouchers.Count
                     });
                 }
