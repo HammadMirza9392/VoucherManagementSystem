@@ -1872,6 +1872,87 @@ namespace VoucherManagementSystem.Controllers
             }
         }
 
+        // GET: Reports/KhataReport - Urdu Khata Detail (PDF-style)
+        public async Task<IActionResult> KhataReport(int? customerId, DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
+
+                if (!customerId.HasValue)
+                    return View();
+
+                var customer = await _customerRepository.GetByIdAsync(customerId.Value);
+                if (customer == null)
+                {
+                    TempData["Error"] = "Customer not found.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var endDate = toDate ?? DateTime.Today;
+                var startDate = fromDate ?? DateTime.Today.AddMonths(-1);
+
+                // Opening balance before startDate
+                var openingBalance = await GetCustomerOpeningBalanceAsync(customerId.Value, startDate);
+
+                // Purchase vouchers in range (customer is PurchasingCustomer)
+                var purchaseVouchers = await _context.Vouchers
+                    .Include(v => v.Item)
+                    .Include(v => v.Project)
+                    .Where(v => v.PurchasingCustomerId == customerId.Value &&
+                               v.VoucherType == VoucherType.Purchase &&
+                               v.VoucherDate >= startDate &&
+                               v.VoucherDate <= endDate.AddDays(1))
+                    .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
+                    .ToListAsync();
+
+                // Payment vouchers in range (CashPaid to this supplier / CashReceived from customer / AdvancedPayment)
+                var paymentVouchers = await _context.Vouchers
+                    .Include(v => v.PurchasingCustomer)
+                    .Include(v => v.ReceivingCustomer)
+                    .Where(v =>
+                        ((v.PurchasingCustomerId == customerId.Value && v.VoucherType == VoucherType.CashPaid) ||
+                         (v.ReceivingCustomerId == customerId.Value &&
+                          (v.VoucherType == VoucherType.CashReceived || v.VoucherType == VoucherType.AdvancedPayment ||
+                           v.VoucherType == VoucherType.Sale))) &&
+                        v.VoucherDate >= startDate &&
+                        v.VoucherDate <= endDate.AddDays(1))
+                    .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
+                    .ToListAsync();
+
+                // Totals
+                decimal totalBillWeight = purchaseVouchers.Sum(v => v.Weight ?? 0);
+                decimal totalBillKat = purchaseVouchers.Sum(v => v.Kat ?? 0);
+                decimal totalBillQty = purchaseVouchers.Sum(v => v.Quantity ?? 0);
+                decimal totalBillAmount = purchaseVouchers.Sum(v => v.Amount);
+
+                decimal totalPayment = paymentVouchers.Sum(v => v.Amount);
+
+                decimal closingBalance = openingBalance + totalBillAmount - totalPayment;
+
+                ViewBag.Customer = customer;
+                ViewBag.FromDate = startDate;
+                ViewBag.ToDate = endDate;
+                ViewBag.OpeningBalance = openingBalance;
+                ViewBag.PurchaseVouchers = purchaseVouchers;
+                ViewBag.PaymentVouchers = paymentVouchers;
+                ViewBag.TotalBillWeight = totalBillWeight;
+                ViewBag.TotalBillKat = totalBillKat;
+                ViewBag.TotalBillQty = totalBillQty;
+                ViewBag.TotalBillAmount = totalBillAmount;
+                ViewBag.TotalPayment = totalPayment;
+                ViewBag.ClosingBalance = closingBalance;
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating khata report");
+                TempData["Error"] = "Error generating khata report.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
         // GET: Reports/CapitalReport - Complete financial overview
         public async Task<IActionResult> CapitalReport(DateTime? asOfDate)
         {

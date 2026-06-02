@@ -1,0 +1,480 @@
+@* Views/Reports/KhataReport.cshtml - Urdu Khata Detail Report *@
+@{
+    ViewData["Title"] = "کھاتا تفصیل";
+}
+
+@section Styles {
+<style>
+    /* Urdu RTL font & layout */
+    body { direction: ltr; }
+    .khata-page {
+        font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Traditional Arabic', Arial, sans-serif;
+        direction: rtl;
+        max-width: 900px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 10px;
+        font-size: 13px;
+    }
+    .khata-header-bar {
+        background: #1a1a2e;
+        color: #fff;
+        padding: 6px 14px;
+        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+        direction: ltr;
+    }
+    .khata-title-block {
+        text-align: center;
+        border: 2px solid #333;
+        padding: 6px 0;
+        margin: 6px 0;
+    }
+    .khata-title-block h2 {
+        font-size: 22px;
+        font-weight: bold;
+        margin: 0 0 2px 0;
+        color: #000;
+    }
+    .khata-title-block h3 {
+        font-size: 16px;
+        margin: 0;
+        color: #000;
+    }
+    .khata-info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 6px;
+    }
+    .khata-info-table td {
+        padding: 3px 8px;
+        font-size: 13px;
+        vertical-align: top;
+    }
+    .khata-info-table .label { font-weight: bold; }
+    .khata-section-header {
+        background: #f0f0f0;
+        font-weight: bold;
+        text-align: center;
+        padding: 4px;
+        border: 1px solid #ccc;
+        font-size: 13px;
+        margin-top: 6px;
+    }
+    .khata-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        direction: rtl;
+    }
+    .khata-table th {
+        background: #ddd;
+        border: 1px solid #999;
+        padding: 4px 6px;
+        text-align: center;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+    .khata-table td {
+        border: 1px solid #bbb;
+        padding: 3px 6px;
+        text-align: center;
+        white-space: nowrap;
+    }
+    .khata-table td.text-right { text-align: right; }
+    .khata-table td.text-left { text-align: left; }
+    .khata-table tr.total-row td {
+        background: #f5f5f5;
+        font-weight: bold;
+        border-top: 2px solid #555;
+    }
+    .khata-table tr.opening-row td {
+        background: #fffde7;
+        font-style: italic;
+    }
+    .balance-box {
+        border: 2px solid #333;
+        padding: 6px 12px;
+        margin-top: 8px;
+        background: #f9f9f9;
+        direction: rtl;
+    }
+    .balance-box table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+    .balance-box table td { padding: 3px 8px; }
+    .balance-box .bal-label { font-weight: bold; text-align: right; }
+    .balance-box .bal-value { text-align: left; font-weight: bold; }
+    .balance-final {
+        background: #1a1a2e;
+        color: #fff;
+        font-size: 14px;
+        font-weight: bold;
+        padding: 5px 12px;
+        display: flex;
+        justify-content: space-between;
+        margin-top: 4px;
+    }
+    .net-balance-box {
+        border: 3px solid #1a1a2e;
+        background: #fff;
+        padding: 5px 16px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 15px;
+        font-weight: bold;
+        margin-top: 6px;
+        direction: rtl;
+    }
+    .date-range-header {
+        text-align: center;
+        font-weight: bold;
+        font-size: 13px;
+        border: 1px solid #ccc;
+        padding: 3px;
+        background: #fafafa;
+        direction: ltr;
+    }
+    @@media print {
+        .d-print-none { display: none !important; }
+        .khata-page { padding: 0; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+</style>
+}
+
+<div class="d-print-none mb-3">
+    <h4><i class="bi bi-journal-text"></i> کھاتا تفصیل (Urdu Khata Report)</h4>
+</div>
+
+@if (ViewBag.Customer == null)
+{
+    <!-- Selection Form -->
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">کھاتا تفصیل - کسٹمر منتخب کریں</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">کسٹمر (Customer) <span class="text-danger">*</span></label>
+                    @Html.DropDownList("customerId", ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select", required = "required" })
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">From Date (اس تاریخ سے)</label>
+                    <input type="date" name="fromDate" class="form-control" value="@DateTime.Today.AddMonths(-1).ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">To Date (اس تاریخ تک)</label>
+                    <input type="date" name="toDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-dark w-100">
+                        <i class="bi bi-search"></i> Generate
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+else
+{
+    var customer = ViewBag.Customer as VoucherManagementSystem.Models.Customer;
+    var fromDate = (DateTime)ViewBag.FromDate;
+    var toDate = (DateTime)ViewBag.ToDate;
+    var openingBalance = (decimal)ViewBag.OpeningBalance;
+    var purchaseVouchers = ViewBag.PurchaseVouchers as List<VoucherManagementSystem.Models.Voucher>;
+    var paymentVouchers = ViewBag.PaymentVouchers as List<VoucherManagementSystem.Models.Voucher>;
+    var totalBillWeight = (decimal)ViewBag.TotalBillWeight;
+    var totalBillKat = (decimal)ViewBag.TotalBillKat;
+    var totalBillQty = (decimal)ViewBag.TotalBillQty;
+    var totalBillAmount = (decimal)ViewBag.TotalBillAmount;
+    var totalPayment = (decimal)ViewBag.TotalPayment;
+    var closingBalance = (decimal)ViewBag.ClosingBalance;
+
+    <!-- Filter / Actions (no print) -->
+    <div class="d-print-none mb-3">
+        <div class="card">
+            <div class="card-body py-2">
+                <form method="get" class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small">Customer</label>
+                        @Html.DropDownList("customerId", ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select form-select-sm" })
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small">From Date</label>
+                        <input type="date" name="fromDate" value="@fromDate.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small">To Date</label>
+                        <input type="date" name="toDate" value="@toDate.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-auto">
+                        <button type="submit" class="btn btn-dark btn-sm"><i class="bi bi-search"></i> Filter</button>
+                        <button type="button" class="btn btn-secondary btn-sm ms-1" onclick="window.print()">
+                            <i class="bi bi-printer"></i> Print
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm ms-1" onclick="downloadPDF()">
+                            <i class="bi bi-file-earmark-pdf"></i> PDF
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== KHATA PAGE (PDF-style) ===== -->
+    <div class="khata-page" id="khataContent">
+
+        <!-- Top bar: Printed date / time + page -->
+        <div class="khata-header-bar">
+            <span>Printed: @DateTime.Now.ToString("dd-MMM-yyyy")</span>
+            <span style="font-size:11px;">Print Time:@DateTime.Now.ToString("hh:mm:ss tt")</span>
+            <span>صفحہ نمبر: 1 / 1</span>
+        </div>
+
+        <!-- Company Title -->
+        <div class="khata-title-block">
+            <h2>الحافظ سکریپ</h2>
+            <h3>کھاتا تفصیل</h3>
+        </div>
+
+        <!-- Customer Info + Date Range -->
+        <table class="khata-info-table">
+            <tr>
+                <td style="width:50%; text-align:right; direction:rtl;">
+                    <span class="label">اکاؤنٹ کا نام :</span>
+                    <strong> @customer.Name</strong>
+                </td>
+                <td style="width:50%; text-align:right; direction:rtl;">
+                    <span class="label">اس تاریخ سے :</span>
+                    <strong> @fromDate.ToString("dd/MM/yyyy")</strong>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align:right; direction:rtl;">
+                    <span class="label">پتہ :</span>
+                    @if (!string.IsNullOrEmpty(customer.Address)) { <span> @customer.Address</span> }
+                </td>
+                <td style="text-align:right; direction:rtl;">
+                    <span class="label">اس تاریخ تک :</span>
+                    <strong> @toDate.ToString("dd/MM/yyyy")</strong>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align:right; direction:rtl;">
+                    <span class="label">موبائل نمبر :</span>
+                    @if (!string.IsNullOrEmpty(customer.Phone)) { <span> @customer.Phone</span> }
+                </td>
+                <td></td>
+            </tr>
+        </table>
+
+        <!-- English date range line -->
+        <div class="date-range-header">
+            From: @fromDate.ToString("dd/MM/yyyy") to: @toDate.ToString("dd/MM/yyyy")
+        </div>
+
+        <!-- ===== BILL TABLE (Purchase entries) - RTL: تاریخ first on right ===== -->
+        <div class="khata-section-header" style="margin-top:10px;"></div>
+        <table class="khata-table">
+            <thead>
+                <tr>
+                    <th style="min-width:80px;">تاریخ</th>
+                    <th style="min-width:80px;">رسیدنمبر</th>
+                    <th style="min-width:80px;"># گیٹ پاس</th>
+                    <th>آئیٹم تفصیل</th>
+                    <th>سب آئیٹم</th>
+                    <th>وزن کلو</th>
+                    <th>کاٹ</th>
+                    <th>صافی وزن</th>
+                    <th>پرائس</th>
+                    <th>رقم</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Opening Balance Row -->
+                <tr class="opening-row">
+                    <td colspan="2"></td>
+                    <td colspan="6" style="text-align:right; font-style:italic; color:#555;">
+                        پچھلا بیلنس: (@fromDate.ToString("dd/MM/yyyy"))
+                    </td>
+                    <td colspan="2" style="text-align:right; font-weight:bold;">
+                        @(openingBalance >= 0 ? openingBalance.ToString("N2") : $"({Math.Abs(openingBalance):N2})")
+                    </td>
+                </tr>
+
+                @if (purchaseVouchers != null && purchaseVouchers.Any())
+                {
+                    @foreach (var v in purchaseVouchers)
+                    {
+                        var itemName = v.Item?.Name ?? "-";
+                        var weight = v.Weight.HasValue ? v.Weight.Value.ToString("N2") : "-";
+                        var kat = v.Kat.HasValue ? v.Kat.Value.ToString("N2") : "0.00";
+                        var qty = v.Quantity.HasValue ? v.Quantity.Value.ToString("N2") : "-";
+                        var rate = v.Rate.HasValue ? v.Rate.Value.ToString("N0") : "-";
+                        var amount = v.Amount.ToString("N0");
+                        var gariNo = v.GariNo ?? "";
+                        var txnNo = v.TransactionNumber;
+                        var vdate = v.VoucherDate.ToString("dd/MM/yyyy");
+                        var mon = v.Mon ?? "-";
+                        <tr>
+                            <td>@vdate</td>
+                            <td>@txnNo</td>
+                            <td>@gariNo</td>
+                            <td>@itemName</td>
+                            <td>@mon</td>
+                            <td class="text-right">@weight</td>
+                            <td class="text-right">@kat</td>
+                            <td class="text-right">@qty</td>
+                            <td class="text-right">@rate</td>
+                            <td class="text-right">@amount</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10" style="text-align:center; padding:10px; color:#888;">کوئی خریداری نہیں ملی</td>
+                    </tr>
+                }
+
+                <!-- Total Row -->
+                <tr class="total-row">
+                    <td colspan="2"></td>
+                    <td colspan="3" style="text-align:right; font-weight:bold;">ٹوٹل :</td>
+                    <td class="text-right">@totalBillWeight.ToString("N2")</td>
+                    <td class="text-right">@totalBillKat.ToString("N2")</td>
+                    <td class="text-right">@totalBillQty.ToString("N2")</td>
+                    <td></td>
+                    <td class="text-right">@totalBillAmount.ToString("N2")</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ===== PAYMENT TABLE (رقم ادائیگی) - RTL: تاریخ first on right ===== -->
+        <div class="khata-section-header" style="margin-top:12px;">رقم ادائیگی</div>
+        <table class="khata-table">
+            <thead>
+                <tr>
+                    <th>تاریخ</th>
+                    <th>رسیدنمبر</th>
+                    <th># گیٹ پاس</th>
+                    <th>تفصیل</th>
+                    <th>نام</th>
+                    <th>جمع</th>
+                    <th>بقیہ رقم</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (paymentVouchers != null && paymentVouchers.Any())
+                {
+                    decimal runningPayTotal = 0;
+                    @foreach (var v in paymentVouchers)
+                    {
+                        runningPayTotal += v.Amount;
+                        var details = v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? v.BankCustomerPaidDetails ?? v.BankCustomerReceiverDetails ?? "";
+                        var voucherDesc = v.VoucherType switch {
+                            VoucherManagementSystem.Models.VoucherType.CashPaid => "CASH",
+                            VoucherManagementSystem.Models.VoucherType.CashReceived => "CASH RECEIVED",
+                            VoucherManagementSystem.Models.VoucherType.AdvancedPayment => "ADVANCE",
+                            VoucherManagementSystem.Models.VoucherType.Sale => "SALE",
+                            _ => v.VoucherType.ToString()
+                        };
+                        var fullDetails = string.IsNullOrEmpty(details) ? voucherDesc : $"{voucherDesc} {details}";
+                        <tr>
+                            <td>@v.VoucherDate.ToString("dd/MM/yyyy")</td>
+                            <td>@v.TransactionNumber</td>
+                            <td>@(v.GariNo ?? "")</td>
+                            <td class="text-left">@fullDetails</td>
+                            <td class="text-right">@v.Amount.ToString("N2")</td>
+                            <td class="text-right">0.00</td>
+                            <td class="text-right">@runningPayTotal.ToString("N2")</td>
+                        </tr>
+                    }
+
+                    <!-- Payment Total Row -->
+                    <tr class="total-row">
+                        <td colspan="4" style="text-align:right; font-weight:bold;">
+                            نیٹ بیلنس (@toDate.ToString("dd/MM/yyyy"))
+                        </td>
+                        <td class="text-right">@totalPayment.ToString("N2")</td>
+                        <td class="text-right">0.00</td>
+                        <td class="text-right">@totalPayment.ToString("N2")</td>
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:10px; color:#888;">کوئی ادائیگی نہیں ملی</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- ===== SUMMARY BOX ===== -->
+        <div class="balance-box" style="margin-top:14px;">
+            <div style="text-align:center; font-weight:bold; font-size:15px; border-bottom:1px solid #ccc; padding-bottom:4px; margin-bottom:6px;">
+                ٹوٹل رقم ادائیگی : <strong>@totalPayment.ToString("N2")</strong>
+            </div>
+            <table>
+                <tr>
+                    <td class="bal-label" style="width:50%;">پرانا بیلنس :</td>
+                    <td class="bal-value" style="width:50%; direction:ltr; text-align:left;">@openingBalance.ToString("N2")</td>
+                </tr>
+                <tr>
+                    <td class="bal-label">ٹوٹل بل :</td>
+                    <td class="bal-value" style="color:#c00; direction:ltr; text-align:left;">-@totalBillAmount.ToString("N2")</td>
+                </tr>
+                <tr>
+                    <td class="bal-label">ٹوٹل ادائیگی :</td>
+                    <td class="bal-value" style="color:#060; direction:ltr; text-align:left;">+@totalPayment.ToString("N2")</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Net Balance -->
+        <div class="net-balance-box">
+            <span>موجودہ بیلنس :</span>
+            <span style="direction:ltr; display:inline-flex; align-items:center; gap:6px;">
+                <strong>@Math.Abs(closingBalance).ToString("N2")</strong>
+                @if (closingBalance >= 0)
+                {
+                    <span style="color:#060; font-weight:bold;">جمع</span>
+                }
+                else
+                {
+                    <span style="color:#c00; font-weight:bold;">واجب</span>
+                }
+            </span>
+        </div>
+
+    </div><!-- end khata-page -->
+}
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    function downloadPDF() {
+        var element = document.getElementById('khataContent');
+        var customerName = '@(ViewBag.Customer != null ? (ViewBag.Customer as VoucherManagementSystem.Models.Customer)?.Name : "Khata")';
+        var fromDate = '@(ViewBag.FromDate != null ? ((DateTime)ViewBag.FromDate).ToString("ddMMyyyy") : "")';
+        var toDate = '@(ViewBag.ToDate != null ? ((DateTime)ViewBag.ToDate).ToString("ddMMyyyy") : "")';
+        var fileName = 'KhataReport_' + customerName.replace(/\s+/g, '_') + '_' + fromDate + '_' + toDate + '.pdf';
+
+        var opt = {
+            margin: [8, 6, 8, 6],
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save();
+    }
+</script>
+}
