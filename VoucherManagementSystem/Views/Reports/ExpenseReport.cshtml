@@ -118,6 +118,8 @@
                         <th>Expense Head</th>
                         <th>Details</th>
                         <th>Project</th>
+                        <th class="text-end">Quantity</th>
+                        <th class="text-end">Rate</th>
                         <th class="text-end">Amount</th>
                     </tr>
                 </thead>
@@ -142,6 +144,8 @@
                                         <a asp-controller="Reports" asp-action="ProjectReport" asp-route-projectId="@e.ProjectId">@e.ProjectName</a>
                                     }
                                 </td>
+                                <td class="text-end">@(e.Quantity.HasValue ? e.Quantity.Value.ToString("N2") : "-")</td>
+                                <td class="text-end">@(e.Rate.HasValue ? e.Rate.Value.ToString("N2") : "-")</td>
                                 <td class="text-end text-danger fw-bold">Rs. @string.Format("{0:N0}", e.Amount)</td>
                             </tr>
                         }
@@ -149,7 +153,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center">No expenses found for the selected criteria.</td>
+                            <td colspan="9" class="text-center">No expenses found for the selected criteria.</td>
                         </tr>
                     }
                 </tbody>
@@ -157,7 +161,7 @@
                 {
                     <tfoot class="table-dark">
                         <tr>
-                            <th colspan="6" class="text-end">Total:</th>
+                            <th colspan="8" class="text-end">Total:</th>
                             <th class="text-end">Rs. @string.Format("{0:N0}", totalExpenses)</th>
                         </tr>
                     </tfoot>

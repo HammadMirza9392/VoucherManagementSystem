@@ -1442,7 +1442,7 @@ namespace VoucherManagementSystem.Controllers
         }
 
         // GET: Reports/AllExpensesReport - All expenses in one page
-        public async Task<IActionResult> AllExpensesReport(DateTime? fromDate, DateTime? toDate, int? expenseHeadId)
+        public async Task<IActionResult> AllExpensesReport(DateTime? fromDate, DateTime? toDate, int? expenseHeadId, int? projectId)
         {
             try
             {
@@ -1450,53 +1450,130 @@ namespace VoucherManagementSystem.Controllers
                 var endDate = toDate ?? DateTime.Today;
 
                 ViewBag.ExpenseHeads = new SelectList(await _expenseHeadRepository.GetActiveExpenseHeadsAsync(), "Id", "Name", expenseHeadId);
+                ViewBag.Projects = new SelectList(await _projectRepository.GetActiveProjectsAsync(), "Id", "Name", projectId);
 
-                var query = _context.Vouchers
+                // 1. Expense + Hazri vouchers
+                var expHazQuery = _context.Vouchers
                     .Include(v => v.ExpenseHead)
                     .Include(v => v.Project)
-                    .Include(v => v.PurchasingCustomer)
                     .Where(v => (v.VoucherType == VoucherType.Expense || v.VoucherType == VoucherType.Hazri) &&
                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
                 if (expenseHeadId.HasValue)
-                {
-                    query = query.Where(v => v.ExpenseHeadId == expenseHeadId);
-                }
+                    expHazQuery = expHazQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
+                if (projectId.HasValue)
+                    expHazQuery = expHazQuery.Where(v => v.ProjectId == projectId);
 
-                var expenses = await query.OrderByDescending(v => v.VoucherDate).ThenByDescending(v => v.Id).ToListAsync();
+                var expHazVouchers = await expHazQuery.ToListAsync();
 
-                // Separate hazri entries from expense entries
-                var hazriEntries = expenses.Where(e => e.VoucherType == VoucherType.Hazri).ToList();
-                var expenseEntries = expenses.Where(e => e.VoucherType == VoucherType.Expense).ToList();
+                // 2. Purchase vouchers with an expense head
+                var purchaseQuery = _context.Vouchers
+                    .Include(v => v.ExpenseHead)
+                    .Include(v => v.Project)
+                    .Where(v => v.VoucherType == VoucherType.Purchase &&
+                               v.ExpenseHeadId != null &&
+                               v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
-                // Calculate opening balance: sum of expenses before startDate (excluding hazri)
-                var openingBalanceQuery = _context.Vouchers
-                    .Where(v => v.VoucherType == VoucherType.Expense &&
-                               v.VoucherDate < startDate);
                 if (expenseHeadId.HasValue)
-                {
-                    openingBalanceQuery = openingBalanceQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
-                }
-                var openingBalance = await openingBalanceQuery.SumAsync(v => v.Amount);
+                    purchaseQuery = purchaseQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
+                if (projectId.HasValue)
+                    purchaseQuery = purchaseQuery.Where(v => v.ProjectId == projectId);
 
-                // Group by expense head for summary (expense only, excluding hazri)
-                var expenseSummary = expenseEntries
-                    .GroupBy(e => e.ExpenseHead?.Name ?? "Unknown")
-                    .Select(g => new ExpenseSummaryItem { ExpenseHead = g.Key, Total = g.Sum(e => e.Amount) })
+                var purchaseVouchers = await purchaseQuery.ToListAsync();
+
+                // 3. Build unified rows
+                var rows = new List<ExpenseReportRow>();
+
+                foreach (var v in expHazVouchers)
+                {
+                    rows.Add(new ExpenseReportRow
+                    {
+                        VoucherId         = v.Id,
+                        VoucherDate       = v.VoucherDate,
+                        TransactionNumber = v.TransactionNumber,
+                        ExpenseHeadName   = v.ExpenseHead?.Name ?? "-",
+                        Details           = v.ExpenseHeadDetails ?? "",
+                        ProjectName       = v.Project?.Name,
+                        ProjectId         = v.ProjectId,
+                        Quantity          = null,
+                        Rate              = null,
+                        Amount            = v.Amount,
+                        Source            = v.VoucherType == VoucherType.Hazri ? "Hazri" : "Expense"
+                    });
+                }
+
+                foreach (var v in purchaseVouchers)
+                {
+                    var rate   = v.ExpenseHeadRate ?? 0;
+                    var qty    = v.Quantity ?? 0;
+                    var amount = rate * qty;
+
+                    rows.Add(new ExpenseReportRow
+                    {
+                        VoucherId         = v.Id,
+                        VoucherDate       = v.VoucherDate,
+                        TransactionNumber = v.TransactionNumber,
+                        ExpenseHeadName   = v.ExpenseHead?.Name ?? "-",
+                        Details           = v.ExpenseHeadDetails ?? "",
+                        ProjectName       = v.Project?.Name,
+                        ProjectId         = v.ProjectId,
+                        Quantity          = v.Quantity,
+                        Rate              = v.ExpenseHeadRate,
+                        Amount            = amount,
+                        Source            = "Purchase"
+                    });
+                }
+
+                rows = rows.OrderByDescending(r => r.VoucherDate).ThenByDescending(r => r.VoucherId).ToList();
+
+                var expenseRows  = rows.Where(r => r.Source == "Expense").ToList();
+                var hazriRows    = rows.Where(r => r.Source == "Hazri").ToList();
+                var purchaseRows = rows.Where(r => r.Source == "Purchase").ToList();
+
+                // Opening balance: Expense + Purchase-expense vouchers before startDate
+                var openingBalanceQuery = _context.Vouchers
+                    .Where(v => v.VoucherDate < startDate &&
+                               ((v.VoucherType == VoucherType.Expense) ||
+                                (v.VoucherType == VoucherType.Purchase && v.ExpenseHeadId != null)));
+                if (expenseHeadId.HasValue)
+                    openingBalanceQuery = openingBalanceQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
+                if (projectId.HasValue)
+                    openingBalanceQuery = openingBalanceQuery.Where(v => v.ProjectId == projectId);
+
+                var openingVouchers = await openingBalanceQuery.ToListAsync();
+                var openingBalance = openingVouchers.Sum(v =>
+                    v.VoucherType == VoucherType.Purchase
+                        ? (v.ExpenseHeadRate ?? 0) * (v.Quantity ?? 0)
+                        : v.Amount);
+
+                // Summary by expense head — net per head: Expense − Hazri − Purchase
+                var expenseSummary = rows
+                    .GroupBy(r => r.ExpenseHeadName)
+                    .Select(g => new ExpenseSummaryItem
+                    {
+                        ExpenseHead     = g.Key,
+                        ExpenseAmount   = g.Where(r => r.Source == "Expense").Sum(r => r.Amount),
+                        HazriAmount     = g.Where(r => r.Source == "Hazri").Sum(r => r.Amount),
+                        PurchaseAmount  = g.Where(r => r.Source == "Purchase").Sum(r => r.Amount),
+                    })
                     .OrderByDescending(x => x.Total)
                     .ToList();
 
-                ViewBag.FromDate = startDate;
-                ViewBag.ToDate = endDate;
+                var totalExpenses          = expenseRows.Sum(r => r.Amount);
+                var totalHazri             = hazriRows.Sum(r => r.Amount);
+                var totalPurchaseDeductions = purchaseRows.Sum(r => r.Amount);
+
+                ViewBag.FromDate              = startDate;
+                ViewBag.ToDate                = endDate;
                 ViewBag.SelectedExpenseHeadId = expenseHeadId;
-                ViewBag.Expenses = expenses;
-                ViewBag.ExpenseEntries = expenseEntries;
-                ViewBag.HazriEntries = hazriEntries;
-                ViewBag.ExpenseSummary = expenseSummary;
-                ViewBag.TotalExpenses = expenseEntries.Sum(e => e.Amount);
-                ViewBag.TotalHazri = hazriEntries.Sum(e => e.Amount);
-                ViewBag.OpeningBalance = openingBalance;
-                ViewBag.NetTotal = expenseEntries.Sum(e => e.Amount) - hazriEntries.Sum(e => e.Amount);
+                ViewBag.SelectedProjectId     = projectId;
+                ViewBag.Expenses              = rows;
+                ViewBag.ExpenseSummary        = expenseSummary;
+                ViewBag.TotalExpenses         = totalExpenses;
+                ViewBag.TotalHazri            = totalHazri;
+                ViewBag.TotalPurchaseDeductions = totalPurchaseDeductions;
+                ViewBag.OpeningBalance        = openingBalance;
+                ViewBag.NetTotal              = totalExpenses - totalHazri - totalPurchaseDeductions;
 
                 return View();
             }
@@ -1575,15 +1652,17 @@ namespace VoucherManagementSystem.Controllers
 
                     rows.Add(new ExpenseReportRow
                     {
-                        VoucherId       = v.Id,
-                        VoucherDate     = v.VoucherDate,
+                        VoucherId         = v.Id,
+                        VoucherDate       = v.VoucherDate,
                         TransactionNumber = v.TransactionNumber,
-                        ExpenseHeadName = v.ExpenseHead?.Name ?? "-",
-                        Details         = v.ExpenseHeadDetails ?? "",
-                        ProjectName     = v.Project?.Name,
-                        ProjectId       = v.ProjectId,
-                        Amount          = amount,
-                        Source          = "Purchase"
+                        ExpenseHeadName   = v.ExpenseHead?.Name ?? "-",
+                        Details           = v.ExpenseHeadDetails ?? "",
+                        ProjectName       = v.Project?.Name,
+                        ProjectId         = v.ProjectId,
+                        Quantity          = v.Quantity,
+                        Rate              = v.ExpenseHeadRate,
+                        Amount            = amount,
+                        Source            = "Purchase"
                     });
                 }
 
@@ -1592,7 +1671,7 @@ namespace VoucherManagementSystem.Controllers
                 // Summary by expense head
                 var expenseSummary = rows
                     .GroupBy(r => r.ExpenseHeadName)
-                    .Select(g => new ExpenseSummaryItem { ExpenseHead = g.Key, Total = g.Sum(r => r.Amount) })
+                    .Select(g => new ExpenseSummaryItem { ExpenseHead = g.Key, ExpenseAmount = g.Sum(r => r.Amount) })
                     .OrderByDescending(x => x.Total)
                     .ToList();
 
@@ -1647,7 +1726,7 @@ namespace VoucherManagementSystem.Controllers
                 // Group by expense head for summary
                 var hazriSummary = hazriRecords
                     .GroupBy(h => h.ExpenseHead?.Name ?? "Unknown")
-                    .Select(g => new ExpenseSummaryItem { ExpenseHead = g.Key, Total = g.Sum(h => h.Amount) })
+                    .Select(g => new ExpenseSummaryItem { ExpenseHead = g.Key, HazriAmount = g.Sum(h => h.Amount) })
                     .OrderByDescending(x => x.Total)
                     .ToList();
 
@@ -1869,53 +1948,66 @@ namespace VoucherManagementSystem.Controllers
 
                 foreach (var customer in customers)
                 {
-                    // Calculate balance based on DR/CR logic
-                    // Purchase = CR (we owe supplier), Sale = DR (customer owes us)
-                    // CashPaid = DR (reduces what we owe), CashReceived = CR (reduces what they owe)
+                    // Use the same DR/CR logic as CustomerLedger and GetCustomerOpeningBalanceAsync:
+                    // Sale = DR (+), CashReceived/AdvancedPayment/CCR = CR (-)
+                    // Purchase = CR (-), CashPaid/CCR = DR (+)
+                    // Positive net = DR = customer owes us (ToReceive)
+                    // Negative net = CR = we owe them (ToPay)
                     var vouchers = await _context.Vouchers
                         .Where(v => (v.PurchasingCustomerId == customer.Id || v.ReceivingCustomerId == customer.Id) &&
                                    v.VoucherDate < date)
                         .ToListAsync();
 
-                    decimal toReceive = 0; // Amount customer owes us (DR)
-                    decimal toPay = 0;     // Amount we owe to supplier (CR)
+                    decimal balance = 0;
 
                     foreach (var v in vouchers)
                     {
-                        if (v.ReceivingCustomerId == customer.Id)
-                        {
-                            if (v.VoucherType == VoucherType.Sale)
-                                toReceive += v.Amount; // Customer owes us
-                            else if (v.VoucherType == VoucherType.CashReceived || v.VoucherType == VoucherType.AdvancedPayment)
-                                toReceive -= v.Amount; // Customer paid us / advanced payment
-                        }
-
                         if (v.PurchasingCustomerId == customer.Id)
                         {
-                            // Purchase or CashPaid to this supplier
-                            if (v.VoucherType == VoucherType.Purchase)
-                                toPay += v.Amount; // We owe supplier
-                            else if (v.VoucherType == VoucherType.CashPaid)
-                                toPay -= v.Amount; // We paid supplier
+                            switch (v.VoucherType)
+                            {
+                                case VoucherType.Purchase:
+                                    balance -= v.Amount; // CR — we owe them
+                                    break;
+                                case VoucherType.CashPaid:
+                                case VoucherType.CCR:
+                                    balance += v.Amount; // DR — we paid them
+                                    break;
+                            }
+                        }
+
+                        if (v.ReceivingCustomerId == customer.Id)
+                        {
+                            switch (v.VoucherType)
+                            {
+                                case VoucherType.Sale:
+                                    balance += v.Amount; // DR — they owe us
+                                    break;
+                                case VoucherType.CashReceived:
+                                case VoucherType.CCR:
+                                case VoucherType.AdvancedPayment:
+                                    balance -= v.Amount; // CR — they paid us
+                                    break;
+                            }
                         }
                     }
 
-                    if (toReceive != 0 || toPay != 0)
+                    if (balance != 0)
                     {
                         customerReports.Add(new CustomerReportItem
                         {
-                            Customer = customer,
-                            ToReceive = toReceive > 0 ? toReceive : 0,
-                            ToPay = toPay > 0 ? toPay : 0,
-                            NetBalance = toReceive - toPay
+                            Customer  = customer,
+                            ToReceive = balance > 0 ? balance : 0,   // DR — they owe us
+                            ToPay     = balance < 0 ? -balance : 0,  // CR — we owe them
+                            NetBalance = balance
                         });
                     }
                 }
 
                 ViewBag.AsOfDate = date.AddDays(-1);
                 ViewBag.CustomerReports = customerReports.OrderByDescending(c => Math.Abs(c.NetBalance)).ToList();
-                ViewBag.TotalToReceive = customerReports.Sum(c => c.ToReceive);
-                ViewBag.TotalToPay = customerReports.Sum(c => c.ToPay);
+                ViewBag.TotalToReceive = customerReports.Where(c => c.NetBalance > 0).Sum(c => c.NetBalance);
+                ViewBag.TotalToPay = customerReports.Where(c => c.NetBalance < 0).Sum(c => Math.Abs(c.NetBalance));
                 ViewBag.NetBalance = customerReports.Sum(c => c.NetBalance);
 
                 return View();
@@ -2290,7 +2382,10 @@ namespace VoucherManagementSystem.Controllers
     public class ExpenseSummaryItem
     {
         public string ExpenseHead { get; set; }
-        public decimal Total { get; set; }
+        public decimal ExpenseAmount { get; set; }   // + (Expense vouchers)
+        public decimal HazriAmount { get; set; }     // − (Hazri deduction)
+        public decimal PurchaseAmount { get; set; }  // − (Purchase deduction)
+        public decimal Total => ExpenseAmount - HazriAmount - PurchaseAmount; // net
     }
 
     // Unified row for Expense Report (covers both Expense vouchers and Purchase vouchers with expense head)
@@ -2303,6 +2398,8 @@ namespace VoucherManagementSystem.Controllers
         public string Details { get; set; }
         public string ProjectName { get; set; }
         public int? ProjectId { get; set; }
+        public decimal? Quantity { get; set; }
+        public decimal? Rate { get; set; }
         public decimal Amount { get; set; }
         public string Source { get; set; } // "Expense" or "Purchase"
     }

@@ -78,9 +78,8 @@
                     <tr>
                         <th>Customer Name</th>
                         <th>Contact</th>
-                        <th class="text-end">To Receive (DR)</th>
-                        <th class="text-end">To Pay (CR)</th>
-                        <th class="text-end">Net Balance</th>
+                        <th class="text-end text-success">To Receive (DR)</th>
+                        <th class="text-end text-danger">To Pay (CR)</th>
                         <th class="text-center">Status</th>
                         <th class="text-center">Action</th>
                     </tr>
@@ -100,28 +99,18 @@
                                 </td>
                                 <td>@c.Customer.Phone</td>
                                 <td class="text-end text-success fw-bold">
-                                    @if (c.ToReceive > 0)
+                                    @if (c.NetBalance > 0)
                                     {
-                                        <text>Rs. @string.Format("{0:N0}", c.ToReceive)</text>
+                                        <text>Rs. @string.Format("{0:N0}", c.NetBalance)</text>
                                     }
-                                    else
-                                    {
-                                        <text>-</text>
-                                    }
+                                    else { <text>-</text> }
                                 </td>
                                 <td class="text-end text-danger fw-bold">
-                                    @if (c.ToPay > 0)
+                                    @if (c.NetBalance < 0)
                                     {
-                                        <text>Rs. @string.Format("{0:N0}", c.ToPay)</text>
+                                        <text>Rs. @string.Format("{0:N0}", Math.Abs(c.NetBalance))</text>
                                     }
-                                    else
-                                    {
-                                        <text>-</text>
-                                    }
-                                </td>
-                                <td class="text-end fw-bold @(c.NetBalance >= 0 ? "text-success" : "text-danger")">
-                                    Rs. @string.Format("{0:N0}", Math.Abs(c.NetBalance))
-                                    <small>(@(c.NetBalance >= 0 ? "DR" : "CR"))</small>
+                                    else { <text>-</text> }
                                 </td>
                                 <td class="text-center">
                                     @if (c.NetBalance > 0)
@@ -148,7 +137,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center">No customers with outstanding balances found.</td>
+                            <td colspan="6" class="text-center">No customers with outstanding balances found.</td>
                         </tr>
                     }
                 </tbody>
@@ -159,7 +148,6 @@
                             <th colspan="2">Total</th>
                             <th class="text-end">Rs. @string.Format("{0:N0}", totalToReceive)</th>
                             <th class="text-end">Rs. @string.Format("{0:N0}", totalToPay)</th>
-                            <th class="text-end">Rs. @string.Format("{0:N0}", Math.Abs(netBalance))</th>
                             <th colspan="2"></th>
                         </tr>
                     </tfoot>
