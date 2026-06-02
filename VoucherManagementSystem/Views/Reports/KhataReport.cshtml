@@ -4,6 +4,9 @@
 }
 
 @section Styles {
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     /* Urdu RTL font & layout */
     body { direction: ltr; }
@@ -15,6 +18,7 @@
         background: #fff;
         padding: 10px;
         font-size: 13px;
+        line-height: 1.6;
     }
     .khata-header-bar {
         background: #1a1a2e;
@@ -48,8 +52,8 @@
         margin-bottom: 6px;
     }
     .khata-info-table td {
-        padding: 3px 8px;
-        font-size: 13px;
+        padding: 2px 8px;
+        font-size: 12px;
         vertical-align: top;
     }
     .khata-info-table .label { font-weight: bold; }
@@ -57,7 +61,7 @@
         background: #f0f0f0;
         font-weight: bold;
         text-align: center;
-        padding: 4px;
+        padding: 8px 4px;
         border: 1px solid #ccc;
         font-size: 13px;
         margin-top: 6px;
@@ -71,16 +75,18 @@
     .khata-table th {
         background: #ddd;
         border: 1px solid #999;
-        padding: 4px 6px;
+        padding: 7px 10px;
         text-align: center;
         font-weight: bold;
         white-space: nowrap;
+        line-height: 1.8;
     }
     .khata-table td {
         border: 1px solid #bbb;
-        padding: 3px 6px;
+        padding: 6px 10px;
         text-align: center;
         white-space: nowrap;
+        line-height: 1.8;
     }
     .khata-table td.text-right { text-align: right; }
     .khata-table td.text-left { text-align: left; }
@@ -103,7 +109,7 @@
     .balance-box table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 13px;
+        font-size: 12px;
     }
     .balance-box table td { padding: 3px 8px; }
     .balance-box .bal-label { font-weight: bold; text-align: right; }
@@ -124,7 +130,7 @@
         padding: 5px 16px;
         display: flex;
         justify-content: space-between;
-        font-size: 15px;
+        font-size: 12px;
         font-weight: bold;
         margin-top: 6px;
         direction: rtl;
@@ -238,9 +244,29 @@ else
         </div>
 
         <!-- Company Title -->
-        <div class="khata-title-block">
-            <h2>الحافظ سکریپ</h2>
-            <h3>کھاتا تفصیل</h3>
+        <div class="khata-title-block" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px;">
+            <!-- Left side: spacer -->
+            <div style="min-width:180px;"></div>
+            <!-- Center: main title -->
+            <div style="flex:1; text-align:center;">
+                <h2 style="margin:0 0 10px 0; font-size:26px; font-weight:700; font-family:'Noto Nastaliq Urdu',serif;">الحافظ سکریپ ڈیلر</h2>
+                <div style="font-size:13px; font-family:'Noto Nastaliq Urdu',serif; color:#333;padding-top:10px;">پرانہ چینیوٹ روڈ جھنگ سٹی</div>
+            </div>
+            <!-- Right side: contact, forced LTR table so label stays left of number -->
+            <div style="min-width:180px; display:flex; justify-content:center; align-items:center;">
+                <table style="border:none; border-collapse:collapse; direction:ltr; text-align:left;">
+                    <tr>
+                        
+                        <td style="border:none; padding-top:10px; font-family:Arial,sans-serif; font-weight:700; font-size:11px; color:#111; letter-spacing:1px;">03137087857</td>
+                        <td style="border:none; padding:2px 4px; font-family:'Noto Nastaliq Urdu',serif; font-weight:700; font-size:11px; color:#000; white-space:nowrap; direction:ltr; unicode-bidi:embed;">: رابطہ نمبر</td>
+                    </tr>
+                    <tr>
+                        <td style="border:none; padding-top:10px; font-family:Arial,sans-serif; font-weight:700; font-size:11px; color:#111; letter-spacing:1px;">03400798014</td>
+                        <td style="border:none; padding:2px 4px; font-family:'Noto Nastaliq Urdu',serif; font-weight:700; font-size:11px; color:#000; white-space:nowrap; direction:ltr; unicode-bidi:embed;">: رابطہ نمبر</td>
+
+                    </tr>
+                </table>
+            </div>
         </div>
 
         <!-- Customer Info + Date Range -->
@@ -418,7 +444,7 @@ else
 
         <!-- ===== SUMMARY BOX ===== -->
         <div class="balance-box" style="margin-top:14px;">
-            <div style="text-align:center; font-weight:bold; font-size:15px; border-bottom:1px solid #ccc; padding-bottom:4px; margin-bottom:6px;">
+            <div style="text-align:center; font-weight:bold; font-size:13px; border-bottom:1px solid #ccc; padding:8px 4px; margin-bottom:6px;">
                 ٹوٹل رقم ادائیگی : <strong>@totalPayment.ToString("N2")</strong>
             </div>
             <table>
@@ -427,12 +453,12 @@ else
                     <td class="bal-value" style="width:50%; direction:ltr; text-align:left;">@openingBalance.ToString("N2")</td>
                 </tr>
                 <tr>
-                    <td class="bal-label">ٹوٹل بل :</td>
-                    <td class="bal-value" style="color:#c00; direction:ltr; text-align:left;">-@totalBillAmount.ToString("N2")</td>
+                    <td class="bal-label" style="border-bottom:1px solid #bbb; padding-bottom:4px;">ٹوٹل بل :</td>
+                    <td class="bal-value" style="color:#c00; direction:ltr; text-align:left; border-bottom:1px solid #bbb; padding-bottom:4px;">-@totalBillAmount.ToString("N2")</td>
                 </tr>
                 <tr>
-                    <td class="bal-label">ٹوٹل ادائیگی :</td>
-                    <td class="bal-value" style="color:#060; direction:ltr; text-align:left;">+@totalPayment.ToString("N2")</td>
+                    <td class="bal-label" style="border-bottom:2px solid #555; padding-bottom:4px; padding-top:10px;">ٹوٹل ادائیگی :</td>
+                    <td class="bal-value" style="color:#060; direction:ltr; text-align:left; border-bottom:2px solid #555; padding-bottom:4px; padding-top:10px;">+@totalPayment.ToString("N2")</td>
                 </tr>
             </table>
         </div>
