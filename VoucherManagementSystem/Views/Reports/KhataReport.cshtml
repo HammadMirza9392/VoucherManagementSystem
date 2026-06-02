@@ -269,36 +269,57 @@ else
             </div>
         </div>
 
-        <!-- Customer Info + Date Range -->
-        <table class="khata-info-table">
-            <tr>
-                <td style="width:50%; text-align:right; direction:rtl;">
-                    <span class="label">اکاؤنٹ کا نام :</span>
-                    <strong> @customer.Name</strong>
-                </td>
-                <td style="width:50%; text-align:right; direction:rtl;">
-                    <span class="label">اس تاریخ سے :</span>
-                    <strong> @fromDate.ToString("dd/MM/yyyy")</strong>
-                </td>
-            </tr>
-            <tr>
-                <td style="text-align:right; direction:rtl;">
-                    <span class="label">پتہ :</span>
-                    @if (!string.IsNullOrEmpty(customer.Address)) { <span> @customer.Address</span> }
-                </td>
-                <td style="text-align:right; direction:rtl;">
-                    <span class="label">اس تاریخ تک :</span>
-                    <strong> @toDate.ToString("dd/MM/yyyy")</strong>
-                </td>
-            </tr>
-            <tr>
-                <td style="text-align:right; direction:rtl;">
-                    <span class="label">موبائل نمبر :</span>
-                    @if (!string.IsNullOrEmpty(customer.Phone)) { <span> @customer.Phone</span> }
-                </td>
-                <td></td>
-            </tr>
-        </table>
+        <!-- Customer Info + Date Range + Advanced Balance -->
+        @{
+            var advancedBalance = (decimal)(ViewBag.AdvancedBalance ?? 0m);
+        }
+        <div style="display:flex; gap:8px; align-items:stretch; margin-bottom:6px;">
+            <!-- Customer Info Table -->
+            <div style="flex:1;">
+                <table class="khata-info-table" style="margin-bottom:0;">
+                    <tr>
+                        <td style="width:50%; text-align:right; direction:rtl;">
+                            <span class="label">اکاؤنٹ کا نام :</span>
+                            <strong> @customer.Name</strong>
+                        </td>
+                        <td style="width:50%; text-align:right; direction:rtl;">
+                            <span class="label">اس تاریخ سے :</span>
+                            <strong> @fromDate.ToString("dd/MM/yyyy")</strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:right; direction:rtl;">
+                            <span class="label">پتہ :</span>
+                            @if (!string.IsNullOrEmpty(customer.Address)) { <span> @customer.Address</span> }
+                        </td>
+                        <td style="text-align:right; direction:rtl;">
+                            <span class="label">اس تاریخ تک :</span>
+                            <strong> @toDate.ToString("dd/MM/yyyy")</strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:right; direction:rtl;">
+                            <span class="label">موبائل نمبر :</span>
+                            @if (!string.IsNullOrEmpty(customer.Phone)) { <span> @customer.Phone</span> }
+                        </td>
+                        <td></td>
+                    </tr>
+                </table>
+            </div>
+            <!-- Advanced Balance Card (right side) -->
+            <div style="min-width:160px; border:2px solid #1a1a2e; border-radius:4px; background:#f0f4ff; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 12px; text-align:center;">
+                <div style="font-family:'Noto Nastaliq Urdu',serif; font-size:12px; font-weight:700; color:#1a1a2e; margin-bottom:6px;">ایڈوانس رقم</div>
+                <div style="font-family:Arial,sans-serif; font-size:16px; font-weight:700;
+                    color:@(advancedBalance > 0 ? "#c00" : advancedBalance < 0 ? "#060" : "#555");">
+                    @Math.Abs(advancedBalance).ToString("N0")
+                </div>
+                <div style="font-family:'Noto Nastaliq Urdu',serif; font-size:10px; color:#666; margin-top:4px;">
+                    @if (advancedBalance > 0) { <span>واجب الادا</span> }
+                    else if (advancedBalance < 0) { <span>جمع</span> }
+                    else { <span>کوئی نہیں</span> }
+                </div>
+            </div>
+        </div>
 
         <!-- English date range line -->
         <div class="date-range-header">

@@ -1930,6 +1930,26 @@ namespace VoucherManagementSystem.Controllers
 
                 decimal closingBalance = openingBalance + totalBillAmount - totalPayment;
 
+                // Advanced balance (display only, not included in calculation)
+                var advancedVouchers = await _context.Vouchers
+                    .Where(v => (v.VoucherType == VoucherType.AdvancedPayment ||
+                                 v.VoucherType == VoucherType.AdvancedCashPaid ||
+                                 v.VoucherType == VoucherType.AdvancedCashReceived) &&
+                               (v.AdvancedPurchasingCustomerId == customerId.Value ||
+                                v.AdvancedReceivingCustomerId == customerId.Value ||
+                                v.ReceivingCustomerId == customerId.Value))
+                    .ToListAsync();
+
+                decimal advancedBalance = 0;
+                foreach (var av in advancedVouchers)
+                {
+                    if ((av.VoucherType == VoucherType.AdvancedCashReceived && av.AdvancedReceivingCustomerId == customerId.Value) ||
+                        (av.VoucherType == VoucherType.AdvancedPayment && av.ReceivingCustomerId == customerId.Value))
+                        advancedBalance -= av.Amount;
+                    else if (av.VoucherType == VoucherType.AdvancedCashPaid && av.AdvancedPurchasingCustomerId == customerId.Value)
+                        advancedBalance += av.Amount;
+                }
+
                 ViewBag.Customer = customer;
                 ViewBag.FromDate = startDate;
                 ViewBag.ToDate = endDate;
@@ -1942,6 +1962,7 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.TotalBillAmount = totalBillAmount;
                 ViewBag.TotalPayment = totalPayment;
                 ViewBag.ClosingBalance = closingBalance;
+                ViewBag.AdvancedBalance = advancedBalance;
 
                 return View();
             }
