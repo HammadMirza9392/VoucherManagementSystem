@@ -390,7 +390,7 @@
         <h5 class="mb-0"><i class="bi bi-list-ul"></i> Transaction Details</h5>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive pl-outer">
             <table class="table table-hover table-bordered mb-0" id="plReportTable">
                 <thead class="table-primary">
                     <tr>
@@ -399,6 +399,7 @@
                         <th class="fw-bold" style="font-size: 14px;">Type</th>
                         <th class="fw-bold" style="font-size: 14px;">Customer/Item</th>
                         <th class="fw-bold" style="font-size: 14px;">Description</th>
+                        <th class="fw-bold" style="font-size: 14px;">Expense Head Details</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Qty</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Debit (Expense)</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Credit (Revenue)</th>
@@ -450,6 +451,17 @@
                                         voucher.PurchasingCustomerDetails ?? voucher.ReceivingCustomerDetails ??
                                         "Cash Transaction")
                                     </td>
+                                    <td class="align-middle">
+                                        @if (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense
+                                            && !string.IsNullOrWhiteSpace(voucher.ExpenseHeadDetails))
+                                        {
+                                            <span>@voucher.ExpenseHeadDetails</span>
+                                        }
+                                        else
+                                        {
+                                            <span>-</span>
+                                        }
+                                    </td>
                                     <td class="text-end align-middle fw-semibold">
                                         @(voucher.Quantity.HasValue ? voucher.Quantity.Value.ToString("N3") : "-")
                                     </td>
@@ -483,7 +495,12 @@
                 </tbody>
                 <tfoot class="table-success">
                     <tr style="font-size: 15px;">
-                        <th colspan="5" class="fw-bold py-3">TOTAL:</th>
+                        <th class="fw-bold py-3">TOTAL:</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
                         <th class="text-end fw-bold py-3">@totalQty.ToString("N3")</th>
                         <th class="text-end text-danger fw-bold py-3">Rs. @string.Format("{0:N0}", expenses)</th>
                         <th class="text-end text-success fw-bold py-3">Rs. @string.Format("{0:N0}", revenue)</th>
@@ -510,18 +527,23 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
+            // No DataTables vertical scroll (scrollY): that splits the header/body/footer into
+            // separate tables and causes column misalignment. We render as one table and make
+            // the scrollable 420px area + sticky header via CSS on the .table-responsive wrapper.
             var dt = $('#plReportTable').DataTable({
                 "order": [[0, "asc"]],
                 "pageLength": 50,
-                "scrollY": "420px",
-                "scrollX": false,
-                "scrollCollapse": true,
                 "autoWidth": false,
                 "dom": '<"dt-top d-flex justify-content-between align-items-center mb-2"Bf>t<"dt-bottom d-flex justify-content-between align-items-center pt-2 border-top"ip>',
                 "buttons": ['copy', 'csv', 'excel', 'pdf', 'print']
             });
 
-            // Force full width after init and on every page/search change
+            // Wrap ONLY the table in its own scroll box so the search bar and pagination
+            // stay outside the scroll area. The header/footer are sticky inside this box,
+            // and because it's a single table the columns stay perfectly aligned.
+            $('#plReportTable').wrap('<div class="pl-scroll"></div>');
+
+            // Keep the table at full width on page/search changes
             function fixWidth() {
                 $('#plReportTable').css('width', '100%');
                 dt.columns.adjust();
@@ -557,7 +579,6 @@
     <style>
         /* ── Transaction Details DataTable ── */
 
-        /* Card body: no inner padding so DataTable fills edge-to-edge */
         #plReportTable_wrapper {
             display: flex;
             flex-direction: column;
@@ -565,28 +586,38 @@
             width: 100%;
         }
 
-        #plReportTable_wrapper .dataTables_scrollHead,
-        #plReportTable_wrapper .dataTables_scrollFoot,
-        #plReportTable_wrapper .dataTables_scrollBody {
-            width: 100% !important;
+        /* Outer Bootstrap wrapper must not add its own scroll/clip — that would break
+           the sticky header inside .pl-scroll. */
+        .pl-outer {
+            overflow: visible;
         }
 
-        #plReportTable_wrapper .dataTables_scrollHeadInner,
-        #plReportTable_wrapper .dataTables_scrollHead table,
-        #plReportTable_wrapper .dataTables_scrollBody table {
-            width: 100% !important;
+        /* Single-table scroll: a div wrapping ONLY the table scrolls, so the header,
+           body, and footer are one table and columns stay perfectly aligned. */
+        #plReportTable_wrapper .pl-scroll {
+            max-height: 520px;
+            overflow-y: auto;
+            overflow-x: auto;
         }
 
-        /* Header row color */
+        #plReportTable { width: 100% !important; }
+
+        /* Sticky header (replaces the DataTables scroll-header feature) */
         #plReportTable thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
             background-color: #cfe2ff !important;
             border-bottom: 2px solid #0d6efd;
             padding: 10px 8px;
             white-space: nowrap;
         }
 
-        /* Footer (totals) row */
+        /* Sticky footer (totals) row pinned to the bottom of the scroll area */
         #plReportTable tfoot th {
+            position: sticky;
+            bottom: 0;
+            z-index: 2;
             background-color: #d1e7dd !important;
             border-top: 2px solid #198754;
             padding: 10px 8px;
@@ -594,12 +625,6 @@
         }
 
         #plReportTable tbody tr:hover td { background-color: #f0f4ff; }
-
-        /* The DataTables scroll body — give it a fixed height */
-        #plReportTable_wrapper .dataTables_scrollBody {
-            max-height: 420px !important;
-            overflow-y: auto !important;
-        }
 
         /* Search box */
         #plReportTable_wrapper .dt-top {
@@ -613,10 +638,10 @@
         }
 
         /* Scrollbar */
-        #plReportTable_wrapper .dataTables_scrollBody::-webkit-scrollbar { width: 7px; height: 7px; }
-        #plReportTable_wrapper .dataTables_scrollBody::-webkit-scrollbar-track { background: #f1f1f1; }
-        #plReportTable_wrapper .dataTables_scrollBody::-webkit-scrollbar-thumb { background: #aaa; border-radius: 4px; }
-        #plReportTable_wrapper .dataTables_scrollBody::-webkit-scrollbar-thumb:hover { background: #666; }
+        #plReportTable_wrapper .pl-scroll::-webkit-scrollbar { width: 7px; height: 7px; }
+        #plReportTable_wrapper .pl-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        #plReportTable_wrapper .pl-scroll::-webkit-scrollbar-thumb { background: #aaa; border-radius: 4px; }
+        #plReportTable_wrapper .pl-scroll::-webkit-scrollbar-thumb:hover { background: #666; }
 
         /* ── Inventory Table ── */
         #inventoryTable { border-collapse: separate; border-spacing: 0; }
@@ -683,12 +708,14 @@
                 font-size: 10pt;
             }
 
-            .table-responsive {
+            .table-responsive,
+            #plReportTable_wrapper .pl-scroll {
                 max-height: none;
                 overflow: visible;
             }
 
-            #plReportTable thead th {
+            #plReportTable thead th,
+            #plReportTable tfoot th {
                 position: relative;
             }
         }
