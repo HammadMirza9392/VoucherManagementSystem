@@ -45,43 +45,79 @@ namespace VoucherManagementSystem.Controllers
         {
             var today = DateTime.Today;
             var date = DateTime.Today.AddDays(1);
+            var last30Days = today.AddDays(-30);
+            var sixMonthsStart = new DateTime(today.Year, today.Month, 1).AddMonths(-5);
 
-            // Basic counts
-            ViewBag.TotalVouchers = (await _voucherRepository.GetAllAsync()).Count();
+            // === Load the data sets we need ONCE, then compute everything in memory. ===
+            // This avoids the previous N+1 query pattern (one DB round-trip per customer/item/bank)
+            // and the many separate full-table voucher scans that made the dashboard slow.
+
+            // All vouchers, lightweight (no navigation includes) - reused for every aggregation below.
+            var allVouchers = await _context.Vouchers
+                .AsNoTracking()
+                .Select(v => new DashboardVoucherRow
+                {
+                    VoucherType = v.VoucherType,
+                    CashType = v.CashType,
+                    Amount = v.Amount,
+                    Quantity = v.Quantity,
+                    StockInclude = v.StockInclude,
+                    VoucherDate = v.VoucherDate,
+                    ItemId = v.ItemId,
+                    ExpenseHeadId = v.ExpenseHeadId,
+                    PurchasingCustomerId = v.PurchasingCustomerId,
+                    ReceivingCustomerId = v.ReceivingCustomerId,
+                    AdvancedPurchasingCustomerId = v.AdvancedPurchasingCustomerId,
+                    AdvancedReceivingCustomerId = v.AdvancedReceivingCustomerId,
+                    BankCustomerPaidId = v.BankCustomerPaidId,
+                    BankCustomerReceiverId = v.BankCustomerReceiverId
+                })
+                .ToListAsync();
+
+            var items = await _itemRepository.GetActiveItemsAsync();
+            var customers = await _customerRepository.GetActiveCustomersAsync();
+            var banks = await _bankRepository.GetActiveBanksAsync();
+            var expenseHeads = await _expenseHeadRepository.GetAllAsync();
+            var expenseHeadNames = expenseHeads.ToDictionary(e => e.Id, e => e.Name);
+
+            // Basic counts (cheap aggregate queries / in-memory counts)
+            ViewBag.TotalVouchers = allVouchers.Count;
             ViewBag.ActiveProjects = (await _projectRepository.GetActiveProjectsAsync()).Count();
-            ViewBag.TotalCustomers = (await _customerRepository.GetActiveCustomersAsync()).Count();
-            ViewBag.TotalItems = (await _itemRepository.GetActiveItemsAsync()).Count();
+            ViewBag.TotalCustomers = customers.Count();
+            ViewBag.TotalItems = items.Count();
 
             // Today's transactions
-            var todayVouchers = await _voucherRepository.GetVouchersByDateRangeAsync(today, date);
-            ViewBag.TodayTransactions = todayVouchers.Count();
+            var todayVouchers = allVouchers.Where(v => v.VoucherDate >= today && v.VoucherDate < date).ToList();
+            ViewBag.TodayTransactions = todayVouchers.Count;
             ViewBag.TodayAmount = todayVouchers.Sum(v => v.Amount);
 
-            // Recent vouchers
+            // Recent vouchers (needs navigation properties, so query with details and take 10)
             var recentVouchers = await _voucherRepository.GetVouchersWithDetailsAsync();
             ViewBag.RecentVouchers = recentVouchers.Take(10);
 
             // === CAPITAL REPORT DATA ===
 
-            // 1. Stock Value
-            var items = await _itemRepository.GetActiveItemsAsync();
+            // 1. Stock Value - average rate per item computed from purchase vouchers (grouped once)
             decimal totalStockValue = 0;
             var stockData = new List<DashboardStockItem>();
+
+            var stockPurchaseByItem = allVouchers
+                .Where(v => v.ItemId.HasValue && v.VoucherType == VoucherType.Purchase && v.StockInclude)
+                .GroupBy(v => v.ItemId!.Value)
+                .ToDictionary(
+                    g => g.Key,
+                    g => new { Amount = g.Sum(p => p.Amount), Qty = g.Sum(p => p.Quantity ?? 0) });
 
             foreach (var item in items)
             {
                 decimal currentQty = item.CurrentStock;
-
                 if (currentQty > 0)
                 {
-                    // Get all purchases for this item to calculate average rate
-                    var stockPurchases = await _context.Vouchers
-                        .Where(v => v.ItemId == item.Id && v.VoucherType == VoucherType.Purchase && v.StockInclude == true)
-                        .ToListAsync();
-
-                    decimal totalPurchaseAmount = stockPurchases.Sum(p => p.Amount);
-                    decimal totalPurchaseQty = stockPurchases.Sum(p => p.Quantity ?? 0);
-                    decimal avgRate = totalPurchaseQty > 0 ? totalPurchaseAmount / totalPurchaseQty : item.DefaultRate;
+                    decimal avgRate = item.DefaultRate;
+                    if (stockPurchaseByItem.TryGetValue(item.Id, out var p) && p.Qty > 0)
+                    {
+                        avgRate = p.Amount / p.Qty;
+                    }
                     decimal stockValue = currentQty * avgRate;
                     totalStockValue += stockValue;
                     stockData.Add(new DashboardStockItem { Name = item.Name, Quantity = currentQty, Value = stockValue });
@@ -90,40 +126,38 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.TotalStockValue = totalStockValue;
             ViewBag.StockData = stockData.ToList();
 
-            // 2. Customer Receivables & Payables
-            var customers = await _customerRepository.GetActiveCustomersAsync();
+            // 2. Customer Receivables & Payables - computed in memory from the single voucher load
             decimal totalReceivables = 0;
             decimal totalPayables = 0;
             var receivablesData = new List<DashboardNameAmount>();
             var payablesData = new List<DashboardNameAmount>();
 
+            // Net per customer: + for receivable side, - for payable side
+            var receiveByCustomer = new Dictionary<int, decimal>();
+            var payByCustomer = new Dictionary<int, decimal>();
+
+            foreach (var v in allVouchers.Where(v => v.VoucherDate < date))
+            {
+                if (v.ReceivingCustomerId.HasValue)
+                {
+                    if (v.VoucherType == VoucherType.Sale)
+                        receiveByCustomer[v.ReceivingCustomerId.Value] = receiveByCustomer.GetValueOrDefault(v.ReceivingCustomerId.Value) + v.Amount;
+                    else if (v.VoucherType == VoucherType.CashReceived)
+                        receiveByCustomer[v.ReceivingCustomerId.Value] = receiveByCustomer.GetValueOrDefault(v.ReceivingCustomerId.Value) - v.Amount;
+                }
+                if (v.PurchasingCustomerId.HasValue)
+                {
+                    if (v.VoucherType == VoucherType.Purchase)
+                        payByCustomer[v.PurchasingCustomerId.Value] = payByCustomer.GetValueOrDefault(v.PurchasingCustomerId.Value) + v.Amount;
+                    else if (v.VoucherType == VoucherType.CashPaid)
+                        payByCustomer[v.PurchasingCustomerId.Value] = payByCustomer.GetValueOrDefault(v.PurchasingCustomerId.Value) - v.Amount;
+                }
+            }
+
             foreach (var customer in customers)
             {
-                var vouchers = await _context.Vouchers
-                    .Where(v => (v.PurchasingCustomerId == customer.Id || v.ReceivingCustomerId == customer.Id) && v.VoucherDate < date)
-                    .ToListAsync();
+                decimal netBalance = receiveByCustomer.GetValueOrDefault(customer.Id) - payByCustomer.GetValueOrDefault(customer.Id);
 
-                decimal toReceive = 0;
-                decimal toPay = 0;
-
-                foreach (var v in vouchers)
-                {
-                    if (v.ReceivingCustomerId == customer.Id)
-                    {
-                        if (v.VoucherType == VoucherType.Sale) toReceive += v.Amount;
-                        else if (v.VoucherType == VoucherType.CashReceived) toReceive -= v.Amount;
-                    }
-                    if (v.PurchasingCustomerId == customer.Id)
-                    {
-                        if (v.VoucherType == VoucherType.Purchase) toPay += v.Amount;
-                        else if (v.VoucherType == VoucherType.CashPaid) toPay -= v.Amount;
-                    }
-                }
-
-                // Calculate net ending balance
-                decimal netBalance = toReceive - toPay;
-
-                // Only show in one section based on net balance
                 if (netBalance > 0)
                 {
                     totalReceivables += netBalance;
@@ -142,8 +176,7 @@ namespace VoucherManagementSystem.Controllers
 
             // 3. Cash in Hand
             decimal cashInHand = 0;
-            var cashVouchers = await _context.Vouchers.Where(v => v.CashType == CashType.Cash && v.VoucherDate < date).ToListAsync();
-            foreach (var v in cashVouchers)
+            foreach (var v in allVouchers.Where(v => v.CashType == CashType.Cash && v.VoucherDate < date))
             {
                 switch (v.VoucherType)
                 {
@@ -174,23 +207,24 @@ namespace VoucherManagementSystem.Controllers
 
             ViewBag.CashInHand = cashInHand;
 
-            // 4. Bank Balances
-            var banks = await _bankRepository.GetActiveBanksAsync();
+            // 4. Bank Balances - net movement per bank computed once
             decimal totalBankBalance = 0;
             var bankData = new List<DashboardBankBalance>();
 
+            var bankPaidById = allVouchers
+                .Where(v => v.BankCustomerPaidId.HasValue && v.VoucherDate < date)
+                .GroupBy(v => v.BankCustomerPaidId!.Value)
+                .ToDictionary(g => g.Key, g => g.Sum(v => v.Amount));
+            var bankReceivedById = allVouchers
+                .Where(v => v.BankCustomerReceiverId.HasValue && v.VoucherDate < date)
+                .GroupBy(v => v.BankCustomerReceiverId!.Value)
+                .ToDictionary(g => g.Key, g => g.Sum(v => v.Amount));
+
             foreach (var bank in banks)
             {
-                decimal balance = bank.Balance;
-                var bankVouchers = await _context.Vouchers
-                    .Where(v => (v.BankCustomerPaidId == bank.Id || v.BankCustomerReceiverId == bank.Id) && v.VoucherDate < date)
-                    .ToListAsync();
-
-                foreach (var v in bankVouchers)
-                {
-                    if (v.BankCustomerPaidId == bank.Id) balance -= v.Amount;
-                    if (v.BankCustomerReceiverId == bank.Id) balance += v.Amount;
-                }
+                decimal balance = bank.Balance
+                    - bankPaidById.GetValueOrDefault(bank.Id)
+                    + bankReceivedById.GetValueOrDefault(bank.Id);
 
                 totalBankBalance += balance;
                 bankData.Add(new DashboardBankBalance { Name = bank.Name, Balance = balance });
@@ -202,11 +236,11 @@ namespace VoucherManagementSystem.Controllers
             var advancedCustomerData = new List<DashboardAdvancedCustomer>();
             decimal totalAdvancedBalance = 0;
 
-            var allAdvVouchers = await _context.Vouchers
+            var allAdvVouchers = allVouchers
                 .Where(v => v.VoucherType == VoucherType.AdvancedCashPaid ||
                             v.VoucherType == VoucherType.AdvancedCashReceived ||
                             v.VoucherType == VoucherType.AdvancedPayment)
-                .ToListAsync();
+                .ToList();
 
             // Get all unique customer IDs involved in advanced vouchers
             var advCustomerIds = allAdvVouchers
@@ -218,11 +252,10 @@ namespace VoucherManagementSystem.Controllers
                 .Where(id => id.HasValue)
                 .Select(id => id!.Value)
                 .Distinct()
-                .ToList();
+                .ToHashSet();
 
-            var advCustomers = await _context.Customers
-                .Where(c => advCustomerIds.Contains(c.Id) && c.IsActive)
-                .ToListAsync();
+            // Reuse the already-loaded active customers (filtered to those involved in advanced vouchers)
+            var advCustomers = customers.Where(c => advCustomerIds.Contains(c.Id));
 
             foreach (var cust in advCustomers)
             {
@@ -244,15 +277,15 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.AdvancedCustomerData = advancedCustomerData.OrderByDescending(x => Math.Abs(x.Balance)).ToList();
             ViewBag.TotalAdvancedBalance = totalAdvancedBalance;
 
-            // 6. Expense Summary (Last 30 days)
-            var last30Days = today.AddDays(-30);
-            var expenseVouchers = await _context.Vouchers
-                .Include(v => v.ExpenseHead)
+            // 6. Expense Summary (Last 30 days) - grouped in memory by expense head name
+            var expenseVouchers = allVouchers
                 .Where(v => (v.VoucherType == VoucherType.Expense || v.VoucherType == VoucherType.Hazri) && v.VoucherDate >= last30Days)
-                .ToListAsync();
+                .ToList();
 
             var expenseData = expenseVouchers
-                .GroupBy(v => v.ExpenseHead?.Name ?? "Other")
+                .GroupBy(v => v.ExpenseHeadId.HasValue && expenseHeadNames.ContainsKey(v.ExpenseHeadId.Value)
+                    ? expenseHeadNames[v.ExpenseHeadId.Value]
+                    : "Other")
                 .Select(g => new DashboardNameAmount { Name = g.Key, Amount = g.Sum(v => v.Amount) })
                 .OrderByDescending(x => x.Amount)
                 .Take(10)
@@ -260,13 +293,13 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.ExpenseData = expenseData;
             ViewBag.TotalExpenses30Days = expenseVouchers.Sum(v => v.Amount);
 
-            // 6. Monthly Trends (Last 6 months)
+            // 6. Monthly Trends (Last 6 months) - bucketed in memory
             var monthlyData = new List<DashboardMonthlyData>();
             for (int i = 5; i >= 0; i--)
             {
                 var monthStart = new DateTime(today.Year, today.Month, 1).AddMonths(-i);
                 var monthEnd = monthStart.AddMonths(1);
-                var monthVouchers = await _context.Vouchers.Where(v => v.VoucherDate >= monthStart && v.VoucherDate < monthEnd).ToListAsync();
+                var monthVouchers = allVouchers.Where(v => v.VoucherDate >= monthStart && v.VoucherDate < monthEnd).ToList();
 
                 var sales = monthVouchers.Where(v => v.VoucherType == VoucherType.Sale).Sum(v => v.Amount);
                 var purchases = monthVouchers.Where(v => v.VoucherType == VoucherType.Purchase).Sum(v => v.Amount);
@@ -277,18 +310,17 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.MonthlyData = monthlyData;
 
             // 7. Total Expenses (all time)
-            var allExpenseVouchers = await _context.Vouchers
+            decimal totalExpenses = allVouchers
                 .Where(v => v.VoucherType == VoucherType.Expense || v.VoucherType == VoucherType.Hazri)
-                .ToListAsync();
-            decimal totalExpenses = allExpenseVouchers.Sum(v => v.Amount);
+                .Sum(v => v.Amount);
             ViewBag.TotalExpenses = totalExpenses;
 
             // 8. Total Capital
             ViewBag.TotalCapital = totalStockValue + totalReceivables + cashInHand + totalBankBalance + totalAdvancedBalance - totalPayables - totalExpenses;
 
             // 9. Voucher Type Distribution (Last 30 days)
-            var voucherTypeData = todayVouchers
-                .Concat(await _context.Vouchers.Where(v => v.VoucherDate >= last30Days).ToListAsync())
+            var voucherTypeData = allVouchers
+                .Where(v => v.VoucherDate >= last30Days)
                 .GroupBy(v => v.VoucherType)
                 .Select(g => new DashboardVoucherType { Type = g.Key.ToString(), Count = g.Count(), Amount = g.Sum(v => v.Amount) })
                 .ToList();
@@ -391,5 +423,25 @@ namespace VoucherManagementSystem.Controllers
     {
         public string Name { get; set; } = "";
         public decimal Balance { get; set; }
+    }
+
+    // Lightweight voucher projection used by the dashboard so all aggregations can run
+    // off a single in-memory load instead of many per-entity database queries.
+    public class DashboardVoucherRow
+    {
+        public VoucherType VoucherType { get; set; }
+        public CashType? CashType { get; set; }
+        public decimal Amount { get; set; }
+        public decimal? Quantity { get; set; }
+        public bool StockInclude { get; set; }
+        public DateTime VoucherDate { get; set; }
+        public int? ItemId { get; set; }
+        public int? ExpenseHeadId { get; set; }
+        public int? PurchasingCustomerId { get; set; }
+        public int? ReceivingCustomerId { get; set; }
+        public int? AdvancedPurchasingCustomerId { get; set; }
+        public int? AdvancedReceivingCustomerId { get; set; }
+        public int? BankCustomerPaidId { get; set; }
+        public int? BankCustomerReceiverId { get; set; }
     }
 }
