@@ -167,7 +167,7 @@
             <form method="get" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label fw-bold">کسٹمر (Customer) <span class="text-danger">*</span></label>
-                    @Html.DropDownList("customerId", ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select", required = "required" })
+                    @Html.DropDownList("customerId", ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select select2-customer", required = "required" })
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-bold">From Date (اس تاریخ سے)</label>
@@ -209,7 +209,7 @@ else
                 <form method="get" class="row g-2 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label fw-bold small">Customer</label>
-                        @Html.DropDownList("customerId", ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select form-select-sm" })
+                        @Html.DropDownList("customerId", ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select form-select-sm select2-customer" })
                     </div>
                     <div class="col-md-2">
                         <label class="form-label fw-bold small">From Date</label>
@@ -279,8 +279,8 @@ else
                 <table class="khata-info-table" style="margin-bottom:0;">
                     <tr>
                         <td style="width:50%; text-align:right; direction:rtl;">
-                            <span class="label">اکاؤنٹ کا نام :</span>
-                            <strong> @customer.Name</strong>
+                            <span class="label" style="margin-left:14px;">اکاؤنٹ کا نام :</span>
+                            <strong style="font-size:18px; color:#198754;"> @customer.Name</strong>
                         </td>
                         <td style="width:50%; text-align:right; direction:rtl;">
                             <span class="label">اس تاریخ سے :</span>
@@ -509,6 +509,16 @@ else
 @section Scripts {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
+    // Make the Customer dropdown a searchable, type-to-filter box
+    $(document).ready(function () {
+        $('.select2-customer').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Search customer... / کسٹمر تلاش کریں',
+            allowClear: true
+        });
+    });
+
     function downloadPDF() {
         var element = document.getElementById('khataContent');
         var customerName = '@(ViewBag.Customer != null ? (ViewBag.Customer as VoucherManagementSystem.Models.Customer)?.Name : "Khata")';
