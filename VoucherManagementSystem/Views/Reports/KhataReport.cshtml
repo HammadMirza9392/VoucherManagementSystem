@@ -359,7 +359,10 @@ else
                 {
                     @foreach (var v in purchaseVouchers)
                     {
-                        var itemName = v.Item?.Name ?? "-";
+                        var isCashReceived = v.VoucherType == VoucherManagementSystem.Models.VoucherType.CashReceived;
+                        var itemName = isCashReceived
+                            ? "CASH RECEIVED" + (string.IsNullOrEmpty(v.ReceivingCustomerDetails) ? "" : $" {v.ReceivingCustomerDetails}")
+                            : (v.Item?.Name ?? "-");
                         var weight = v.Weight.HasValue ? v.Weight.Value.ToString("N2") : "-";
                         var kat = v.Kat.HasValue ? v.Kat.Value.ToString("N2") : "0.00";
                         var qty = v.Quantity.HasValue ? v.Quantity.Value.ToString("N2") : "-";

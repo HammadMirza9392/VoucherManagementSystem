@@ -2129,26 +2129,27 @@ namespace VoucherManagementSystem.Controllers
                 // Opening balance before startDate
                 var openingBalance = await GetCustomerOpeningBalanceAsync(customerId.Value, startDate);
 
-                // Purchase vouchers in range (customer is PurchasingCustomer)
+                // Bill table (top) vouchers in range:
+                //  - Purchase vouchers (customer is PurchasingCustomer)
+                //  - CashReceived / CRC vouchers (customer is ReceivingCustomer) — shown as positive, added to the bill side
                 var purchaseVouchers = await _context.Vouchers
                     .Include(v => v.Item)
                     .Include(v => v.Project)
-                    .Where(v => v.PurchasingCustomerId == customerId.Value &&
-                               v.VoucherType == VoucherType.Purchase &&
-                               v.VoucherDate >= startDate &&
-                               v.VoucherDate <= endDate.AddDays(1))
+                    .Where(v =>
+                        ((v.PurchasingCustomerId == customerId.Value && v.VoucherType == VoucherType.Purchase) ||
+                         (v.ReceivingCustomerId == customerId.Value && v.VoucherType == VoucherType.CashReceived)) &&
+                        v.VoucherDate >= startDate &&
+                        v.VoucherDate <= endDate.AddDays(1))
                     .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
                     .ToListAsync();
 
-                // Payment vouchers in range (CashPaid to this supplier / CashReceived from customer / AdvancedPayment)
+                // Payment table (رقم ادائیگی): only money we PAID to this customer => CashPaid (CPD)
                 var paymentVouchers = await _context.Vouchers
                     .Include(v => v.PurchasingCustomer)
                     .Include(v => v.ReceivingCustomer)
                     .Where(v =>
-                        ((v.PurchasingCustomerId == customerId.Value && v.VoucherType == VoucherType.CashPaid) ||
-                         (v.ReceivingCustomerId == customerId.Value &&
-                          (v.VoucherType == VoucherType.CashReceived || v.VoucherType == VoucherType.AdvancedPayment ||
-                           v.VoucherType == VoucherType.Sale))) &&
+                        v.PurchasingCustomerId == customerId.Value &&
+                        v.VoucherType == VoucherType.CashPaid &&
                         v.VoucherDate >= startDate &&
                         v.VoucherDate <= endDate.AddDays(1))
                     .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
