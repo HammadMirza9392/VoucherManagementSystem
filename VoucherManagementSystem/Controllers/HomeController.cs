@@ -207,25 +207,17 @@ namespace VoucherManagementSystem.Controllers
 
             ViewBag.CashInHand = cashInHand;
 
-            // 4. Bank Balances - net movement per bank computed once
+            // 4. Bank Balances
+            // bank.Balance is the live running "Current Balance" — it is already adjusted
+            // (via BankRepository.UpdateBalanceAsync) every time a bank voucher is created/edited/deleted.
+            // So we display it directly. (Previously this re-applied the voucher movements on top of
+            // bank.Balance, which double-counted every bank transaction and showed wrong balances.)
             decimal totalBankBalance = 0;
             var bankData = new List<DashboardBankBalance>();
 
-            var bankPaidById = allVouchers
-                .Where(v => v.BankCustomerPaidId.HasValue && v.VoucherDate < date)
-                .GroupBy(v => v.BankCustomerPaidId!.Value)
-                .ToDictionary(g => g.Key, g => g.Sum(v => v.Amount));
-            var bankReceivedById = allVouchers
-                .Where(v => v.BankCustomerReceiverId.HasValue && v.VoucherDate < date)
-                .GroupBy(v => v.BankCustomerReceiverId!.Value)
-                .ToDictionary(g => g.Key, g => g.Sum(v => v.Amount));
-
             foreach (var bank in banks)
             {
-                decimal balance = bank.Balance
-                    - bankPaidById.GetValueOrDefault(bank.Id)
-                    + bankReceivedById.GetValueOrDefault(bank.Id);
-
+                decimal balance = bank.Balance;
                 totalBankBalance += balance;
                 bankData.Add(new DashboardBankBalance { Name = bank.Name, Balance = balance });
             }
