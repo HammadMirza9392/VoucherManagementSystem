@@ -87,7 +87,7 @@ namespace VoucherManagementSystem.Controllers
                     existingTheme.NavbarBackgroundColor = model.NavbarBackgroundColor;
                     existingTheme.SidebarBackgroundColor = model.SidebarBackgroundColor;
                     existingTheme.FooterBackgroundColor = model.FooterBackgroundColor;
-                    existingTheme.LastUpdated = DateTime.Now;
+                    existingTheme.LastUpdated = DateTimeHelper.PkNow;
                     existingTheme.UpdatedBy = HttpContext.Session.GetString("Username");
 
                     _context.Update(existingTheme);
@@ -96,7 +96,7 @@ namespace VoucherManagementSystem.Controllers
                 {
                     // Create new theme
                     model.IsActive = true;
-                    model.LastUpdated = DateTime.Now;
+                    model.LastUpdated = DateTimeHelper.PkNow;
                     model.UpdatedBy = HttpContext.Session.GetString("Username");
                     _context.Add(model);
                 }
@@ -179,7 +179,7 @@ namespace VoucherManagementSystem.Controllers
                         break;
                 }
 
-                theme.LastUpdated = DateTime.Now;
+                theme.LastUpdated = DateTimeHelper.PkNow;
                 theme.UpdatedBy = HttpContext.Session.GetString("Username");
 
                 if (existingTheme == null)

@@ -94,7 +94,7 @@ namespace VoucherManagementSystem.Controllers
                 }
 
                 pageLock.IsLocked = !pageLock.IsLocked;
-                pageLock.LastModifiedDate = DateTime.Now;
+                pageLock.LastModifiedDate = DateTimeHelper.PkNow;
                 pageLock.LastModifiedBy = HttpContext.Session.GetString("Username") ?? "admin";
 
                 await _context.SaveChangesAsync();
@@ -126,7 +126,7 @@ namespace VoucherManagementSystem.Controllers
                 }
 
                 pageLock.Password = password;
-                pageLock.LastModifiedDate = DateTime.Now;
+                pageLock.LastModifiedDate = DateTimeHelper.PkNow;
                 pageLock.LastModifiedBy = HttpContext.Session.GetString("Username") ?? "admin";
 
                 await _context.SaveChangesAsync();
@@ -204,7 +204,7 @@ namespace VoucherManagementSystem.Controllers
                         PageUrl = url,
                         IsLocked = false,
                         Password = "1234", // Default password
-                        LastModifiedDate = DateTime.Now,
+                        LastModifiedDate = DateTimeHelper.PkNow,
                         LastModifiedBy = "system"
                     });
                 }
@@ -225,7 +225,7 @@ namespace VoucherManagementSystem.Controllers
                 {
                     PasswordType = "MasterLock",
                     Password = "112233", // Default master password
-                    LastModifiedDate = DateTime.Now,
+                    LastModifiedDate = DateTimeHelper.PkNow,
                     LastModifiedBy = "system"
                 });
                 await _context.SaveChangesAsync();
@@ -256,7 +256,7 @@ namespace VoucherManagementSystem.Controllers
 
                 System.Diagnostics.Debug.WriteLine($"Before update - Current LockMode: {pageLock.LockMode}");
                 pageLock.LockMode = lockMode;
-                pageLock.LastModifiedDate = DateTime.Now;
+                pageLock.LastModifiedDate = DateTimeHelper.PkNow;
                 pageLock.LastModifiedBy = HttpContext.Session.GetString("Username") ?? "admin";
 
                 var changes = await _context.SaveChangesAsync();
@@ -294,7 +294,7 @@ namespace VoucherManagementSystem.Controllers
                 }
 
                 masterPassword.Password = password;
-                masterPassword.LastModifiedDate = DateTime.Now;
+                masterPassword.LastModifiedDate = DateTimeHelper.PkNow;
                 masterPassword.LastModifiedBy = HttpContext.Session.GetString("Username") ?? "admin";
 
                 await _context.SaveChangesAsync();

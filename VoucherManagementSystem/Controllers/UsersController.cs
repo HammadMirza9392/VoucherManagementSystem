@@ -60,7 +60,7 @@ namespace VoucherManagementSystem.Controllers
                     return View(user);
                 }
 
-                user.CreatedDate = DateTime.Now;
+                user.CreatedDate = DateTimeHelper.PkNow;
                 user.CreatedBy = HttpContext.Session.GetString("Username");
                 user.IsActive = true;
 

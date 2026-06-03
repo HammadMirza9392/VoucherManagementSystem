@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VoucherManagementSystem.Data;
+using VoucherManagementSystem.Helpers;
 using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Models;
 
@@ -92,7 +93,7 @@ namespace VoucherManagementSystem.Controllers
 
                 if (ModelState.IsValid)
                 {
-                    customer.CreatedDate = DateTime.Now;
+                    customer.CreatedDate = DateTimeHelper.PkNow;
                     customer.CreatedBy = HttpContext.Session.GetString("Username") ?? "admin";
                     await _customerRepository.AddAsync(customer);
                     TempData["Success"] = "Customer created successfully!";
@@ -159,7 +160,7 @@ namespace VoucherManagementSystem.Controllers
                 if (ModelState.IsValid)
                 {
                     customer.UpdatedBy = HttpContext.Session.GetString("Username") ?? "admin";
-                    customer.UpdatedDate = DateTime.Now;
+                    customer.UpdatedDate = DateTimeHelper.PkNow;
                     _context.Update(customer);
                     await _context.SaveChangesAsync();
                     TempData["Success"] = "Customer updated successfully!";

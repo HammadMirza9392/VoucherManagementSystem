@@ -30,7 +30,7 @@ namespace VoucherManagementSystem.Models
         public bool IsActive { get; set; } = true;
 
         [Display(Name = "Created Date")]
-        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime CreatedDate { get; set; } = DateTimeHelper.PkNow;
 
         [StringLength(100)]
         [Display(Name = "Created By")]

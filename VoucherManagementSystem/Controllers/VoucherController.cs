@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using VoucherManagementSystem.Data;
+using VoucherManagementSystem.Helpers;
 using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Models;
 
@@ -128,7 +129,7 @@ namespace VoucherManagementSystem.Controllers
             var voucher = new Voucher
             {
                 VoucherType = VoucherType.Purchase,
-                VoucherDate = DateTime.Now
+                VoucherDate = DateTimeHelper.PkNow
             };
 
             // Get all recent vouchers (all types)
@@ -170,7 +171,7 @@ namespace VoucherManagementSystem.Controllers
             var voucher = new Voucher
             {
                 VoucherType = type ?? VoucherType.Purchase,
-                VoucherDate = DateTime.Now
+                VoucherDate = DateTimeHelper.PkNow
             };
 
             // Get recent vouchers filtered by type
@@ -389,7 +390,7 @@ namespace VoucherManagementSystem.Controllers
 
                 // Set updated by and updated date
                 voucher.UpdatedBy = HttpContext.Session.GetString("Username") ?? "admin";
-                voucher.UpdatedDate = DateTime.Now;
+                voucher.UpdatedDate = DateTimeHelper.PkNow;
 
                 await _voucherRepository.UpdateAsync(voucher);
                 TempData["Success"] = "Voucher updated successfully!";
@@ -474,7 +475,7 @@ namespace VoucherManagementSystem.Controllers
 
                 // Soft delete: flag the voucher instead of removing it
                 voucher.IsDeleted = true;
-                voucher.DeletedDate = DateTime.Now;
+                voucher.DeletedDate = DateTimeHelper.PkNow;
                 voucher.DeletedBy = HttpContext.Session.GetString("Username") ?? "admin";
                 await _voucherRepository.UpdateAsync(voucher);
                 TempData["Success"] = "Voucher deleted successfully!";
@@ -489,7 +490,7 @@ namespace VoucherManagementSystem.Controllers
             var voucher = new Voucher
             {
                 VoucherType = VoucherType.AdvancedPayment,
-                VoucherDate = DateTime.Today,
+                VoucherDate = DateTimeHelper.PkToday,
                 CashType = CashType.Cash
             };
 
@@ -521,7 +522,7 @@ namespace VoucherManagementSystem.Controllers
                 voucher.VoucherType = VoucherType.AdvancedPayment;
                 voucher.TransactionNumber = await _voucherRepository.GenerateTransactionNumberAsync(VoucherType.AdvancedPayment);
                 voucher.CreatedBy = HttpContext.Session.GetString("Username") ?? "admin";
-                voucher.CreatedDate = DateTime.Now;
+                voucher.CreatedDate = DateTimeHelper.PkNow;
 
                 // Update bank balance if paid into a bank account
                 if (voucher.BankCustomerReceiverId.HasValue && voucher.CashType == CashType.Bank)
@@ -551,7 +552,7 @@ namespace VoucherManagementSystem.Controllers
             var voucher = new Voucher
             {
                 VoucherType = VoucherType.AdvancedCashPaid,
-                VoucherDate = DateTime.Today,
+                VoucherDate = DateTimeHelper.PkToday,
                 CashType = CashType.Cash
             };
 
@@ -600,7 +601,7 @@ namespace VoucherManagementSystem.Controllers
                 voucher.VoucherType = VoucherType.AdvancedCashPaid;
                 voucher.TransactionNumber = await _voucherRepository.GenerateTransactionNumberAsync(VoucherType.AdvancedCashPaid);
                 voucher.CreatedBy = HttpContext.Session.GetString("Username") ?? "admin";
-                voucher.CreatedDate = DateTime.Now;
+                voucher.CreatedDate = DateTimeHelper.PkNow;
 
                 // Deduct from bank if paid via bank
                 if (voucher.BankCustomerPaidId.HasValue && voucher.CashType == CashType.Bank)
@@ -630,7 +631,7 @@ namespace VoucherManagementSystem.Controllers
             var voucher = new Voucher
             {
                 VoucherType = VoucherType.AdvancedCashReceived,
-                VoucherDate = DateTime.Today,
+                VoucherDate = DateTimeHelper.PkToday,
                 CashType = CashType.Cash
             };
 
@@ -679,7 +680,7 @@ namespace VoucherManagementSystem.Controllers
                 voucher.VoucherType = VoucherType.AdvancedCashReceived;
                 voucher.TransactionNumber = await _voucherRepository.GenerateTransactionNumberAsync(VoucherType.AdvancedCashReceived);
                 voucher.CreatedBy = HttpContext.Session.GetString("Username") ?? "admin";
-                voucher.CreatedDate = DateTime.Now;
+                voucher.CreatedDate = DateTimeHelper.PkNow;
 
                 // Credit bank if received via bank
                 if (voucher.BankCustomerReceiverId.HasValue && voucher.CashType == CashType.Bank)
@@ -769,7 +770,7 @@ namespace VoucherManagementSystem.Controllers
 
                         // Soft delete: flag the voucher instead of removing it
                         voucher.IsDeleted = true;
-                        voucher.DeletedDate = DateTime.Now;
+                        voucher.DeletedDate = DateTimeHelper.PkNow;
                         voucher.DeletedBy = HttpContext.Session.GetString("Username") ?? "admin";
                         await _voucherRepository.UpdateAsync(voucher);
                         deletedCount++;

@@ -38,7 +38,7 @@ namespace VoucherManagementSystem.Controllers
 
         public IActionResult Create()
         {
-            return View(new Project { StartDate = DateTime.Today });
+            return View(new Project { StartDate = DateTimeHelper.PkToday });
         }
 
         [HttpPost]
@@ -48,7 +48,7 @@ namespace VoucherManagementSystem.Controllers
             if (ModelState.IsValid)
             {
                 project.CreatedBy = HttpContext.Session.GetString("Username") ?? "admin";
-                project.CreatedDate = DateTime.Now;
+                project.CreatedDate = DateTimeHelper.PkNow;
                 await _projectRepository.AddAsync(project);
                 TempData["Success"] = "Project created successfully!";
                 return RedirectToAction(nameof(Index));
@@ -85,7 +85,7 @@ namespace VoucherManagementSystem.Controllers
                 try
                 {
                     project.UpdatedBy = HttpContext.Session.GetString("Username") ?? "admin";
-                    project.UpdatedDate = DateTime.Now;
+                    project.UpdatedDate = DateTimeHelper.PkNow;
                     await _projectRepository.UpdateAsync(project);
                     TempData["Success"] = "Project updated successfully!";
                 }

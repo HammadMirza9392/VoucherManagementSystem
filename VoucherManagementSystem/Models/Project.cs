@@ -18,7 +18,7 @@ namespace VoucherManagementSystem.Models
         [Required(ErrorMessage = "Start date is required")]
         [Display(Name = "Start Date")]
         [DataType(DataType.Date)]
-        public DateTime StartDate { get; set; } = DateTime.Today;
+        public DateTime StartDate { get; set; } = DateTimeHelper.PkToday;
 
         [Display(Name = "End Date")]
         [DataType(DataType.Date)]
@@ -28,7 +28,7 @@ namespace VoucherManagementSystem.Models
         public bool IsActive { get; set; } = true;
 
         [Display(Name = "Created Date")]
-        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime CreatedDate { get; set; } = DateTimeHelper.PkNow;
 
         [StringLength(100)]
         [Display(Name = "Created By")]

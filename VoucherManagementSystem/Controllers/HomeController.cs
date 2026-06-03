@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VoucherManagementSystem.Data;
+using VoucherManagementSystem.Helpers;
 using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Models;
 using System.Diagnostics;
@@ -43,8 +44,8 @@ namespace VoucherManagementSystem.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var today = DateTime.Today;
-            var date = DateTime.Today.AddDays(1);
+            var today = DateTimeHelper.PkToday;
+            var date = DateTimeHelper.PkToday.AddDays(1);
             var last30Days = today.AddDays(-30);
             var sixMonthsStart = new DateTime(today.Year, today.Month, 1).AddMonths(-5);
 
@@ -341,7 +342,7 @@ namespace VoucherManagementSystem.Controllers
             if (user != null)
             {
                 // Update last login date
-                user.LastLoginDate = DateTime.Now;
+                user.LastLoginDate = DateTimeHelper.PkNow;
                 await _context.SaveChangesAsync();
 
                 // Set session variables

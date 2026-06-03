@@ -52,7 +52,7 @@ namespace VoucherManagementSystem.Controllers
             if (ModelState.IsValid)
             {
                 expenseHead.CreatedBy = HttpContext.Session.GetString("Username") ?? "admin";
-                expenseHead.CreatedDate = DateTime.Now;
+                expenseHead.CreatedDate = DateTimeHelper.PkNow;
                 await _expenseHeadRepository.AddAsync(expenseHead);
                 TempData["Success"] = "Expense Head created successfully!";
                 return RedirectToAction(nameof(Index));
@@ -89,7 +89,7 @@ namespace VoucherManagementSystem.Controllers
                 try
                 {
                     expenseHead.UpdatedBy = HttpContext.Session.GetString("Username") ?? "admin";
-                    expenseHead.UpdatedDate = DateTime.Now;
+                    expenseHead.UpdatedDate = DateTimeHelper.PkNow;
                     await _expenseHeadRepository.UpdateAsync(expenseHead);
                     TempData["Success"] = "Expense Head updated successfully!";
                 }

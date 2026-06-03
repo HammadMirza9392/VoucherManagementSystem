@@ -36,7 +36,7 @@ namespace VoucherManagementSystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                model.LastUpdated = DateTime.Now;
+                model.LastUpdated = DateTimeHelper.PkNow;
                 model.UpdatedBy = HttpContext.Session.GetString("Username") ?? "System";
                 _context.MonMultipliers.Add(model);
                 await _context.SaveChangesAsync();
@@ -63,7 +63,7 @@ namespace VoucherManagementSystem.Controllers
 
             if (ModelState.IsValid)
             {
-                model.LastUpdated = DateTime.Now;
+                model.LastUpdated = DateTimeHelper.PkNow;
                 model.UpdatedBy = HttpContext.Session.GetString("Username") ?? "System";
                 _context.Update(model);
                 await _context.SaveChangesAsync();

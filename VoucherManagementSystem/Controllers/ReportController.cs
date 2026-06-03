@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using VoucherManagementSystem.Data;
+using VoucherManagementSystem.Helpers;
 using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Models;
 using ClosedXML.Excel;
@@ -80,8 +81,8 @@ namespace VoucherManagementSystem.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                var startDate = fromDate ?? new DateTime(DateTime.Today.Year, 1, 1);
-                var endDate = toDate ?? DateTime.Today;
+                var startDate = fromDate ?? new DateTime(DateTimeHelper.PkToday.Year, 1, 1);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
 
                 // Get base vouchers with all related data
                 var query = _context.Vouchers
@@ -261,8 +262,8 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
-                var endDate = toDate ?? DateTime.Today;
-                var startDate = fromDate ?? DateTime.Today.AddMonths(-1);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddMonths(-1);
 
                 // Get customers for filter dropdown
                 ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
@@ -389,12 +390,12 @@ namespace VoucherManagementSystem.Controllers
                 try
                 {
                     adjustment.CreatedBy = HttpContext.Session.GetString("Username") ?? "Admin";
-                    adjustment.CreatedDate = DateTime.Now;
+                    adjustment.CreatedDate = DateTimeHelper.PkNow;
 
                     // Generate reference number
                     int count = 1;
                     try { count = await _context.CashAdjustments.CountAsync() + 1; } catch { }
-                    adjustment.ReferenceNumber = $"CASH-{(adjustment.AdjustmentType == CashAdjustmentType.CashIn ? "IN" : "OUT")}-{DateTime.Now:yyyyMMdd}-{count:D4}";
+                    adjustment.ReferenceNumber = $"CASH-{(adjustment.AdjustmentType == CashAdjustmentType.CashIn ? "IN" : "OUT")}-{DateTimeHelper.PkNow:yyyyMMdd}-{count:D4}";
 
                     _context.CashAdjustments.Add(adjustment);
                     await _context.SaveChangesAsync();
@@ -422,7 +423,7 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
-                var logDate = activityDate ?? DateTime.Today;
+                var logDate = activityDate ?? DateTimeHelper.PkToday;
                 var nextDay = logDate.AddDays(1);
 
                 // Find all vouchers created on this date (not deleted)
@@ -771,7 +772,7 @@ namespace VoucherManagementSystem.Controllers
 
                 return File(content,
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    $"{reportType}_Report_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+                    $"{reportType}_Report_{DateTimeHelper.PkNow:yyyyMMddHHmmss}.xlsx");
             }
             catch (Exception ex)
             {
@@ -787,8 +788,8 @@ namespace VoucherManagementSystem.Controllers
             try
             {
                 // Default to showing last 30 days if no dates specified
-                var endDate = toDate ?? DateTime.Today;
-                var startDate = fromDate ?? DateTime.Today.AddDays(-30);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddDays(-30);
 
                 // Get all cash transactions
                 var vouchers = await _voucherRepository.GetVouchersByDateRangeAsync(startDate, endDate.AddDays(1));
@@ -971,8 +972,8 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
-                var endDate = toDate ?? DateTime.Today;
-                var startDate = fromDate ?? DateTime.Today.AddMonths(-1);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddMonths(-1);
 
                 // Get customers for filter dropdown
                 ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
@@ -1111,8 +1112,8 @@ namespace VoucherManagementSystem.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                var endDate = toDate ?? DateTime.Today;
-                var startDate = fromDate ?? DateTime.Today.AddDays(-90);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddDays(-90);
 
                 // All advanced-type vouchers for this customer in range
                 var vouchers = await _context.Vouchers
@@ -1205,8 +1206,8 @@ namespace VoucherManagementSystem.Controllers
                 }
 
                 // Default to showing last 90 days if no dates specified
-                var endDate = toDate ?? DateTime.Today;
-                var startDate = fromDate ?? DateTime.Today.AddDays(-90);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddDays(-90);
 
                 // Get opening balance (transactions before start date)
                 var openingBalance = await GetCustomerOpeningBalanceAsync(customerId.Value, startDate);
@@ -1484,8 +1485,8 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
-                var startDate = fromDate ?? DateTime.Today.AddMonths(-1);
-                var endDate = toDate ?? DateTime.Today;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddMonths(-1);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
 
                 ViewBag.Items = new SelectList(await _itemRepository.GetActiveItemsAsync(), "Id", "Name", itemId);
                 ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
@@ -1532,8 +1533,8 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
-                var startDate = fromDate ?? DateTime.Today.AddMonths(-1);
-                var endDate = toDate ?? DateTime.Today;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddMonths(-1);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
 
                 ViewBag.ExpenseHeads = new SelectList(await _expenseHeadRepository.GetActiveExpenseHeadsAsync(), "Id", "Name", expenseHeadId);
                 ViewBag.Projects = new SelectList(await _projectRepository.GetActiveProjectsAsync(), "Id", "Name", projectId);
@@ -1676,8 +1677,8 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
-                var startDate = fromDate ?? DateTime.Today.AddMonths(-1);
-                var endDate = toDate ?? DateTime.Today;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddMonths(-1);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
 
                 ViewBag.ExpenseHeads = new SelectList(await _expenseHeadRepository.GetActiveExpenseHeadsAsync(), "Id", "Name", expenseHeadId);
                 ViewBag.Projects = new SelectList(await _projectRepository.GetActiveProjectsAsync(), "Id", "Name", projectId);
@@ -1784,8 +1785,8 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
-                var startDate = fromDate ?? DateTime.Today.AddMonths(-1);
-                var endDate = toDate ?? DateTime.Today;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddMonths(-1);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
 
                 ViewBag.ExpenseHeads = new SelectList(await _expenseHeadRepository.GetActiveExpenseHeadsAsync(), "Id", "Name", expenseHeadId);
                 ViewBag.Projects = new SelectList(await _projectRepository.GetActiveProjectsAsync(), "Id", "Name", projectId);
@@ -1839,8 +1840,8 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
-                var startDate = fromDate ?? new DateTime(DateTime.Today.Year, 1, 1);
-                var endDate = toDate ?? DateTime.Today;
+                var startDate = fromDate ?? new DateTime(DateTimeHelper.PkToday.Year, 1, 1);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
 
                 var projects = await _projectRepository.GetActiveProjectsAsync();
                 var projectReports = new List<ProjectReportItem>();
@@ -1945,7 +1946,7 @@ namespace VoucherManagementSystem.Controllers
                 Directory.CreateDirectory(whatsAppFolder);
 
                 // 2. Create timestamped filename
-                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string timestamp = DateTimeHelper.PkNow.ToString("yyyyMMdd_HHmmss");
                 string safeFileName = $"{timestamp}_CustomerLedger_{customer.Name.Replace(" ", "_")}.pdf";
                 string filePath = Path.Combine(whatsAppFolder, safeFileName);
 
@@ -2027,7 +2028,7 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
-                var date = asOfDate ?? DateTime.Today.AddDays(1);
+                var date = asOfDate ?? DateTimeHelper.PkToday.AddDays(1);
 
                 var customers = await _customerRepository.GetActiveCustomersAsync();
                 var customerReports = new List<CustomerReportItem>();
@@ -2123,8 +2124,8 @@ namespace VoucherManagementSystem.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                var endDate = toDate ?? DateTime.Today;
-                var startDate = fromDate ?? DateTime.Today.AddMonths(-1);
+                var endDate = toDate ?? DateTimeHelper.PkToday;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddMonths(-1);
 
                 // Opening balance before startDate
                 var openingBalance = await GetCustomerOpeningBalanceAsync(customerId.Value, startDate);
@@ -2214,7 +2215,7 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
-                var date = asOfDate ?? DateTime.Today.AddDays(1);
+                var date = asOfDate ?? DateTimeHelper.PkToday.AddDays(1);
 
                 // 1. Stock Value - Calculate current stock with average purchase price
                 var items = await _itemRepository.GetActiveItemsAsync();

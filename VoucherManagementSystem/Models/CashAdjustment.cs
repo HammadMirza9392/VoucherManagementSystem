@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using VoucherManagementSystem.Helpers;
 
 namespace VoucherManagementSystem.Models
 {
@@ -9,7 +10,7 @@ namespace VoucherManagementSystem.Models
 
         [Required]
         [Display(Name = "Adjustment Date")]
-        public DateTime AdjustmentDate { get; set; } = DateTime.Now;
+        public DateTime AdjustmentDate { get; set; } = DateTimeHelper.PkNow;
 
         [Required]
         [Display(Name = "Adjustment Type")]
@@ -31,7 +32,7 @@ namespace VoucherManagementSystem.Models
         public string? CreatedBy { get; set; }
 
         [Display(Name = "Created Date")]
-        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime CreatedDate { get; set; } = DateTimeHelper.PkNow;
     }
 
     public enum CashAdjustmentType

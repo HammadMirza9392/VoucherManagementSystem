@@ -21,7 +21,7 @@ namespace VoucherManagementSystem.Models
 
         public bool IsActive { get; set; } = true;
 
-        public DateTime LastUpdated { get; set; } = DateTime.Now;
+        public DateTime LastUpdated { get; set; } = DateTimeHelper.PkNow;
 
         [MaxLength(100)]
         public string? UpdatedBy { get; set; }

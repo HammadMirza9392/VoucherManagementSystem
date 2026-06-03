@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using VoucherManagementSystem.Helpers;
 
 namespace VoucherManagementSystem.Models
 {
@@ -20,7 +21,7 @@ namespace VoucherManagementSystem.Models
 
         [Display(Name = "Voucher Date")]
         [DataType(DataType.Date)]
-        public DateTime VoucherDate { get; set; } = DateTime.Now;
+        public DateTime VoucherDate { get; set; } = DateTimeHelper.PkNow;
 
         // Foreign Keys
         [Display(Name = "Purchasing Customer")]
@@ -119,7 +120,7 @@ namespace VoucherManagementSystem.Models
         public TransactionStatus Status { get; set; } = TransactionStatus.Completed;
 
         [Display(Name = "Created Date")]
-        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime CreatedDate { get; set; } = DateTimeHelper.PkNow;
 
         [Display(Name = "Created By")]
         public string? CreatedBy { get; set; }

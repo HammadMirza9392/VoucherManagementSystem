@@ -58,7 +58,7 @@ namespace VoucherManagementSystem.Models
         [MaxLength(7)]
         public string FooterBackgroundColor { get; set; } = "#f8f9fa"; // Footer background
 
-        public DateTime LastUpdated { get; set; } = DateTime.Now;
+        public DateTime LastUpdated { get; set; } = DateTimeHelper.PkNow;
 
         [MaxLength(100)]
         public string? UpdatedBy { get; set; }

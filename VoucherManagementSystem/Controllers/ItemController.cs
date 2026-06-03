@@ -90,7 +90,7 @@ namespace VoucherManagementSystem.Controllers
 
                 if (ModelState.IsValid)
                 {
-                    item.CreatedDate = DateTime.Now;
+                    item.CreatedDate = DateTimeHelper.PkNow;
                     item.CreatedBy = HttpContext.Session.GetString("Username") ?? "admin";
                     await _itemRepository.AddAsync(item);
                     TempData["Success"] = "Item created successfully!";
@@ -156,7 +156,7 @@ namespace VoucherManagementSystem.Controllers
                 if (ModelState.IsValid)
                 {
                     item.UpdatedBy = HttpContext.Session.GetString("Username") ?? "admin";
-                    item.UpdatedDate = DateTime.Now;
+                    item.UpdatedDate = DateTimeHelper.PkNow;
                     _context.Update(item);
                     await _context.SaveChangesAsync();
                     TempData["Success"] = "Item updated successfully!";
