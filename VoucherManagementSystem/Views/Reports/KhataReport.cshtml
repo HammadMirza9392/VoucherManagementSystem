@@ -467,6 +467,14 @@ else
         </table>
 
         <!-- ===== SUMMARY BOX ===== -->
+        @{
+            // openingBalance from controller uses ledger DR/CR convention:
+            // negative = customer owes us (Purchase > CashPaid before period)
+            // Khata display flips the sign: positive = customer owes us
+            var displayOpening  = -openingBalance;                          // flip for Khata display
+            var totalKhata      = displayOpening + totalBillAmount;         // what customer owes total
+            var displayClosing  = totalKhata - totalPayment;                // final balance in Khata terms
+        }
         <div class="balance-box" style="margin-top:14px;">
             <div style="text-align:center; font-weight:bold; font-size:13px; border-bottom:1px solid #ccc; padding:8px 4px; margin-bottom:6px;">
                 ٹوٹل رقم ادائیگی : <strong>@totalPayment.ToString("N2")</strong>
@@ -474,15 +482,27 @@ else
             <table>
                 <tr>
                     <td class="bal-label" style="width:50%;">پرانا بیلنس :</td>
-                    <td class="bal-value" style="width:50%; direction:ltr; text-align:left;">@openingBalance.ToString("N2")</td>
+                    <td class="bal-value" style="width:50%; direction:ltr; text-align:left; color:@(displayOpening >= 0 ? "#c00" : "#060");">
+                        @(displayOpening >= 0 ? "+" : "")@displayOpening.ToString("N2")
+                    </td>
                 </tr>
                 <tr>
-                    <td class="bal-label" style="border-bottom:1px solid #bbb; padding-bottom:4px;">ٹوٹل بل :</td>
-                    <td class="bal-value" style="color:#c00; direction:ltr; text-align:left; border-bottom:1px solid #bbb; padding-bottom:4px;">-@totalBillAmount.ToString("N2")</td>
+                    <td class="bal-label" style="padding-bottom:4px;">ٹوٹل بل :</td>
+                    <td class="bal-value" style="color:#c00; direction:ltr; text-align:left; padding-bottom:4px;">
+                        +@totalBillAmount.ToString("N2")
+                    </td>
+                </tr>
+                <tr>
+                    <td class="bal-label" style="border-top:1px solid #bbb; border-bottom:1px solid #bbb; padding:4px 8px; background:#f0f0f0;">ٹوٹل کھاتا :</td>
+                    <td class="bal-value" style="direction:ltr; text-align:left; border-top:1px solid #bbb; border-bottom:1px solid #bbb; padding:4px 8px; background:#f0f0f0; color:@(totalKhata >= 0 ? "#c00" : "#060");">
+                        @(totalKhata >= 0 ? "+" : "")@totalKhata.ToString("N2")
+                    </td>
                 </tr>
                 <tr>
                     <td class="bal-label" style="border-bottom:2px solid #555; padding-bottom:4px; padding-top:10px;">ٹوٹل ادائیگی :</td>
-                    <td class="bal-value" style="color:#060; direction:ltr; text-align:left; border-bottom:2px solid #555; padding-bottom:4px; padding-top:10px;">+@totalPayment.ToString("N2")</td>
+                    <td class="bal-value" style="color:#060; direction:ltr; text-align:left; border-bottom:2px solid #555; padding-bottom:4px; padding-top:10px;">
+                        -@totalPayment.ToString("N2")
+                    </td>
                 </tr>
             </table>
         </div>
@@ -491,14 +511,18 @@ else
         <div class="net-balance-box">
             <span>موجودہ بیلنس :</span>
             <span style="direction:ltr; display:inline-flex; align-items:center; gap:6px;">
-                <strong>@Math.Abs(closingBalance).ToString("N2")</strong>
-                @if (closingBalance >= 0)
+                <strong style="color:@(displayClosing >= 0 ? "#c00" : "#060");">@Math.Abs(displayClosing).ToString("N2")</strong>
+                @if (displayClosing > 0)
+                {
+                    <span style="color:#c00; font-weight:bold;">واجب</span>
+                }
+                else if (displayClosing < 0)
                 {
                     <span style="color:#060; font-weight:bold;">جمع</span>
                 }
                 else
                 {
-                    <span style="color:#c00; font-weight:bold;">واجب</span>
+                    <span style="font-weight:bold;">صفر</span>
                 }
             </span>
         </div>
