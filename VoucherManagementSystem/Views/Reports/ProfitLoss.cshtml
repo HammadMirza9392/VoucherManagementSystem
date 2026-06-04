@@ -410,20 +410,29 @@
                     @{
                         decimal runningBalance = 0;
                         decimal totalQty = 0;
+                        decimal tableDebit = 0;
+                        decimal tableCredit = 0;
                         if (vouchers != null)
                         {
                             foreach (var voucher in vouchers.OrderBy(v => v.VoucherDate))
                             {
-                                bool isRevenue = voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ||
-                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.CashReceived;
-                                bool isExpense = voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ||
-                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense ||
-                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Hazri;
+                                bool isSale     = voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale;
+                                bool isPurchase = voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase;
+                                bool isExpense  = voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense;
 
-                                if (isRevenue)
+                                if (!isSale && !isPurchase && !isExpense) continue;
+
+                                if (isSale)
                                     runningBalance += voucher.Amount;
-                                else if (isExpense)
+                                else
                                     runningBalance -= voucher.Amount;
+
+                                if (isSale)
+                                    tableCredit += voucher.Amount;
+                                else
+                                {
+                                    tableDebit += voucher.Amount;
+                                }
 
                                 if (voucher.Quantity.HasValue)
                                     totalQty += voucher.Quantity.Value;
@@ -436,7 +445,7 @@
                                         </a>
                                     </td>
                                     <td class="align-middle">
-                                        <span class="badge bg-secondary" style="font-size: 11px;">@voucher.VoucherType</span>
+                                        <span class="badge bg-@(isSale ? "success" : isPurchase ? "warning text-dark" : "secondary")" style="font-size: 11px;">@voucher.VoucherType</span>
                                     </td>
                                     <td class="align-middle">
                                         @(voucher.PurchasingCustomer?.Name ?? voucher.ReceivingCustomer?.Name ?? "-")
@@ -452,8 +461,7 @@
                                         "Cash Transaction")
                                     </td>
                                     <td class="align-middle">
-                                        @if (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense
-                                            && !string.IsNullOrWhiteSpace(voucher.ExpenseHeadDetails))
+                                        @if (isExpense && !string.IsNullOrWhiteSpace(voucher.ExpenseHeadDetails))
                                         {
                                             <span>@voucher.ExpenseHeadDetails</span>
                                         }
@@ -465,8 +473,8 @@
                                     <td class="text-end align-middle fw-semibold">
                                         @(voucher.Quantity.HasValue ? voucher.Quantity.Value.ToString("N3") : "-")
                                     </td>
-                                    <td class="text-end align-middle @(isExpense ? "text-danger fw-semibold" : "")">
-                                        @if (isExpense)
+                                    <td class="text-end align-middle @(!isSale ? "text-danger fw-semibold" : "")">
+                                        @if (!isSale)
                                         {
                                             <span>@string.Format("{0:N0}", voucher.Amount)</span>
                                         }
@@ -475,8 +483,8 @@
                                             <span>-</span>
                                         }
                                     </td>
-                                    <td class="text-end align-middle @(isRevenue ? "text-success fw-semibold" : "")">
-                                        @if (isRevenue)
+                                    <td class="text-end align-middle @(isSale ? "text-success fw-semibold" : "")">
+                                        @if (isSale)
                                         {
                                             <span>@string.Format("{0:N0}", voucher.Amount)</span>
                                         }
@@ -502,9 +510,9 @@
                         <th></th>
                         <th></th>
                         <th class="text-end fw-bold py-3">@totalQty.ToString("N3")</th>
-                        <th class="text-end text-danger fw-bold py-3">Rs. @string.Format("{0:N0}", expenses)</th>
-                        <th class="text-end text-success fw-bold py-3">Rs. @string.Format("{0:N0}", revenue)</th>
-                        <th class="text-end fw-bold py-3 @(profitLoss >= 0 ? "text-success" : "text-danger")">Rs. @string.Format("{0:N0}", Math.Abs(profitLoss))</th>
+                        <th class="text-end text-danger fw-bold py-3">Rs. @string.Format("{0:N0}", tableDebit)</th>
+                        <th class="text-end text-success fw-bold py-3">Rs. @string.Format("{0:N0}", tableCredit)</th>
+                        <th class="text-end fw-bold py-3 @(runningBalance >= 0 ? "text-success" : "text-danger")">Rs. @string.Format("{0:N0}", Math.Abs(runningBalance))</th>
                     </tr>
                 </tfoot>
             </table>

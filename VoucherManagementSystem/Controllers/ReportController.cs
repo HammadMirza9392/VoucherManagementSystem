@@ -945,23 +945,25 @@ namespace VoucherManagementSystem.Controllers
         }
 
         // Helper method to get opening stock
-        private async Task<decimal> GetOpeningStockAsync(int itemId, DateTime date)
+        private async Task<decimal> GetOpeningStockAsync(int itemId, DateTime date, int? projectId = null)
         {
-            var previousVouchers = await _context.Vouchers
-                .Where(v => v.ItemId == itemId && v.VoucherDate < date)
-                .ToListAsync();
+            var query = _context.Vouchers
+                .Where(v => v.ItemId == itemId &&
+                            v.VoucherDate < date &&
+                            (v.VoucherType == VoucherType.Purchase || v.VoucherType == VoucherType.Sale));
+
+            if (projectId.HasValue)
+                query = query.Where(v => v.ProjectId == projectId.Value);
+
+            var previousVouchers = await query.ToListAsync();
 
             decimal stock = 0;
             foreach (var voucher in previousVouchers)
             {
-                if (voucher.VoucherType == VoucherType.Purchase && voucher.StockInclude)
-                {
+                if (voucher.VoucherType == VoucherType.Purchase)
                     stock += voucher.Quantity ?? 0;
-                }
                 else if (voucher.VoucherType == VoucherType.Sale)
-                {
                     stock -= voucher.Quantity ?? 0;
-                }
             }
             return stock;
         }
@@ -1425,13 +1427,14 @@ namespace VoucherManagementSystem.Controllers
                 var purchaseAmount = purchases.Sum(p => p.Amount);
                 var saleAmount = sales.Sum(s => s.Amount);
 
-                // Opening stock qty = purchases qty - sales qty before fromDate
-                var openingStockQty = await GetOpeningStockAsync(item.Id, fromDate);
+                // Opening stock qty = purchases qty - sales qty before fromDate (scoped to this project)
+                var openingStockQty = await GetOpeningStockAsync(item.Id, fromDate, projectId);
 
-                // Opening stock amount = remaining qty × avg purchase rate of all prior purchases
+                // Opening stock amount = remaining qty × avg purchase rate of prior purchases in this project
                 // (we value stock at cost, not at selling price)
                 var openingPurchases = await _context.Vouchers
                     .Where(v => v.ItemId == item.Id &&
+                                v.ProjectId == projectId &&
                                 v.VoucherType == VoucherType.Purchase &&
                                 v.VoucherDate < fromDate)
                     .ToListAsync();
