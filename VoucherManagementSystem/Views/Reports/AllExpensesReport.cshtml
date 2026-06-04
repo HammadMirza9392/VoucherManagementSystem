@@ -166,11 +166,13 @@
                 </thead>
                 <tbody>
                     @{
-                        if (openingBalance > 0)
+                        if (openingBalance != 0)
                         {
                             <tr class="table-info fw-bold">
                                 <td colspan="8">Opening Balance (before @fromDate.ToString("dd-MMM-yyyy"))</td>
-                                <td class="text-end">Rs. @string.Format("{0:N0}", openingBalance)</td>
+                                <td class="text-end @(openingBalance < 0 ? "text-success" : "text-danger")">
+                                    @(openingBalance < 0 ? "(-) " : "")Rs. @string.Format("{0:N0}", Math.Abs(openingBalance))
+                                </td>
                             </tr>
                         }
                     }
@@ -221,6 +223,15 @@
                 @if (expenses != null && expenses.Any())
                 {
                     <tfoot class="table-dark">
+                        @if (openingBalance != 0)
+                        {
+                            <tr class="table-info">
+                                <th colspan="8" class="text-end">Opening Balance:</th>
+                                <th class="text-end @(openingBalance < 0 ? "text-success" : "")">
+                                    @(openingBalance < 0 ? "(-) " : "")Rs. @string.Format("{0:N0}", Math.Abs(openingBalance))
+                                </th>
+                            </tr>
+                        }
                         <tr>
                             <th colspan="8" class="text-end">Total Expenses:</th>
                             <th class="text-end">Rs. @string.Format("{0:N0}", totalExpenses)</th>

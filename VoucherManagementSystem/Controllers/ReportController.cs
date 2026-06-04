@@ -1621,10 +1621,11 @@ namespace VoucherManagementSystem.Controllers
                 var hazriRows    = rows.Where(r => r.Source == "Hazri").ToList();
                 var purchaseRows = rows.Where(r => r.Source == "Purchase").ToList();
 
-                // Opening balance: Expense + Purchase-expense vouchers before startDate
+                // Opening balance: net of Expense − Hazri − Purchase before startDate
                 var openingBalanceQuery = _context.Vouchers
                     .Where(v => v.VoucherDate < startDate &&
                                ((v.VoucherType == VoucherType.Expense) ||
+                                (v.VoucherType == VoucherType.Hazri) ||
                                 (v.VoucherType == VoucherType.Purchase && v.ExpenseHeadId != null)));
                 if (expenseHeadId.HasValue)
                     openingBalanceQuery = openingBalanceQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
@@ -1634,8 +1635,10 @@ namespace VoucherManagementSystem.Controllers
                 var openingVouchers = await openingBalanceQuery.ToListAsync();
                 var openingBalance = openingVouchers.Sum(v =>
                     v.VoucherType == VoucherType.Purchase
-                        ? (v.ExpenseHeadRate ?? 0) * (v.Quantity ?? 0)
-                        : v.Amount);
+                        ? -((v.ExpenseHeadRate ?? 0) * (v.Quantity ?? 0))
+                        : v.VoucherType == VoucherType.Hazri
+                            ? -v.Amount
+                            : v.Amount);
 
                 // Summary by expense head — net per head: Expense − Hazri − Purchase
                 var expenseSummary = rows
@@ -1664,7 +1667,7 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.TotalHazri            = totalHazri;
                 ViewBag.TotalPurchaseDeductions = totalPurchaseDeductions;
                 ViewBag.OpeningBalance        = openingBalance;
-                ViewBag.NetTotal              = totalExpenses - totalHazri - totalPurchaseDeductions;
+                ViewBag.NetTotal              = openingBalance + totalExpenses - totalHazri - totalPurchaseDeductions;
 
                 return View();
             }
