@@ -182,7 +182,6 @@ namespace VoucherManagementSystem.Controllers
                 ("Dashboard", "/Home/Index"),
                 ("Reports", "/Reports/Index"),
                 ("Customer Ledger", "/Reports/CustomerLedger"),
-                ("Capital Report", "/Reports/CapitalReport"),
                 ("Stock Report", "/Reports/StockReport"),
                 ("Profit Loss", "/Reports/ProjectReport"),
                 ("Cash Flow", "/Reports/CashFlow"),
