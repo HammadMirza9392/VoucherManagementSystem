@@ -287,7 +287,12 @@
                                     <tr id="bankPaidDetailsRow">
                                         <td style="padding: 2px;">
                                             <label asp-for="BankCustomerPaidDetails" class="form-label mb-1" style="font-size: 0.85rem;">Bank Paid Details</label>
-                                            <input asp-for="BankCustomerPaidDetails" class="form-control form-control-sm" />
+                                            <div class="input-group input-group-sm">
+                                                <input asp-for="BankCustomerPaidDetails" class="form-control form-control-sm" id="bankCustomerPaidDetails" />
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyBankPaidDetails" title="Copy Details">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </table>
@@ -320,7 +325,12 @@
                                     <tr id="bankReceiverDetailsRow">
                                         <td style="padding: 2px;">
                                             <label asp-for="BankCustomerReceiverDetails" class="form-label mb-1" style="font-size: 0.85rem;">Bank Receiver Details</label>
-                                            <input asp-for="BankCustomerReceiverDetails" class="form-control form-control-sm" />
+                                            <div class="input-group input-group-sm">
+                                                <input asp-for="BankCustomerReceiverDetails" class="form-control form-control-sm" id="bankCustomerReceiverDetails" />
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyBankReceiverDetails" title="Copy Details">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </table>
@@ -1099,6 +1109,12 @@
             });
             $('#copyExpenseHeadDetails').on('click', function() {
                 copyDetailsField('expenseHeadDetails', 'copyExpenseHeadDetails');
+            });
+            $('#copyBankPaidDetails').on('click', function() {
+                copyDetailsField('bankCustomerPaidDetails', 'copyBankPaidDetails');
+            });
+            $('#copyBankReceiverDetails').on('click', function() {
+                copyDetailsField('bankCustomerReceiverDetails', 'copyBankReceiverDetails');
             });
 
             // View Purchasing Customer Ledger
