@@ -346,7 +346,12 @@
                                     <tr>
                                         <td style="padding: 2px;">
                                             <label asp-for="PurchasingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Details</label>
-                                            <input asp-for="PurchasingCustomerDetails" class="form-control form-control-sm" id="purchasingCustomerDetails" />
+                                            <div class="input-group input-group-sm">
+                                                <input asp-for="PurchasingCustomerDetails" class="form-control form-control-sm" id="purchasingCustomerDetails" />
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPurchasingCustomerDetails" title="Copy Details">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </table>
@@ -372,7 +377,12 @@
                                     <tr>
                                         <td style="padding: 2px;">
                                             <label asp-for="ReceivingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Details</label>
-                                            <input asp-for="ReceivingCustomerDetails" class="form-control form-control-sm" id="receivingCustomerDetails" />
+                                            <div class="input-group input-group-sm">
+                                                <input asp-for="ReceivingCustomerDetails" class="form-control form-control-sm" id="receivingCustomerDetails" />
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyReceivingCustomerDetails" title="Copy Details">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </table>
@@ -405,7 +415,12 @@
                                     <tr>
                                         <td style="padding: 2px;">
                                             <label asp-for="AdvancedPurchasingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Advanced Details</label>
-                                            <input asp-for="AdvancedPurchasingCustomerDetails" class="form-control form-control-sm" id="advancedPurchasingCustomerDetails" />
+                                            <div class="input-group input-group-sm">
+                                                <input asp-for="AdvancedPurchasingCustomerDetails" class="form-control form-control-sm" id="advancedPurchasingCustomerDetails" />
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyAdvancedPurchasingCustomerDetails" title="Copy Details">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </table>
@@ -438,7 +453,12 @@
                                     <tr>
                                         <td style="padding: 2px;">
                                             <label asp-for="AdvancedReceivingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Advanced Details</label>
-                                            <input asp-for="AdvancedReceivingCustomerDetails" class="form-control form-control-sm" id="advancedReceivingCustomerDetails" />
+                                            <div class="input-group input-group-sm">
+                                                <input asp-for="AdvancedReceivingCustomerDetails" class="form-control form-control-sm" id="advancedReceivingCustomerDetails" />
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyAdvancedReceivingCustomerDetails" title="Copy Details">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </table>
@@ -506,7 +526,12 @@
                                     <tr>
                                         <td style="padding: 2px;">
                                             <label asp-for="ExpenseHeadDetails" class="form-label mb-1" style="font-size: 0.85rem;">Expense Details</label>
-                                            <input asp-for="ExpenseHeadDetails" class="form-control form-control-sm" />
+                                            <div class="input-group input-group-sm">
+                                                <input asp-for="ExpenseHeadDetails" class="form-control form-control-sm" id="expenseHeadDetails" />
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyExpenseHeadDetails" title="Copy Details">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </table>
@@ -1045,6 +1070,35 @@
                         }, 1000);
                     });
                 }
+            });
+
+            // Copy details field text — shared helper
+            function copyDetailsField(inputId, btnId) {
+                var text = $('#' + inputId).val();
+                if (text) {
+                    navigator.clipboard.writeText(text).then(function() {
+                        var btn = $('#' + btnId);
+                        var orig = btn.html();
+                        btn.html('<i class="bi bi-check"></i>');
+                        setTimeout(function() { btn.html(orig); }, 1000);
+                    });
+                }
+            }
+
+            $('#copyPurchasingCustomerDetails').on('click', function() {
+                copyDetailsField('purchasingCustomerDetails', 'copyPurchasingCustomerDetails');
+            });
+            $('#copyReceivingCustomerDetails').on('click', function() {
+                copyDetailsField('receivingCustomerDetails', 'copyReceivingCustomerDetails');
+            });
+            $('#copyAdvancedPurchasingCustomerDetails').on('click', function() {
+                copyDetailsField('advancedPurchasingCustomerDetails', 'copyAdvancedPurchasingCustomerDetails');
+            });
+            $('#copyAdvancedReceivingCustomerDetails').on('click', function() {
+                copyDetailsField('advancedReceivingCustomerDetails', 'copyAdvancedReceivingCustomerDetails');
+            });
+            $('#copyExpenseHeadDetails').on('click', function() {
+                copyDetailsField('expenseHeadDetails', 'copyExpenseHeadDetails');
             });
 
             // View Purchasing Customer Ledger
