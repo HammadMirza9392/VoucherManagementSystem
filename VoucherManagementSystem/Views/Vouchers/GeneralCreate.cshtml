@@ -1122,17 +1122,17 @@
                 copyDetailsField('bankCustomerReceiverDetails', 'copyBankReceiverDetails');
             });
 
-            // View Purchasing Customer Ledger
+            // View Purchasing Customer Ledger → KhataReport
             $('#viewPurchasingCustomerLedger').on('click', function() {
                 var customerId = $('#purchasingCustomer').val();
                 if (customerId) {
-                    openCustomerLedger(customerId);
+                    openKhataReport(customerId);
                 } else {
                     alert('Please select a customer first.');
                 }
             });
 
-            // View Receiving Customer Ledger
+            // View Receiving Customer Ledger → CustomerLedger
             $('#viewReceivingCustomerLedger').on('click', function() {
                 var customerId = $('#receivingCustomer').val();
                 if (customerId) {
@@ -1192,14 +1192,14 @@
                 }
             });
 
-            // View Advanced Purchasing Ledger
+            // View Advanced Purchasing Ledger → KhataReport
             $('#viewAdvPurchasingLedger').on('click', function() {
                 var customerId = $('#advancedPurchasingCustomer').val();
-                if (customerId) { openCustomerLedger(customerId); }
+                if (customerId) { openKhataReport(customerId); }
                 else { alert('Please select a customer first.'); }
             });
 
-            // View Advanced Receiving Ledger
+            // View Advanced Receiving Ledger → CustomerLedger
             $('#viewAdvReceivingLedger').on('click', function() {
                 var customerId = $('#advancedReceivingCustomer').val();
                 if (customerId) { openCustomerLedger(customerId); }
@@ -1321,23 +1321,21 @@
             $('#hiddenAdvancedPurchasingCustomerId, #hiddenAdvancedReceivingCustomerId').val('');
         }
 
+        function openKhataReport(customerId) {
+            var url = '@Url.Action("KhataReport", "Reports")' + '?customerId=' + customerId;
+            window.open(url, '_blank');
+        }
+
         function openCustomerLedger(customerId) {
-            // Get current date
             var today = new Date();
             var toDate = today.toISOString().split('T')[0];
-
-            // Get date from 1 month ago
             var fromDate = new Date();
             fromDate.setMonth(fromDate.getMonth() - 1);
             var fromDateStr = fromDate.toISOString().split('T')[0];
-
-            // Build URL with parameters
             var url = '@Url.Action("CustomerLedger", "Reports")' +
                       '?customerId=' + customerId +
                       '&fromDate=' + fromDateStr +
                       '&toDate=' + toDate;
-
-            // Open in new tab
             window.open(url, '_blank');
         }
 
