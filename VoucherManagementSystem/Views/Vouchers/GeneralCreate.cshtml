@@ -524,7 +524,12 @@
                                     <tr>
                                         <td style="padding: 2px;">
                                             <label asp-for="ExpenseHeadId" class="form-label mb-1" style="font-size: 0.85rem;">Expense Head</label>
-                                            @Html.DropDownListFor(m => m.ExpenseHeadId, ViewBag.ExpenseHeads as SelectList, "Select Expense Head", new { @class = "form-select form-select-sm", id = "expenseHead" })
+                                            <div class="input-group input-group-sm">
+                                                @Html.DropDownListFor(m => m.ExpenseHeadId, ViewBag.ExpenseHeads as SelectList, "Select Expense Head", new { @class = "form-select form-select-sm", id = "expenseHead" })
+                                                <button type="button" class="btn btn-outline-primary btn-sm" id="viewExpenseHeadReport" title="View Expense Report">
+                                                    <i class="bi bi-file-text"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr id="expenseRateRow">
@@ -1199,6 +1204,16 @@
                 var customerId = $('#advancedReceivingCustomer').val();
                 if (customerId) { openCustomerLedger(customerId); }
                 else { alert('Please select a customer first.'); }
+            });
+
+            // View Expense Head Report
+            $('#viewExpenseHeadReport').on('click', function() {
+                var expenseHeadId = $('#expenseHead').val();
+                var url = '@Url.Action("AllExpensesReport", "Reports")';
+                if (expenseHeadId) {
+                    url += '?expenseHeadId=' + expenseHeadId;
+                }
+                window.open(url, '_blank');
             });
 
             // Copy Bank Paid name
