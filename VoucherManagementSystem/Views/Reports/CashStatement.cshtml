@@ -127,6 +127,7 @@
                     <tr>
                         <th class="fw-bold" style="font-size: 14px;">Date</th>
                         <th class="fw-bold" style="font-size: 14px;">Transaction No</th>
+                        <th class="fw-bold" style="font-size: 14px;">Project</th>
                         <th class="fw-bold" style="font-size: 14px;">Type</th>
                         <th class="fw-bold" style="font-size: 14px;">Customer/Party</th>
                         <th class="fw-bold" style="font-size: 14px;">Description</th>
@@ -142,7 +143,7 @@
                         decimal totalPayments = 0;
 
                         // Combine vouchers and adjustments into one list for proper sorting
-                        var allTransactions = new List<(DateTime Date, int Id, string TransNo, string Type, string Customer, string Desc, decimal Receipt, decimal Payment, bool IsVoucher)>();
+                        var allTransactions = new List<(DateTime Date, int Id, string TransNo, string ProjectName, string Type, string Customer, string Desc, decimal Receipt, decimal Payment, bool IsVoucher)>();
 
                         // Add vouchers
                         if (vouchers != null)
@@ -153,6 +154,7 @@
                                 decimal payment = 0;
                                 string customerName = "";
                                 string description = "";
+                                string projectName = v.Project?.Name ?? "";
 
                                 switch (v.VoucherType)
                                 {
@@ -188,7 +190,7 @@
                                         break;
                                 }
 
-                                allTransactions.Add((v.VoucherDate, v.Id, v.TransactionNumber, v.VoucherType.ToString(), customerName, description, receipt, payment, true));
+                                allTransactions.Add((v.VoucherDate, v.Id, v.TransactionNumber, projectName, v.VoucherType.ToString(), customerName, description, receipt, payment, true));
                             }
                         }
 
@@ -202,6 +204,7 @@
                                     adj.AdjustmentDate,
                                     adj.Id,
                                     adj.ReferenceNumber ?? "ADJ",
+                                    "",
                                     isCashIn ? "Cash In" : "Cash Out",
                                     "Admin",
                                     adj.Description ?? (isCashIn ? "Cash Added by Admin" : "Cash Removed by Admin"),
@@ -219,6 +222,7 @@
                     <!-- Opening Balance Row -->
                     <tr class="table-warning">
                         <td class="fw-semibold">@fromDate.ToString("dd-MMM-yy")</td>
+                        <td>-</td>
                         <td>-</td>
                         <td><span class="badge bg-secondary" style="font-size: 11px;">Opening</span></td>
                         <td>-</td>
@@ -244,6 +248,16 @@
                                 else
                                 {
                                     @trans.TransNo
+                                }
+                            </td>
+                            <td class="align-middle">
+                                @if (!string.IsNullOrEmpty(trans.ProjectName))
+                                {
+                                    <span class="badge bg-info text-dark" style="font-size: 11px;">@trans.ProjectName</span>
+                                }
+                                else
+                                {
+                                    <text>-</text>
                                 }
                             </td>
                             <td class="align-middle"><span class="badge bg-@(trans.Receipt > 0 ? "success" : "danger")" style="font-size: 11px;">@trans.Type</span></td>
@@ -276,7 +290,7 @@
                     @if (!allTransactions.Any())
                     {
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4 fst-italic">
+                            <td colspan="9" class="text-center text-muted py-4 fst-italic">
                                 <i class="bi bi-info-circle"></i> No cash transactions found for the selected period.
                             </td>
                         </tr>
@@ -284,13 +298,13 @@
                 </tbody>
                 <tfoot class="table-success">
                     <tr style="font-size: 15px;">
-                        <th colspan="5" class="fw-bold py-3 text-end">PERIOD TOTAL:</th>
+                        <th colspan="6" class="fw-bold py-3 text-end">PERIOD TOTAL:</th>
                         <th class="text-end text-success fw-bold py-3">Rs. @string.Format("{0:N0}", totalReceipts)</th>
                         <th class="text-end text-danger fw-bold py-3">Rs. @string.Format("{0:N0}", totalPayments)</th>
                         <th class="text-end"></th>
                     </tr>
                     <tr style="font-size: 15px;">
-                        <th colspan="5" class="fw-bold py-3 text-end">CLOSING BALANCE (as of @toDate.ToString("dd-MMM-yyyy")):</th>
+                        <th colspan="6" class="fw-bold py-3 text-end">CLOSING BALANCE (as of @toDate.ToString("dd-MMM-yyyy")):</th>
                         <th colspan="2" class="text-end"></th>
                         <th class="text-end fw-bold py-3 text-success">Rs. @string.Format("{0:N0}", openingBalance + totalReceipts - totalPayments)</th>
                     </tr>
