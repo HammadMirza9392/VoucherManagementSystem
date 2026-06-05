@@ -60,6 +60,9 @@
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-lock"></i></span>
                     <input type="password" class="form-control" id="password" name="password" autocomplete="current-password" required>
+                    <button type="button" class="btn btn-outline-secondary" id="togglePassword" tabindex="-1">
+                        <i class="bi bi-eye"></i>
+                    </button>
                 </div>
             </div>
             <div id="errorMessage" class="alert alert-danger d-none"></div>
@@ -73,6 +76,20 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
+            $('#togglePassword').on('click', function(e) {
+                e.preventDefault();
+                const passwordInput = $('#password');
+                const icon = $(this).find('i');
+
+                if (passwordInput.attr('type') === 'password') {
+                    passwordInput.attr('type', 'text');
+                    icon.removeClass('bi-eye').addClass('bi-eye-slash');
+                } else {
+                    passwordInput.attr('type', 'password');
+                    icon.removeClass('bi-eye-slash').addClass('bi-eye');
+                }
+            });
+
             $('#loginForm').on('submit', function(e) {
                 e.preventDefault();
 
