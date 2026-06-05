@@ -1431,20 +1431,48 @@ namespace VoucherManagementSystem.Controllers
                 // Opening stock qty = purchases qty - sales qty before fromDate (scoped to this project)
                 var openingStockQty = await GetOpeningStockAsync(item.Id, fromDate, projectId);
 
-                // Opening stock amount = remaining qty × avg purchase rate of prior purchases in this project
-                // (we value stock at cost, not at selling price)
+                // Opening stock amount = net cost of stock before fromDate
+                // Get all purchase and sale vouchers before fromDate
                 var openingPurchases = await _context.Vouchers
                     .Where(v => v.ItemId == item.Id &&
                                 v.ProjectId == projectId &&
                                 v.VoucherType == VoucherType.Purchase &&
                                 v.VoucherDate < fromDate)
                     .ToListAsync();
+                var openingSales = await _context.Vouchers
+                    .Where(v => v.ItemId == item.Id &&
+                                v.ProjectId == projectId &&
+                                v.VoucherType == VoucherType.Sale &&
+                                v.VoucherDate < fromDate)
+                    .ToListAsync();
+
                 var openingTotalPurchaseQty = openingPurchases.Sum(p => p.Quantity ?? 0);
                 var openingTotalPurchaseAmt = openingPurchases.Sum(p => p.Amount);
-                var openingAvgRate = openingTotalPurchaseQty > 0
-                    ? openingTotalPurchaseAmt / openingTotalPurchaseQty
-                    : 0;
-                var openingStockAmount = openingStockQty * openingAvgRate;
+                var openingTotalSaleQty = openingSales.Sum(s => s.Quantity ?? 0);
+                var openingTotalSaleAmt = openingSales.Sum(s => s.Amount);
+
+                // Calculate opening stock amount based on weighted average cost method
+                decimal openingStockAmount = 0;
+                if (openingStockQty != 0)
+                {
+                    if (openingStockQty > 0)
+                    {
+                        // Positive stock: value at weighted average purchase cost
+                        var avgPurchaseRate = openingTotalPurchaseQty > 0
+                            ? openingTotalPurchaseAmt / openingTotalPurchaseQty
+                            : 0;
+                        openingStockAmount = openingStockQty * avgPurchaseRate;
+                    }
+                    else
+                    {
+                        // Negative stock (oversold): value at weighted average sale price (reversed)
+                        // This represents the liability or commitment to supply stock
+                        var avgSaleRate = openingTotalSaleQty > 0
+                            ? openingTotalSaleAmt / openingTotalSaleQty
+                            : 0;
+                        openingStockAmount = openingStockQty * avgSaleRate;
+                    }
+                }
 
                 summary.Add(new ProjectItemSummary
                 {
