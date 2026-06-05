@@ -194,8 +194,13 @@ else
 
     <!-- Ledger Transactions -->
     <div class="card shadow-sm">
-        <div class="card-header bg-dark text-white">
+        <div class="card-header bg-dark text-white d-flex align-items-center justify-content-between">
             <h5 class="mb-0"><i class="bi bi-list-ul"></i> Transaction Details</h5>
+            <div class="input-group input-group-sm d-print-none" style="max-width:260px;">
+                <span class="input-group-text bg-secondary border-0 text-white"><i class="bi bi-search"></i></span>
+                <input type="text" id="ledgerSearch" class="form-control border-0" placeholder="Search all columns..." />
+                <button class="btn btn-secondary btn-sm" id="ledgerSearchClear" title="Clear"><i class="bi bi-x"></i></button>
+            </div>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -206,6 +211,7 @@ else
                             <th class="fw-bold" style="font-size: 14px;">Transaction No.</th>
                             <th class="fw-bold" style="font-size: 14px;">Type</th>
                             <th class="fw-bold" style="font-size: 14px;">Items</th>
+                            <th class="fw-bold" style="font-size: 14px;">Gari No</th>
                             <th class="fw-bold" style="font-size: 14px;">Description</th>
                             <th class="text-end fw-bold" style="font-size: 14px;">Weight</th>
                             <th class="text-end fw-bold" style="font-size: 14px;">Kat</th>
@@ -220,7 +226,7 @@ else
                         <!-- Opening Balance Row -->
                         <tr class="table-warning">
                             <td class="fw-semibold">@fromDate.ToString("dd-MMM-yyyy")</td>
-                            <td colspan="8" class="fw-bold fs-6">Opening Balance</td>
+                            <td colspan="9" class="fw-bold fs-6">Opening Balance</td>
                             <td class="text-end fw-semibold">@(openingBalance > 0 ? string.Format("{0:N0}", openingBalance) : "-")</td>
                             <td class="text-end fw-semibold">@(openingBalance < 0 ? string.Format("{0:N0}", Math.Abs(openingBalance)) : "-")</td>
                             <td class="text-end fw-bold">
@@ -311,6 +317,7 @@ else
                                         </span>
                                     </td>
                                     <td class="align-middle">@Html.Raw(itemName)</td>
+                                    <td class="align-middle">@(voucher.GariNo ?? "-")</td>
                                     <td class="align-middle">@description</td>
                                     <td class="text-end align-middle">@(voucher.Weight.HasValue ? string.Format("{0:N3}", voucher.Weight.Value) : "-")</td>
                                     <td class="text-end align-middle">@(voucher.Kat.HasValue ? string.Format("{0:N3}", voucher.Kat.Value) : "-")</td>
@@ -327,7 +334,7 @@ else
                         else
                         {
                             <tr>
-                                <td colspan="12" class="text-center text-muted py-4 fst-italic">
+                                <td colspan="13" class="text-center text-muted py-4 fst-italic">
                                     <i class="bi bi-info-circle"></i> No transactions found for the selected filters.
                                 </td>
                             </tr>
@@ -335,7 +342,7 @@ else
                     </tbody>
                     <tfoot class="table-success">
                         <tr style="font-size: 15px;">
-                            <th colspan="9" class="text-end fw-bold py-3">TOTAL:</th>
+                            <th colspan="10" class="text-end fw-bold py-3">TOTAL:</th>
                             <th class="text-end text-success fw-bold py-3">Rs. @string.Format("{0:N0}", totalDebit)</th>
                             <th class="text-end text-danger fw-bold py-3">Rs. @string.Format("{0:N0}", totalCredit)</th>
                             <th class="text-end fw-bold py-3 @(closingBalance >= 0 ? "text-success" : "text-danger")">
@@ -395,8 +402,23 @@ else
 
     <script>
         $(document).ready(function() {
-            // DataTables disabled for ledger table due to complex structure with opening balance row
-            // The table works fine without DataTables features
+            var $rows = $('#ledgerTable tbody tr:not(.table-warning)');
+
+            $('#ledgerSearch').on('input', function() {
+                var term = $(this).val().toLowerCase().trim();
+                if (!term) {
+                    $rows.show();
+                    return;
+                }
+                $rows.each(function() {
+                    var rowText = $(this).text().toLowerCase();
+                    $(this).toggle(rowText.indexOf(term) !== -1);
+                });
+            });
+
+            $('#ledgerSearchClear').on('click', function() {
+                $('#ledgerSearch').val('').trigger('input').focus();
+            });
         });
 
         function generatePDF() {
