@@ -289,8 +289,8 @@
                                             <label asp-for="BankCustomerPaidDetails" class="form-label mb-1" style="font-size: 0.85rem;">Bank Paid Details</label>
                                             <div class="input-group input-group-sm">
                                                 <input asp-for="BankCustomerPaidDetails" class="form-control form-control-sm" id="bankCustomerPaidDetails" />
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyBankPaidDetails" title="Copy Details">
-                                                    <i class="bi bi-clipboard"></i>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyBankPaidDetails" title="Paste from Clipboard">
+                                                    <i class="bi bi-clipboard-check"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -327,8 +327,8 @@
                                             <label asp-for="BankCustomerReceiverDetails" class="form-label mb-1" style="font-size: 0.85rem;">Bank Receiver Details</label>
                                             <div class="input-group input-group-sm">
                                                 <input asp-for="BankCustomerReceiverDetails" class="form-control form-control-sm" id="bankCustomerReceiverDetails" />
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyBankReceiverDetails" title="Copy Details">
-                                                    <i class="bi bi-clipboard"></i>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyBankReceiverDetails" title="Paste from Clipboard">
+                                                    <i class="bi bi-clipboard-check"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -358,8 +358,8 @@
                                             <label asp-for="PurchasingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Details</label>
                                             <div class="input-group input-group-sm">
                                                 <input asp-for="PurchasingCustomerDetails" class="form-control form-control-sm" id="purchasingCustomerDetails" />
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPurchasingCustomerDetails" title="Copy Details">
-                                                    <i class="bi bi-clipboard"></i>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPurchasingCustomerDetails" title="Paste from Clipboard">
+                                                    <i class="bi bi-clipboard-check"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -389,8 +389,8 @@
                                             <label asp-for="ReceivingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Details</label>
                                             <div class="input-group input-group-sm">
                                                 <input asp-for="ReceivingCustomerDetails" class="form-control form-control-sm" id="receivingCustomerDetails" />
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyReceivingCustomerDetails" title="Copy Details">
-                                                    <i class="bi bi-clipboard"></i>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyReceivingCustomerDetails" title="Paste from Clipboard">
+                                                    <i class="bi bi-clipboard-check"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -427,8 +427,8 @@
                                             <label asp-for="AdvancedPurchasingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Advanced Details</label>
                                             <div class="input-group input-group-sm">
                                                 <input asp-for="AdvancedPurchasingCustomerDetails" class="form-control form-control-sm" id="advancedPurchasingCustomerDetails" />
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyAdvancedPurchasingCustomerDetails" title="Copy Details">
-                                                    <i class="bi bi-clipboard"></i>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyAdvancedPurchasingCustomerDetails" title="Paste from Clipboard">
+                                                    <i class="bi bi-clipboard-check"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -465,8 +465,8 @@
                                             <label asp-for="AdvancedReceivingCustomerDetails" class="form-label mb-1" style="font-size: 0.85rem;">Customer Advanced Details</label>
                                             <div class="input-group input-group-sm">
                                                 <input asp-for="AdvancedReceivingCustomerDetails" class="form-control form-control-sm" id="advancedReceivingCustomerDetails" />
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyAdvancedReceivingCustomerDetails" title="Copy Details">
-                                                    <i class="bi bi-clipboard"></i>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyAdvancedReceivingCustomerDetails" title="Paste from Clipboard">
+                                                    <i class="bi bi-clipboard-check"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -543,8 +543,8 @@
                                             <label asp-for="ExpenseHeadDetails" class="form-label mb-1" style="font-size: 0.85rem;">Expense Details</label>
                                             <div class="input-group input-group-sm">
                                                 <input asp-for="ExpenseHeadDetails" class="form-control form-control-sm" id="expenseHeadDetails" />
-                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyExpenseHeadDetails" title="Copy Details">
-                                                    <i class="bi bi-clipboard"></i>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyExpenseHeadDetails" title="Paste from Clipboard">
+                                                    <i class="bi bi-clipboard-check"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -1087,39 +1087,39 @@
                 }
             });
 
-            // Copy details field text — shared helper
-            function copyDetailsField(inputId, btnId) {
-                var text = $('#' + inputId).val();
-                if (text) {
-                    navigator.clipboard.writeText(text).then(function() {
-                        var btn = $('#' + btnId);
-                        var orig = btn.html();
-                        btn.html('<i class="bi bi-check"></i>');
-                        setTimeout(function() { btn.html(orig); }, 1000);
-                    });
-                }
+            // Paste clipboard text into a details field — shared helper
+            function pasteDetailsField(inputId, btnId) {
+                navigator.clipboard.readText().then(function(text) {
+                    $('#' + inputId).val(text);
+                    var btn = $('#' + btnId);
+                    var orig = btn.html();
+                    btn.html('<i class="bi bi-check"></i>');
+                    setTimeout(function() { btn.html(orig); }, 1000);
+                }).catch(function() {
+                    alert('Could not read clipboard. Please allow clipboard access.');
+                });
             }
 
             $('#copyPurchasingCustomerDetails').on('click', function() {
-                copyDetailsField('purchasingCustomerDetails', 'copyPurchasingCustomerDetails');
+                pasteDetailsField('purchasingCustomerDetails', 'copyPurchasingCustomerDetails');
             });
             $('#copyReceivingCustomerDetails').on('click', function() {
-                copyDetailsField('receivingCustomerDetails', 'copyReceivingCustomerDetails');
+                pasteDetailsField('receivingCustomerDetails', 'copyReceivingCustomerDetails');
             });
             $('#copyAdvancedPurchasingCustomerDetails').on('click', function() {
-                copyDetailsField('advancedPurchasingCustomerDetails', 'copyAdvancedPurchasingCustomerDetails');
+                pasteDetailsField('advancedPurchasingCustomerDetails', 'copyAdvancedPurchasingCustomerDetails');
             });
             $('#copyAdvancedReceivingCustomerDetails').on('click', function() {
-                copyDetailsField('advancedReceivingCustomerDetails', 'copyAdvancedReceivingCustomerDetails');
+                pasteDetailsField('advancedReceivingCustomerDetails', 'copyAdvancedReceivingCustomerDetails');
             });
             $('#copyExpenseHeadDetails').on('click', function() {
-                copyDetailsField('expenseHeadDetails', 'copyExpenseHeadDetails');
+                pasteDetailsField('expenseHeadDetails', 'copyExpenseHeadDetails');
             });
             $('#copyBankPaidDetails').on('click', function() {
-                copyDetailsField('bankCustomerPaidDetails', 'copyBankPaidDetails');
+                pasteDetailsField('bankCustomerPaidDetails', 'copyBankPaidDetails');
             });
             $('#copyBankReceiverDetails').on('click', function() {
-                copyDetailsField('bankCustomerReceiverDetails', 'copyBankReceiverDetails');
+                pasteDetailsField('bankCustomerReceiverDetails', 'copyBankReceiverDetails');
             });
 
             // View Purchasing Customer Ledger → KhataReport
