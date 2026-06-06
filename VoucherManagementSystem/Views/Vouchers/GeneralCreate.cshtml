@@ -78,6 +78,7 @@
                         <th>Transaction No</th>
                         <th>Date</th>
                         <th>Customer</th>
+                        <th>Bank</th>
                         <th>Item</th>
                         <th>Project</th>
                         <th>Quantity</th>
@@ -119,6 +120,15 @@
                                         </a>
                                     }
                                 </td>
+                                <td>
+                                    @{
+                                        var bankName = item.BankCustomerPaid?.Name ?? item.BankCustomerReceiver?.Name;
+                                    }
+                                    @if (!string.IsNullOrEmpty(bankName))
+                                    {
+                                        @bankName
+                                    }
+                                </td>
                                 <td>@item.Item?.Name</td>
                                 <td>
                                     @if (item.ProjectId.HasValue && item.Project != null)
@@ -153,7 +163,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="@(Context.Session.GetString("UserRole") == "Admin" ? "14" : "13")" class="text-center">No vouchers found.</td>
+                            <td colspan="@(Context.Session.GetString("UserRole") == "Admin" ? "15" : "14")" class="text-center">No vouchers found.</td>
                         </tr>
                     }
                 </tbody>
@@ -628,12 +638,14 @@
                 localStorage.setItem('voucherDate', $(this).val());
             });
 
-            // Restore saved form selections (project, voucher type, cash type, customer)
+            // Restore saved form selections (project, voucher type, cash type, customer, bank)
             var savedVoucherType = localStorage.getItem('gc_voucherType');
             var savedProjectId = localStorage.getItem('gc_projectId');
             var savedCashType = localStorage.getItem('gc_cashType');
             var savedPurchasingCustomer = localStorage.getItem('gc_purchasingCustomer');
             var savedReceivingCustomer = localStorage.getItem('gc_receivingCustomer');
+            var savedBankPaid = localStorage.getItem('gc_bankPaid');
+            var savedBankReceiver = localStorage.getItem('gc_bankReceiver');
 
             if (savedVoucherType) {
                 $('#voucherTypeSelect').val(savedVoucherType);
@@ -649,6 +661,12 @@
             if (savedReceivingCustomer) {
                 $('#receivingCustomer').val(savedReceivingCustomer).trigger('change');
             }
+            if (savedBankPaid) {
+                $('#bankPaid').val(savedBankPaid);
+            }
+            if (savedBankReceiver) {
+                $('#bankReceiver').val(savedBankReceiver);
+            }
 
             // Save selections to localStorage on change
             $('#ProjectId').on('change', function() {
@@ -662,6 +680,12 @@
             });
             $('#receivingCustomer').on('change', function() {
                 localStorage.setItem('gc_receivingCustomer', $(this).val());
+            });
+            $('#bankPaid').on('change', function() {
+                localStorage.setItem('gc_bankPaid', $(this).val());
+            });
+            $('#bankReceiver').on('change', function() {
+                localStorage.setItem('gc_bankReceiver', $(this).val());
             });
 
             // Auto-scroll to form after page load (when redirected after save)
