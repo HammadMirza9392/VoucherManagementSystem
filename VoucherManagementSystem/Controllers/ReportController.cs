@@ -1225,7 +1225,7 @@ namespace VoucherManagementSystem.Controllers
                     .Where(v => (v.PurchasingCustomerId == customerId.Value ||
                                 v.ReceivingCustomerId == customerId.Value) &&
                                v.VoucherDate >= startDate &&
-                               v.VoucherDate <= endDate.AddDays(1))
+                               v.VoucherDate <= endDate)
                     .AsQueryable();
 
                 // Apply item filter if selected
