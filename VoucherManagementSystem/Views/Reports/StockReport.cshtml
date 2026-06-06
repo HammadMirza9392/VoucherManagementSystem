@@ -4,6 +4,8 @@
     ViewData["Title"] = "Stock Report";
     var fromDate = ViewBag.FromDate as DateTime?;
     var toDate = ViewBag.ToDate as DateTime?;
+    var displayFromDate = fromDate?.ToString("yyyy-MM-dd") ?? "";
+    var displayToDate = toDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd");
     var showMovement = ViewBag.ShowMovement != null ? (bool)ViewBag.ShowMovement : false;
     var stockMovements = ViewBag.StockMovements as IEnumerable<VoucherManagementSystem.Controllers.StockMovement>;
     var totalValue = Model?.Sum(i => i.CurrentStock * i.DefaultRate) ?? 0;
@@ -21,11 +23,11 @@
             <form method="get" asp-action="StockReport" class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label"><i class="bi bi-calendar"></i> From Date</label>
-                    <input type="date" name="fromDate" class="form-control" value="@(fromDate?.ToString("yyyy-MM-dd") ?? "")" />
+                    <input type="date" name="fromDate" class="form-control" value="@displayFromDate" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label"><i class="bi bi-calendar"></i> To Date</label>
-                    <input type="date" name="toDate" class="form-control" value="@(toDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))" />
+                    <input type="date" name="toDate" class="form-control" value="@displayToDate" />
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary w-100">

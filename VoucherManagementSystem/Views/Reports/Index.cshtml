@@ -1,7 +1,43 @@
 @* Views/Reports/Index.cshtml *@
 @{
     ViewData["Title"] = "Reports";
+    var globalFromDate = ViewBag.GlobalFromDate != null ? ((DateTime)ViewBag.GlobalFromDate).ToString("yyyy-MM-dd") : DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd");
+    var globalToDate = ViewBag.GlobalToDate != null ? ((DateTime)ViewBag.GlobalToDate).ToString("yyyy-MM-dd") : DateTime.Now.ToString("yyyy-MM-dd");
 }
+
+<!-- Global Date Filter -->
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0"><i class="bi bi-calendar-range"></i> Global Date Filter</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label fw-bold">From Date</label>
+                <input type="date" id="globalFromDate" class="form-control" value="@globalFromDate" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">To Date</label>
+                <input type="date" id="globalToDate" class="form-control" value="@globalToDate" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <button type="button" id="applyGlobalDates" class="btn btn-primary w-100">
+                    <i class="bi bi-check-circle"></i> Apply Dates
+                </button>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <button type="button" id="resetGlobalDates" class="btn btn-secondary w-100">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                </button>
+            </div>
+        </div>
+        <small class="text-muted mt-2 d-block">
+            <i class="bi bi-info-circle"></i> These dates will be automatically applied to all report forms below.
+        </small>
+    </div>
+</div>
 
 <!-- Quick Access Cards -->
 <div class="row mb-4 mt-4 row-cols-5 g-3">
@@ -71,6 +107,8 @@
             <div class="card-body">
                 <p class="text-muted">Generate profit and loss statements for your projects.</p>
                 <form asp-action="ProfitLoss" method="post">
+                    <input type="hidden" name="fromDate" class="profit-loss-from-date" value="@globalFromDate" />
+                    <input type="hidden" name="toDate" class="profit-loss-to-date" value="@globalToDate" />
                     <div class="mb-3">
                         <label class="form-label">Select Project <span class="text-danger">*</span></label>
                         @if (ViewBag.Projects != null)
@@ -83,16 +121,6 @@
                                 <option>No projects available</option>
                             </select>
                         }
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">From Date <span class="text-danger">*</span></label>
-                            <input type="date" name="fromDate" class="form-control" required value="@DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd")" />
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">To Date <span class="text-danger">*</span></label>
-                            <input type="date" name="toDate" class="form-control" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
-                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-file-earmark-text"></i> Generate P&L Report
@@ -110,6 +138,8 @@
             <div class="card-body">
                 <p class="text-muted">View detailed bank transaction statements.</p>
                 <form asp-action="BankStatement" method="get">
+                    <input type="hidden" name="fromDate" class="bank-statement-from-date" value="@globalFromDate" />
+                    <input type="hidden" name="toDate" class="bank-statement-to-date" value="@globalToDate" />
                     <div class="mb-3">
                         <label class="form-label">Select Bank <span class="text-danger">*</span></label>
                         @if (ViewBag.Banks != null)
@@ -123,16 +153,6 @@
                             </select>
                         }
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">From Date <span class="text-danger">*</span></label>
-                            <input type="date" name="fromDate" class="form-control" required value="@DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd")" />
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">To Date <span class="text-danger">*</span></label>
-                            <input type="date" name="toDate" class="form-control" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
-                        </div>
-                    </div>
                     <button type="submit" class="btn btn-success w-100">
                         <i class="bi bi-file-earmark-text"></i> Generate Bank Statement
                     </button>
@@ -144,24 +164,17 @@
     <div class="col-md-3">
         <div class="card mb-3">
             <div class="card-header bg-success text-white">
-                <h5><i class="bi bi-cash-stack"></i> Cash Statement</h5>
+                <h5><i class="bi bi-cash-stack"></i> Cash Flow</h5>
             </div>
             <div class="card-body">
-                <p class="text-muted">View detailed cash in hand transaction statements with date filters.</p>
-                <a asp-action="CashStatement" class="btn btn-success w-100">
-                    <i class="bi bi-file-earmark-text"></i> View Cash Statement
-                </a>
-            </div>
-        </div>
-        <div class="card mb-3">
-            <div class="card-header bg-primary text-white">
-                <h5><i class="bi bi-receipt-cutoff"></i> Daily Cash Book</h5>
-            </div>
-            <div class="card-body">
-                <p class="text-muted">View daily cash transactions and balances.</p>
-                <a asp-action="DailyCashBook" class="btn btn-primary w-100">
-                    <i class="bi bi-file-earmark-text"></i> View Daily Cash Book
-                </a>
+                <p class="text-muted">View cash in and cash out transactions for the selected period.</p>
+                <form asp-action="CashFlow" method="get">
+                    <input type="hidden" name="fromDate" class="cash-flow-from-date" value="@globalFromDate" />
+                    <input type="hidden" name="toDate" class="cash-flow-to-date" value="@globalToDate" />
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-file-earmark-text"></i> View Cash Flow
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -172,10 +185,14 @@
                 <h5><i class="bi bi-box-seam"></i> Stock Report</h5>
             </div>
             <div class="card-body">
-                <p class="text-muted">View current stock levels and inventory valuation.</p>
-                <a asp-action="StockReport" class="btn btn-info w-100">
-                    <i class="bi bi-file-earmark-text"></i> View Current Stock Report
-                </a>
+                <p class="text-muted">View stock levels and inventory valuation for the selected period.</p>
+                <form asp-action="StockReport" method="get">
+                    <input type="hidden" name="fromDate" class="stock-report-from-date" value="@globalFromDate" />
+                    <input type="hidden" name="toDate" class="stock-report-to-date" value="@globalToDate" />
+                    <button type="submit" class="btn btn-info w-100">
+                        <i class="bi bi-file-earmark-text"></i> View Stock Report
+                    </button>
+                </form>
             </div>
         </div>
         <div class="card mb-3">
@@ -184,9 +201,13 @@
             </div>
             <div class="card-body">
                 <p class="text-muted">Track which customer purchased/sold items and when.</p>
-                <a asp-action="StockTrackReport" class="btn btn-primary w-100">
-                    <i class="bi bi-file-earmark-text"></i> View Stock Track Report
-                </a>
+                <form asp-action="StockTrackReport" method="get">
+                    <input type="hidden" name="fromDate" class="stock-track-report-from-date" value="@globalFromDate" />
+                    <input type="hidden" name="toDate" class="stock-track-report-to-date" value="@globalToDate" />
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-file-earmark-text"></i> View Stock Track Report
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -200,7 +221,7 @@
             </div>
             <div class="card-body">
                 <p class="text-muted">اردو فارمیٹ میں کسٹمر کا مکمل کھاتا - PDF کے قابل</p>
-                <a asp-action="KhataReport" class="btn w-100 text-white" style="background:#1a1a2e;">
+                <a href="#" onclick="navigateWithGlobalDates('KhataReport')" class="btn w-100 text-white" style="background:#1a1a2e;">
                     <i class="bi bi-file-earmark-pdf"></i> کھاتا رپورٹ دیکھیں
                 </a>
             </div>
@@ -213,7 +234,7 @@
             </div>
             <div class="card-body">
                 <p class="text-muted">View detailed customer account statements and transaction history.</p>
-                <a asp-action="CustomerLedger" class="btn btn-danger w-100">
+                <a href="#" onclick="navigateWithGlobalDates('CustomerLedger')" class="btn btn-danger w-100">
                     <i class="bi bi-file-earmark-text"></i> View Customer Ledger
                 </a>
             </div>
@@ -226,9 +247,26 @@
             </div>
             <div class="card-body">
                 <p class="text-muted">View advanced payments received from and paid to customers.</p>
-                <a asp-action="AdvancedPaymentReport" class="btn btn-success w-100">
+                <a href="#" onclick="navigateWithGlobalDates('AdvancedPaymentReport')" class="btn btn-success w-100">
                     <i class="bi bi-file-earmark-text"></i> View Advanced Payment Report
                 </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header bg-warning text-dark">
+                <h5><i class="bi bi-journal-text"></i> Daily Cash Book</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Daily cash transactions and cash book tracking.</p>
+                <form asp-action="DailyCashBook" method="get">
+                    <input type="hidden" name="fromDate" class="daily-cashbook-from-date" value="@globalFromDate" />
+                    <input type="hidden" name="toDate" class="daily-cashbook-to-date" value="@globalToDate" />
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="bi bi-file-earmark-text"></i> View Daily Cash Book
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -284,3 +322,103 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Navigate to report page with global dates
+        function navigateWithGlobalDates(reportAction) {
+            var fromDate = $('#globalFromDate').val();
+            var toDate = $('#globalToDate').val();
+            var url = '/Reports/' + reportAction + '?fromDate=' + encodeURIComponent(fromDate) + '&toDate=' + encodeURIComponent(toDate);
+            window.location.href = url;
+        }
+
+        $(document).ready(function() {
+            // Apply global dates to all report forms
+            function applyGlobalDates() {
+                var fromDate = $('#globalFromDate').val();
+                var toDate = $('#globalToDate').val();
+
+                // Apply to Profit & Loss form
+                $('.profit-loss-from-date').val(fromDate);
+                $('.profit-loss-to-date').val(toDate);
+
+                // Apply to Bank Statement form
+                $('.bank-statement-from-date').val(fromDate);
+                $('.bank-statement-to-date').val(toDate);
+
+                // Apply to Customer Ledger form
+                $('.customer-ledger-from-date').val(fromDate);
+                $('.customer-ledger-to-date').val(toDate);
+
+                // Apply to Khata Report form
+                $('.khata-from-date').val(fromDate);
+                $('.khata-to-date').val(toDate);
+
+                // Apply to Cash Flow form
+                $('.cash-flow-from-date').val(fromDate);
+                $('.cash-flow-to-date').val(toDate);
+
+                // Apply to Stock Report form
+                $('.stock-report-from-date').val(fromDate);
+                $('.stock-report-to-date').val(toDate);
+
+                // Apply to Stock Track Report form
+                $('.stock-track-report-from-date').val(fromDate);
+                $('.stock-track-report-to-date').val(toDate);
+
+                // Apply to Daily Cash Book form
+                $('.daily-cashbook-from-date').val(fromDate);
+                $('.daily-cashbook-to-date').val(toDate);
+
+                // Save to localStorage
+                localStorage.setItem('globalFromDate', fromDate);
+                localStorage.setItem('globalToDate', toDate);
+
+                // Show success message
+                var btn = $('#applyGlobalDates');
+                var originalText = btn.html();
+                btn.html('<i class="bi bi-check-circle"></i> Applied!').addClass('btn-success').removeClass('btn-primary');
+                setTimeout(function() {
+                    btn.html(originalText).removeClass('btn-success').addClass('btn-primary');
+                }, 2000);
+            }
+
+            // Apply button click
+            $('#applyGlobalDates').on('click', function() {
+                applyGlobalDates();
+            });
+
+            // Reset button click
+            $('#resetGlobalDates').on('click', function() {
+                var today = new Date().toISOString().split('T')[0];
+                var lastMonth = new Date();
+                lastMonth.setMonth(lastMonth.getMonth() - 1);
+                var lastMonthDate = lastMonth.toISOString().split('T')[0];
+
+                $('#globalFromDate').val(lastMonthDate);
+                $('#globalToDate').val(today);
+
+                applyGlobalDates();
+
+                localStorage.removeItem('globalFromDate');
+                localStorage.removeItem('globalToDate');
+            });
+
+            // On page load, apply saved dates
+            var savedFromDate = localStorage.getItem('globalFromDate');
+            var savedToDate = localStorage.getItem('globalToDate');
+
+            if (savedFromDate && savedToDate) {
+                $('#globalFromDate').val(savedFromDate);
+                $('#globalToDate').val(savedToDate);
+                applyGlobalDates();
+            }
+
+            // Apply dates when global date inputs change
+            $('#globalFromDate, #globalToDate').on('change', function() {
+                applyGlobalDates();
+            });
+        });
+    </script>
+}

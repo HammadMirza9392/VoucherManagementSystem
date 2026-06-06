@@ -1,6 +1,8 @@
 @* Views/Reports/KhataReport.cshtml - Urdu Khata Detail Report *@
 @{
     ViewData["Title"] = "کھاتا تفصیل";
+    var defaultFromDate = ViewBag.FromDate != null ? ((DateTime)ViewBag.FromDate).ToString("yyyy-MM-dd") : DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd");
+    var defaultToDate = ViewBag.ToDate != null ? ((DateTime)ViewBag.ToDate).ToString("yyyy-MM-dd") : DateTime.Now.ToString("yyyy-MM-dd");
 }
 
 @section Styles {
@@ -182,11 +184,11 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-bold">From Date (اس تاریخ سے)</label>
-                    <input type="date" name="fromDate" class="form-control" value="@DateTime.Today.AddMonths(-1).ToString("yyyy-MM-dd")" />
+                    <input type="date" name="fromDate" class="form-control" value="@defaultFromDate" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-bold">To Date (اس تاریخ تک)</label>
-                    <input type="date" name="toDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    <input type="date" name="toDate" class="form-control" value="@defaultToDate" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">&nbsp;</label>

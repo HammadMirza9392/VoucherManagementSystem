@@ -2,8 +2,10 @@
 @{
     ViewData["Title"] = "Stock Track Report";
     var transactions = ViewBag.Transactions as IEnumerable<VoucherManagementSystem.Models.Voucher>;
-    var fromDate = (DateTime)ViewBag.FromDate;
-    var toDate = (DateTime)ViewBag.ToDate;
+    var fromDate = ViewBag.FromDate != null ? (DateTime)ViewBag.FromDate : DateTime.Today.AddMonths(-1);
+    var toDate = ViewBag.ToDate != null ? (DateTime)ViewBag.ToDate : DateTime.Today;
+    var displayFromDate = fromDate.ToString("yyyy-MM-dd");
+    var displayToDate = toDate.ToString("yyyy-MM-dd");
 }
 
 <div class="d-print-none">
@@ -20,11 +22,11 @@
         <form method="get" class="row g-3">
             <div class="col-md-2">
                 <label class="form-label">From Date</label>
-                <input type="date" name="fromDate" value="@fromDate.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="fromDate" value="@displayFromDate" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">To Date</label>
-                <input type="date" name="toDate" value="@toDate.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="toDate" value="@displayToDate" class="form-control" />
             </div>
             <div class="col-md-3">
                 <label class="form-label">Filter by Item</label>

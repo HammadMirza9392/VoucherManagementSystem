@@ -180,7 +180,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <p class="mb-1"><strong>AL-Hafiz Voucher Management System</strong></p>
-                    <p class="mb-0 small">&copy; 2025 All rights reserved. Professional accounting solution for your business.</p>
+                    <p class="mb-0 small">&copy; <span id="currentYear"></span> All rights reserved. Professional accounting solution for your business.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <p class="mb-1"><strong>Quick Access</strong></p>
@@ -204,6 +204,11 @@
     @await Html.PartialAsync("_PageLockModal")
 
     <script>
+        // Set current year in footer
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+        });
+
         // Force browsers to disable autocomplete on all non-login inputs
         // autocomplete="new-password" is the only value browsers reliably respect
         document.querySelectorAll('input:not([autocomplete="username"]):not([autocomplete="current-password"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="date"])').forEach(function(input) {

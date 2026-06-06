@@ -1194,10 +1194,16 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
+                // Default to showing last 90 days if no dates specified
+                var endDate = toDate ?? DateTimeHelper.PkToday;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddDays(-90);
+
                 if (!customerId.HasValue)
                 {
                     // Show selection page
                     ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name");
+                    ViewBag.FromDate = startDate;
+                    ViewBag.ToDate = endDate;
                     return View();
                 }
 
@@ -1207,10 +1213,6 @@ namespace VoucherManagementSystem.Controllers
                     TempData["Error"] = "Customer not found.";
                     return RedirectToAction(nameof(Index));
                 }
-
-                // Default to showing last 90 days if no dates specified
-                var endDate = toDate ?? DateTimeHelper.PkToday;
-                var startDate = fromDate ?? DateTimeHelper.PkToday.AddDays(-90);
 
                 // Get opening balance (transactions before start date)
                 var openingBalance = await GetCustomerOpeningBalanceAsync(customerId.Value, startDate);
@@ -2147,7 +2149,12 @@ namespace VoucherManagementSystem.Controllers
         {
             try
             {
+                var endDate = toDate ?? DateTimeHelper.PkToday;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddMonths(-1);
+
                 ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
+                ViewBag.FromDate = startDate;
+                ViewBag.ToDate = endDate;
 
                 if (!customerId.HasValue)
                     return View();
@@ -2158,9 +2165,6 @@ namespace VoucherManagementSystem.Controllers
                     TempData["Error"] = "Customer not found.";
                     return RedirectToAction(nameof(Index));
                 }
-
-                var endDate = toDate ?? DateTimeHelper.PkToday;
-                var startDate = fromDate ?? DateTimeHelper.PkToday.AddMonths(-1);
 
                 // Opening balance before startDate
                 var openingBalance = await GetCustomerOpeningBalanceAsync(customerId.Value, startDate);

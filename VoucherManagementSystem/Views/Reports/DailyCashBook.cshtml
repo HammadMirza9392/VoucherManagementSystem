@@ -4,6 +4,8 @@
     var vouchers = ViewBag.Vouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
     var fromDate = ViewBag.FromDate != null ? (DateTime)ViewBag.FromDate : DateTime.Today.AddMonths(-1);
     var toDate = ViewBag.ToDate != null ? (DateTime)ViewBag.ToDate : DateTime.Today;
+    var displayFromDate = fromDate.ToString("yyyy-MM-dd");
+    var displayToDate = toDate.ToString("yyyy-MM-dd");
     var selectedCustomerId = ViewBag.SelectedCustomerId as int?;
     var selectedVoucherType = ViewBag.SelectedVoucherType as string;
     var openingBalance = ViewBag.OpeningBalance != null ? (decimal)ViewBag.OpeningBalance : 0;
@@ -19,11 +21,11 @@
         <form method="get" class="row g-3">
             <div class="col-md-2">
                 <label class="form-label">From Date <span class="text-danger">*</span></label>
-                <input type="date" name="fromDate" value="@fromDate.ToString("yyyy-MM-dd")" class="form-control" required />
+                <input type="date" name="fromDate" value="@displayFromDate" class="form-control" required />
             </div>
             <div class="col-md-2">
                 <label class="form-label">To Date <span class="text-danger">*</span></label>
-                <input type="date" name="toDate" value="@toDate.ToString("yyyy-MM-dd")" class="form-control" required />
+                <input type="date" name="toDate" value="@displayToDate" class="form-control" required />
             </div>
             <div class="col-md-3">
                 <label class="form-label">Filter by Customer</label>
