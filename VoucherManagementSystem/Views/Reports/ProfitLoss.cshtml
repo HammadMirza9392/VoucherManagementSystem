@@ -559,6 +559,49 @@
             fixWidth();
             dt.on('draw', fixWidth);
             $(window).on('resize', fixWidth);
+
+            // Function to calculate and update totals based on filtered rows
+            function updateTotalsForVisibleRows() {
+                var totalQty = 0;
+                var totalDebit = 0;
+                var totalCredit = 0;
+
+                // Get all visible rows from DataTable
+                dt.rows({search: 'applied'}).every(function() {
+                    var cells = this.node().querySelectorAll('td');
+                    var qtyCell = cells[6].textContent.trim();
+                    var debitCell = cells[7].textContent.trim();
+                    var creditCell = cells[8].textContent.trim();
+
+                    // Parse values
+                    var qty = parseFloat(qtyCell.replace(/,/g, '')) || 0;
+                    var debit = parseFloat(debitCell.replace(/[^\d.]/g, '')) || 0;
+                    var credit = parseFloat(creditCell.replace(/[^\d.]/g, '')) || 0;
+
+                    totalQty += qty;
+                    totalDebit += debit;
+                    totalCredit += credit;
+                });
+
+                // Update footer totals
+                var footerRow = $('#plReportTable tfoot tr');
+                footerRow.find('th:eq(6)').text(totalQty.toFixed(3));
+                footerRow.find('th:eq(7)').text('Rs. ' + totalDebit.toLocaleString('en-PK', {maximumFractionDigits: 0}));
+                footerRow.find('th:eq(8)').text('Rs. ' + totalCredit.toLocaleString('en-PK', {maximumFractionDigits: 0}));
+
+                // Calculate and update running balance
+                var runningBalance = totalCredit - totalDebit;
+                var balanceClass = runningBalance >= 0 ? 'text-success' : 'text-danger';
+                footerRow.find('th:eq(9)')
+                    .text('Rs. ' + Math.abs(runningBalance).toLocaleString('en-PK', {maximumFractionDigits: 0}))
+                    .removeClass('text-success text-danger')
+                    .addClass(balanceClass);
+            }
+
+            // Update totals when DataTable search is applied
+            dt.on('draw', function() {
+                updateTotalsForVisibleRows();
+            });
         });
 
         function exportTableToExcel(tableID, filename = ''){
