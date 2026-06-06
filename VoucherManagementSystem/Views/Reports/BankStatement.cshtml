@@ -59,8 +59,9 @@
 </div>
 
 <div class="card shadow-sm">
-    <div class="card-header bg-dark text-white">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-list-ul"></i> Transaction History</h5>
+        <input type="text" id="bankSearchInput" class="form-control form-control-sm" placeholder="Search transactions..." style="width: 250px;" />
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -248,13 +249,75 @@
 
 @section Scripts {
     <script>
-        // DataTable disabled due to colspan rows in footer/header causing column count mismatch
-        // $(document).ready(function() {
-        //     $('#bankStatementTable').DataTable({
-        //         "order": [[0, "asc"]],
-        //         "pageLength": 50
-        //     });
-        // });
+        $(document).ready(function() {
+            var $rows = $('#bankStatementTable tbody tr:not(.table-warning)');
+            var openingBal = @(ViewBag.OpeningBalance != null ? (decimal)ViewBag.OpeningBalance : 0m);
+
+            // Function to update totals based on visible rows
+            function updateBankTotals() {
+                var totalDebit = 0;
+                var totalCredit = 0;
+                var closingBal = openingBal;
+
+                // Loop through visible rows
+                $rows.each(function() {
+                    if ($(this).is(':visible')) {
+                        var cells = $(this).find('td');
+                        if (cells.length > 0) {
+                            var debitCell = cells.eq(4).text().trim();
+                            var creditCell = cells.eq(5).text().trim();
+
+                            // Parse values (skip "-")
+                            var debit = debitCell !== '-' ? parseFloat(debitCell.replace(/[^\d.]/g, '')) : 0;
+                            var credit = creditCell !== '-' ? parseFloat(creditCell.replace(/[^\d.]/g, '')) : 0;
+
+                            debit = isNaN(debit) ? 0 : debit;
+                            credit = isNaN(credit) ? 0 : credit;
+
+                            totalDebit += debit;
+                            totalCredit += credit;
+                        }
+                    }
+                });
+
+                // Calculate closing balance
+                closingBal = openingBal + totalCredit - totalDebit;
+
+                // Update footer totals (first footer row)
+                var footerRows = $('#bankStatementTable tfoot tr');
+                footerRows.eq(0).find('th').eq(1).text('Rs. ' + totalDebit.toLocaleString('en-PK', {maximumFractionDigits: 0}));
+                footerRows.eq(0).find('th').eq(2).text('Rs. ' + totalCredit.toLocaleString('en-PK', {maximumFractionDigits: 0}));
+
+                // Update Closing Balance (second footer row)
+                var balanceClass = closingBal >= 0 ? 'text-success' : 'text-danger';
+                footerRows.eq(1).find('th').last()
+                    .text((closingBal < 0 ? "-" : "") + 'Rs. ' + Math.abs(closingBal).toLocaleString('en-PK', {maximumFractionDigits: 0}))
+                    .removeClass('text-success text-danger')
+                    .addClass(balanceClass);
+            }
+
+            // Search functionality
+            $('#bankSearchInput').on('keyup', function() {
+                var searchTerm = $(this).val().toLowerCase();
+
+                $rows.each(function() {
+                    var rowText = $(this).text().toLowerCase();
+                    var isVisible = rowText.includes(searchTerm);
+
+                    if (searchTerm === '' || isVisible) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+
+                // Update totals after filtering
+                updateBankTotals();
+            });
+
+            // Initialize totals on page load
+            updateBankTotals();
+        });
 
         function exportTableToExcel(tableID, filename = ''){
             var downloadLink;
