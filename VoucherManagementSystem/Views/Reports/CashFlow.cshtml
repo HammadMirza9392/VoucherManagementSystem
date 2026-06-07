@@ -100,6 +100,7 @@
                         <th>Type</th>
                         <th>Description</th>
                         <th>Customer/Party</th>
+                        <th>Project</th>
                         <th class="text-end">Cash In</th>
                         <th class="text-end">Cash Out</th>
                         <th class="text-end">Balance</th>
@@ -137,12 +138,42 @@
                                         <span class="badge bg-secondary">@voucher.VoucherType</span>
                                     </td>
                                     <td>
-                                        @(voucher.Item?.Name ?? voucher.ExpenseHead?.Name ??
-                                        voucher.PurchasingCustomerDetails ?? voucher.ReceivingCustomerDetails ??
-                                        "Cash Transaction")
+                                        @if (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense)
+                                        {
+                                            <strong>@(voucher.ExpenseHead?.Name ?? "Expense")</strong>
+                                            @if (!string.IsNullOrEmpty(voucher.ExpenseHeadDetails))
+                                            {
+                                                <br /><small class="text-muted">@voucher.ExpenseHeadDetails</small>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            @(voucher.Item?.Name ??
+                                            voucher.PurchasingCustomerDetails ?? voucher.ReceivingCustomerDetails ??
+                                            "Cash Transaction")
+                                        }
                                     </td>
                                     <td>
-                                        @(voucher.PurchasingCustomer?.Name ?? voucher.ReceivingCustomer?.Name ?? "-")
+                                        @if (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense)
+                                        {
+                                            <span>-</span>
+                                        }
+                                        else
+                                        {
+                                            @(voucher.PurchasingCustomer?.Name ?? voucher.ReceivingCustomer?.Name ?? "-")
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (voucher.Project != null)
+                                        {
+                                            <a asp-controller="Reports" asp-action="ProjectReport" asp-route-projectId="@voucher.ProjectId" class="text-decoration-none">
+                                                @voucher.Project.Name
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
                                     </td>
                                     <td class="text-end">
                                         @if (isCashIn)
@@ -166,7 +197,7 @@
                 </tbody>
                 <tfoot>
                     <tr class="table-dark">
-                        <th colspan="5">Total</th>
+                        <th colspan="6">Total</th>
                         <th class="text-end">@string.Format("{0:N0}", cashIn)</th>
                         <th class="text-end">@string.Format("{0:N0}", cashOut)</th>
                         <th class="text-end">@string.Format("{0:N0}", closingBalance)</th>

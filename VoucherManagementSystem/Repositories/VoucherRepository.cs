@@ -74,6 +74,7 @@ namespace VoucherManagementSystem.Repositories
                 .Include(v => v.ReceivingCustomer)
                 .Include(v => v.Item)
                 .Include(v => v.Project)
+                .Include(v => v.ExpenseHead)
                 .Where(v => v.VoucherDate >= fromDate && v.VoucherDate <= toDate)
                 .OrderByDescending(v => v.VoucherDate)
                 .ToListAsync();
