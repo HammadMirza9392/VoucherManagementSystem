@@ -795,11 +795,8 @@ namespace VoucherManagementSystem.Controllers
                 // Get all cash transactions
                 var vouchers = await _voucherRepository.GetVouchersByDateRangeAsync(startDate, endDate.AddDays(1));
 
-                // Filter only cash transactions
-                var cashVouchers = vouchers.Where(v =>
-                    v.CashType == CashType.Cash ||
-                    v.VoucherType == VoucherType.CashPaid ||
-                    v.VoucherType == VoucherType.CashReceived).ToList();
+                // Filter only cash transactions where CashType = Cash (exclude bank and other cash types)
+                var cashVouchers = vouchers.Where(v => v.CashType == CashType.Cash).ToList();
 
                 // Calculate cash in and out
                 decimal cashIn = 0;
@@ -812,15 +809,13 @@ namespace VoucherManagementSystem.Controllers
                     {
                         case VoucherType.Sale:
                         case VoucherType.CashReceived:
-                            if (voucher.CashType == CashType.Cash)
-                                cashIn += voucher.Amount;
+                            cashIn += voucher.Amount;
                             break;
                         case VoucherType.Purchase:
                         case VoucherType.Expense:
                         case VoucherType.CashPaid:
                         case VoucherType.Hazri:
-                            if (voucher.CashType == CashType.Cash)
-                                cashOut += voucher.Amount;
+                            cashOut += voucher.Amount;
                             break;
                     }
                 }
@@ -913,14 +908,11 @@ namespace VoucherManagementSystem.Controllers
             }
         }
 
-        // Helper method to get opening cash balance
+        // Helper method to get opening cash balance (CashType = Cash only)
         private async Task<decimal> GetOpeningCashBalanceAsync(DateTime date)
         {
             var previousVouchers = await _context.Vouchers
-                .Where(v => v.VoucherDate < date &&
-                           (v.CashType == CashType.Cash ||
-                            v.VoucherType == VoucherType.CashPaid ||
-                            v.VoucherType == VoucherType.CashReceived))
+                .Where(v => v.VoucherDate < date && v.CashType == CashType.Cash)
                 .ToListAsync();
 
             decimal balance = 0;
@@ -930,15 +922,13 @@ namespace VoucherManagementSystem.Controllers
                 {
                     case VoucherType.Sale:
                     case VoucherType.CashReceived:
-                        if (voucher.CashType == CashType.Cash)
-                            balance += voucher.Amount;
+                        balance += voucher.Amount;
                         break;
                     case VoucherType.Purchase:
                     case VoucherType.Expense:
                     case VoucherType.CashPaid:
                     case VoucherType.Hazri:
-                        if (voucher.CashType == CashType.Cash)
-                            balance -= voucher.Amount;
+                        balance -= voucher.Amount;
                         break;
                 }
             }
