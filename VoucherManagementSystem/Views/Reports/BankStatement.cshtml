@@ -296,14 +296,24 @@
                     .addClass(balanceClass);
             }
 
-            // Search functionality
+            // Search functionality - searches all columns including Debit and Credit
             $('#bankSearchInput').on('keyup', function() {
-                var searchTerm = $(this).val().toLowerCase();
+                var searchTerm = $(this).val().toLowerCase().trim();
 
                 $rows.each(function() {
-                    var rowText = $(this).text().toLowerCase();
-                    var isVisible = rowText.includes(searchTerm);
+                    var cells = $(this).find('td');
+                    var isVisible = false;
 
+                    // Search through all cells in the row
+                    cells.each(function() {
+                        var cellText = $(this).text().toLowerCase();
+                        if (cellText.includes(searchTerm)) {
+                            isVisible = true;
+                            return false; // Break the loop
+                        }
+                    });
+
+                    // Show/hide row based on search match
                     if (searchTerm === '' || isVisible) {
                         $(this).show();
                     } else {
