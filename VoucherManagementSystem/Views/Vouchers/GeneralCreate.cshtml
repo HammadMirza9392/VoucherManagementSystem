@@ -174,27 +174,67 @@
         <div class="border-top bg-white px-3 py-2 flex-shrink-0">
             @if (ViewBag.TotalPages > 1)
             {
+                int currentPage = ViewBag.CurrentPage ?? 1;
+                int totalPages = ViewBag.TotalPages ?? 1;
+                int pageRange = 10;
+                int startPage = Math.Max(1, currentPage - pageRange);
+                int endPage = Math.Min(startPage + pageRange - 1, totalPages);
+
                 <nav aria-label="Voucher pagination">
                     <ul class="pagination pagination-sm justify-content-center mb-0">
-                        <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
-                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(ViewBag.CurrentPage - 1)">Previous</a>
+                        <!-- Go to Start -->
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="1" title="Go to first page">
+                                <i class="bi bi-skip-start-fill"></i> Start
+                            </a>
                         </li>
-                        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+
+                        <!-- Fast Previous (jump back 10 pages) -->
+                        <li class="page-item @(currentPage - pageRange < 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@Math.Max(1, currentPage - pageRange)" title="Previous 10 pages">
+                                <i class="bi bi-chevron-double-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- Previous -->
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(currentPage - 1)" title="Previous page">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- Page numbers (10 at a time) -->
+                        @for (int i = startPage; i <= endPage; i++)
                         {
-                            <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                            <li class="page-item @(currentPage == i ? "active" : "")">
                                 <a class="page-link" asp-action="GeneralCreate" asp-route-page="@i">@i</a>
                             </li>
                         }
-                        <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
-                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(ViewBag.CurrentPage + 1)">Next</a>
+
+                        <!-- Next -->
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(currentPage + 1)" title="Next page">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+
+                        <!-- Fast Next (jump forward 10 pages) -->
+                        <li class="page-item @(currentPage + pageRange > totalPages ? "disabled" : "")">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@Math.Min(totalPages, currentPage + pageRange)" title="Next 10 pages">
+                                <i class="bi bi-chevron-double-right"></i>
+                            </a>
+                        </li>
+
+                        <!-- Go to End -->
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@totalPages" title="Go to last page">
+                                End <i class="bi bi-skip-end-fill"></i>
+                            </a>
                         </li>
                     </ul>
                 </nav>
             }
-            else
-            {
-                <p class="text-muted text-center mb-0 small">Page @ViewBag.CurrentPage of @ViewBag.TotalPages &nbsp;|&nbsp; @ViewBag.TotalRecords total records</p>
-            }
+            <p class="text-muted text-center mb-0 small">Page @ViewBag.CurrentPage of @ViewBag.TotalPages &nbsp;|&nbsp; @ViewBag.TotalRecords total records</p>
         </div>
     </div>
 </div>
@@ -1440,18 +1480,22 @@
                 case 'CashPaid':
                     $('#purchasingCustomerColumn').show();
                     $('#bankColumn, #bankReceiverColumn, #projectRow, #rateRow').hide();
+                    $('#ProjectId').val('');  // Clear project for CashPaid
                     break;
                 case 'CashReceived':
                     $('#receivingCustomerColumn').show();
                     $('#bankColumn, #bankReceiverColumn, #projectRow, #rateRow').hide();
+                    $('#ProjectId').val('');  // Clear project for CashReceived
                     break;
                 case 'CCR':
                     $('#purchasingCustomerColumn, #receivingCustomerColumn').show();
                     $('#projectRow, #cashTypeRow, #rateRow').hide();
+                    $('#ProjectId').val('');  // Clear project for CCR
                     break;
                 case 'BCR':
                     $('#bankColumn, #bankReceiverColumn').show();
                     $('#projectRow, #cashTypeRow, #rateRow').hide();
+                    $('#ProjectId').val('');  // Clear project for BCR
                     break;
                 case 'AdvancedPayment':
                     $('#receivingCustomerColumn').show();
