@@ -701,10 +701,11 @@
             if (savedReceivingCustomer) {
                 $('#receivingCustomer').val(savedReceivingCustomer).trigger('change');
             }
-            if (savedBankPaid) {
+            // Only restore bank selections if they are applicable to the current voucher type
+            if (savedBankPaid && isValidBankTypeForVoucher(savedVoucherType, 'paid')) {
                 $('#bankPaid').val(savedBankPaid);
             }
-            if (savedBankReceiver) {
+            if (savedBankReceiver && isValidBankTypeForVoucher(savedVoucherType, 'receiver')) {
                 $('#bankReceiver').val(savedBankReceiver);
             }
 
@@ -842,13 +843,25 @@
 
                 // Sync visible selects → hidden inputs before submit
                 // (display:none parent elements cause browsers to skip child fields)
-                $('#hiddenBankPaidId').val($('#bankPaid').val() || '');
-                $('#hiddenBankReceiverId').val($('#bankReceiver').val() || '');
+                // Only set bank fields if they are valid for the current voucher type
+                var voucherType = $('#voucherTypeSelect').val();
+
+                if (isValidBankTypeForVoucher(voucherType, 'paid')) {
+                    $('#hiddenBankPaidId').val($('#bankPaid').val() || '');
+                } else {
+                    $('#hiddenBankPaidId').val('');
+                }
+
+                if (isValidBankTypeForVoucher(voucherType, 'receiver')) {
+                    $('#hiddenBankReceiverId').val($('#bankReceiver').val() || '');
+                } else {
+                    $('#hiddenBankReceiverId').val('');
+                }
+
                 $('#hiddenAdvancedPurchasingCustomerId').val($('#advancedPurchasingCustomer').val() || '');
                 $('#hiddenAdvancedReceivingCustomerId').val($('#advancedReceivingCustomer').val() || '');
 
                 // Validate Project is required for Purchase, Sale, Expense, and Hazri
-                var voucherType = $('#voucherTypeSelect').val();
                 var projectId = $('#ProjectId').val();
 
                 if ((voucherType === 'Purchase' || voucherType === 'Sale' ||
@@ -952,10 +965,12 @@
             $('#voucherTypeSelect').on('change', function() {
                 var voucherType = $(this).val();
                 localStorage.setItem('gc_voucherType', voucherType);
-                // Clear customer/cash selections when type changes
+                // Clear customer/cash/bank selections when type changes
                 localStorage.removeItem('gc_cashType');
                 localStorage.removeItem('gc_purchasingCustomer');
                 localStorage.removeItem('gc_receivingCustomer');
+                localStorage.removeItem('gc_bankPaid');
+                localStorage.removeItem('gc_bankReceiver');
                 updateTransactionNumber(voucherType);
                 configureFormForVoucherType(voucherType);
                 clearFormFields();
@@ -975,11 +990,19 @@
                 if (voucherType === 'CashPaid') {
                     $('#bankColumn').toggle(isBank);
                     $('#bankReceiverColumn').hide();
+                    if (!isBank) {
+                        $('#bankPaid').val('');
+                        $('#hiddenBankPaidId').val('');
+                    }
                     return;
                 }
                 if (voucherType === 'CashReceived') {
                     $('#bankReceiverColumn').toggle(isBank);
                     $('#bankColumn').hide();
+                    if (!isBank) {
+                        $('#bankReceiver').val('');
+                        $('#hiddenBankReceiverId').val('');
+                    }
                     return;
                 }
                 // Advanced types: bank columns always stay visible, ignore cash type change
@@ -991,11 +1014,17 @@
                     $('#bankColumn').show();
                     if (voucherType === 'Purchase') {
                         $('#bankReceiverColumn').hide();
+                        $('#bankReceiver').val('');
+                        $('#hiddenBankReceiverId').val('');
                     } else {
                         $('#bankReceiverColumn').show();
                     }
                 } else {
                     $('#bankColumn, #bankReceiverColumn').hide();
+                    $('#bankPaid').val('');
+                    $('#bankReceiver').val('');
+                    $('#hiddenBankPaidId').val('');
+                    $('#hiddenBankReceiverId').val('');
                 }
             });
 
@@ -1524,6 +1553,22 @@
                 }
                 $opt.prop('disabled', true).hide();
             }
+        }
+
+        // Check if bank type (paid/receiver) is valid for the given voucher type
+        function isValidBankTypeForVoucher(voucherType, bankType) {
+            // Bank Paid is valid for: Purchase, CashPaid, AdvancedCashPaid
+            // Bank Receiver is valid for: Sale, CashReceived, AdvancedCashReceived
+            // BCR uses both
+
+            if (bankType === 'paid') {
+                return voucherType === 'Purchase' || voucherType === 'CashPaid' ||
+                       voucherType === 'AdvancedCashPaid' || voucherType === 'BCR';
+            } else if (bankType === 'receiver') {
+                return voucherType === 'Sale' || voucherType === 'CashReceived' ||
+                       voucherType === 'AdvancedCashReceived' || voucherType === 'BCR';
+            }
+            return false;
         }
     </script>
 }
