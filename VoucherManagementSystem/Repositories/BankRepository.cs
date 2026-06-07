@@ -46,7 +46,11 @@ namespace VoucherManagementSystem.Repositories
                 .Include(v => v.PurchasingCustomer)
                 .Include(v => v.ReceivingCustomer)
                 .Where(v => (v.BankCustomerPaidId == bankId || v.BankCustomerReceiverId == bankId) &&
-                           v.VoucherDate >= fromDate && v.VoucherDate <= toDate)
+                           v.VoucherDate >= fromDate && v.VoucherDate <= toDate &&
+                           v.CashType == CashType.Bank &&
+                           (v.VoucherType == VoucherType.CashPaid ||
+                            v.VoucherType == VoucherType.CashReceived ||
+                            v.VoucherType == VoucherType.Expense))
                 .OrderByDescending(v => v.VoucherDate)
                 .ToListAsync();
         }

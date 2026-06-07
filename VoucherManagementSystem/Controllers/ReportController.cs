@@ -1482,7 +1482,7 @@ namespace VoucherManagementSystem.Controllers
             return summary.OrderBy(s => s.ItemName).ToList();
         }
 
-        // Helper method to get opening bank balance
+        // Helper method to get opening bank balance (CashType = Bank with CashPaid/CashReceived/Expense only)
         // Opening balance = sum of all transactions strictly before the given date (starting from zero)
         private async Task<decimal> GetBankOpeningBalanceAsync(int bankId, DateTime date)
         {
@@ -1490,7 +1490,11 @@ namespace VoucherManagementSystem.Controllers
 
             var previousVouchers = await _context.Vouchers
                 .Where(v => (v.BankCustomerPaidId == bankId || v.BankCustomerReceiverId == bankId) &&
-                           v.VoucherDate < date)
+                           v.VoucherDate < date &&
+                           v.CashType == CashType.Bank &&
+                           (v.VoucherType == VoucherType.CashPaid ||
+                            v.VoucherType == VoucherType.CashReceived ||
+                            v.VoucherType == VoucherType.Expense))
                 .ToListAsync();
 
             foreach (var voucher in previousVouchers)
