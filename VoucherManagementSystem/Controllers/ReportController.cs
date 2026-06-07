@@ -2246,10 +2246,20 @@ namespace VoucherManagementSystem.Controllers
             }
         }
 
-        // GET: Reports/ExportAllData - Export all database tables to Excel
-    public async Task<IActionResult> ExportAllData(string format = "excel")
+        // GET: Reports/DatabaseBackup - Show backup page with all export options
+    public IActionResult DatabaseBackup()
     {
-        // Check if user is logged in via session
+        var userRole = HttpContext.Session.GetString("UserRole");
+        if (userRole != "Admin")
+        {
+            return Forbid("Only Admin users can access backup");
+        }
+        return View();
+    }
+
+    // GET: Reports/ExportAllData - Export all database tables to Excel
+    public async Task<IActionResult> ExportAllData(string format = "excel", string? downloadToken = null)
+    {
         var userRole = HttpContext.Session.GetString("UserRole");
         if (userRole != "Admin")
         {
@@ -2258,72 +2268,55 @@ namespace VoucherManagementSystem.Controllers
 
         try
         {
-            if (format == "excel")
+            if (format == "sql")
             {
-                using var workbook = new XLWorkbook();
-
-                // List of all tables to export
-                var tables = new List<(string Name, Func<Task<List<dynamic>>> GetData)>
-                {
-                    ("Banks", GetBanksData),
-                    ("CashAdjustments", GetCashAdjustmentsData),
-                    ("CustomerItemRates", GetCustomerItemRatesData),
-                    ("Customers", GetCustomersData),
-                    ("ExpenseHeads", GetExpenseHeadsData),
-                    ("Items", GetItemsData),
-                    ("MasterPasswords", GetMasterPasswordsData),
-                    ("MonMultipliers", GetMonMultipliersData),
-                    ("PageLocks", GetPageLocksData),
-                    ("Projects", GetProjectsData),
-                    ("ThemeSettings", GetThemeSettingsData),
-                    ("Users", GetUsersData),
-                    ("Vouchers", GetVouchersData)
-                };
-
-                // Create worksheet for each table
-                foreach (var (name, getData) in tables)
-                {
-                    var data = await getData();
-                    if (data.Count > 0)
-                    {
-                        var worksheet = workbook.Worksheets.Add(name);
-                        ExportDataToWorksheet(worksheet, data);
-                    }
-                }
-
-                // Add Summary sheet
-                var summarySheet = workbook.Worksheets.Add("Summary");
-                summarySheet.Cell("A1").Value = "Database Backup Summary";
-                summarySheet.Cell("A2").Value = $"Backup Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
-                summarySheet.Cell("A3").Value = $"Total Tables: {tables.Count}";
-
-                // Export to file
-                using var stream = new MemoryStream();
-                workbook.SaveAs(stream);
-                var fileName = $"DatabaseBackup_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-                return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
-            }
-            else if (format == "sql")
-            {
-                // Generate SQL INSERT statements
-                var sqlContent = await GenerateSQLBackup();
-                var fileName = $"DatabaseBackup_{DateTime.Now:yyyyMMdd_HHmmss}.sql";
-                return File(System.Text.Encoding.UTF8.GetBytes(sqlContent), "text/plain", fileName);
+                var sql = await GenerateSqlBackup();
+                var sqlFileName = $"DatabaseBackup_{DateTime.Now:yyyyMMdd_HHmmss}.sql";
+                SetDownloadCompleteCookie(downloadToken);
+                return File(Encoding.UTF8.GetBytes(sql), "application/sql", sqlFileName);
             }
 
-            return BadRequest("Invalid format");
+            using var workbook = new XLWorkbook();
+
+            // Export each table
+            await ExportTableToWorkbook(workbook, "Banks", async () => await _context.Banks.AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "Customers", async () => await _context.Customers.AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "Items", async () => await _context.Items.AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "Projects", async () => await _context.Projects.AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "ExpenseHeads", async () => await _context.ExpenseHeads.AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "CustomerItemRates", async () => await _context.CustomerItemRates.AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "MonMultipliers", async () => await _context.MonMultipliers.AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "Users", async () => await _context.Users.AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "Vouchers", async () => await _context.Vouchers.IgnoreQueryFilters().AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "ThemeSettings", async () => await _context.ThemeSettings.AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "PageLocks", async () => await _context.PageLocks.AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "MasterPasswords", async () => await _context.MasterPasswords.AsNoTracking().ToListAsync());
+            await ExportTableToWorkbook(workbook, "CashAdjustments", async () => await _context.CashAdjustments.AsNoTracking().ToListAsync());
+
+            // Add summary sheet
+            var summary = workbook.Worksheets.Add("_Summary");
+            summary.Cell("A1").Value = "Database Backup Summary";
+            summary.Cell("A1").Style.Font.Bold = true;
+            summary.Cell("A2").Value = $"Backup Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+            summary.Cell("A3").Value = "Each sheet contains a complete table with all columns and rows.";
+            summary.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            var fileName = $"DatabaseBackup_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            SetDownloadCompleteCookie(downloadToken);
+            return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error exporting all data");
-            return StatusCode(500, "Error generating backup");
+            return StatusCode(500, $"Error: {ex.Message}");
         }
     }
 
     // GET: Reports/ExportTable - Export individual table
-    public async Task<IActionResult> ExportTable(string tableName)
+    public async Task<IActionResult> ExportTable(string tableName, string? downloadToken = null)
     {
-        // Check if user is logged in via session
         var userRole = HttpContext.Session.GetString("UserRole");
         if (userRole != "Admin")
         {
@@ -2333,178 +2326,248 @@ namespace VoucherManagementSystem.Controllers
         try
         {
             using var workbook = new XLWorkbook();
-            var worksheet = workbook.Worksheets.Add(tableName);
 
-            var data = await GetTableData(tableName);
-            if (data.Count > 0)
+            switch (tableName)
             {
-                ExportDataToWorksheet(worksheet, data);
+                case "Banks":
+                    await ExportTableToWorkbook(workbook, "Banks", async () => await _context.Banks.AsNoTracking().ToListAsync());
+                    break;
+                case "Customers":
+                    await ExportTableToWorkbook(workbook, "Customers", async () => await _context.Customers.AsNoTracking().ToListAsync());
+                    break;
+                case "Items":
+                    await ExportTableToWorkbook(workbook, "Items", async () => await _context.Items.AsNoTracking().ToListAsync());
+                    break;
+                case "Projects":
+                    await ExportTableToWorkbook(workbook, "Projects", async () => await _context.Projects.AsNoTracking().ToListAsync());
+                    break;
+                case "ExpenseHeads":
+                    await ExportTableToWorkbook(workbook, "ExpenseHeads", async () => await _context.ExpenseHeads.AsNoTracking().ToListAsync());
+                    break;
+                case "CustomerItemRates":
+                    await ExportTableToWorkbook(workbook, "CustomerItemRates", async () => await _context.CustomerItemRates.AsNoTracking().ToListAsync());
+                    break;
+                case "MonMultipliers":
+                    await ExportTableToWorkbook(workbook, "MonMultipliers", async () => await _context.MonMultipliers.AsNoTracking().ToListAsync());
+                    break;
+                case "Users":
+                    await ExportTableToWorkbook(workbook, "Users", async () => await _context.Users.AsNoTracking().ToListAsync());
+                    break;
+                case "Vouchers":
+                    await ExportTableToWorkbook(workbook, "Vouchers", async () => await _context.Vouchers.IgnoreQueryFilters().AsNoTracking().ToListAsync());
+                    break;
+                case "ThemeSettings":
+                    await ExportTableToWorkbook(workbook, "ThemeSettings", async () => await _context.ThemeSettings.AsNoTracking().ToListAsync());
+                    break;
+                case "PageLocks":
+                    await ExportTableToWorkbook(workbook, "PageLocks", async () => await _context.PageLocks.AsNoTracking().ToListAsync());
+                    break;
+                case "MasterPasswords":
+                    await ExportTableToWorkbook(workbook, "MasterPasswords", async () => await _context.MasterPasswords.AsNoTracking().ToListAsync());
+                    break;
+                case "CashAdjustments":
+                    await ExportTableToWorkbook(workbook, "CashAdjustments", async () => await _context.CashAdjustments.AsNoTracking().ToListAsync());
+                    break;
+                default:
+                    return BadRequest("Unknown table");
             }
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);
             var fileName = $"{tableName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            SetDownloadCompleteCookie(downloadToken);
             return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error exporting table: {tableName}");
-            return StatusCode(500, "Error exporting table");
+            return StatusCode(500, $"Error: {ex.Message}");
         }
     }
 
-    // Helper methods to get data from each table
-    private async Task<List<dynamic>> GetBanksData() =>
-        (await _context.Banks.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetCashAdjustmentsData()
+    // Sets a short-lived cookie so the client-side loading overlay knows the download is ready
+    private void SetDownloadCompleteCookie(string? downloadToken)
     {
+        if (string.IsNullOrEmpty(downloadToken)) return;
+        Response.Cookies.Append("downloadToken", downloadToken, new CookieOptions
+        {
+            HttpOnly = false, // must be readable by JavaScript
+            Expires = DateTimeOffset.Now.AddMinutes(2),
+            Path = "/"
+        });
+    }
+
+    // Returns true if the property is a simple/scalar type we want to export
+    // (excludes navigation properties / collections, but keeps Nullable<T> like DateTime?, decimal?)
+    private static bool IsExportableProperty(PropertyInfo p)
+    {
+        var t = p.PropertyType;
+        // Unwrap Nullable<T> -> T
+        var underlying = Nullable.GetUnderlyingType(t) ?? t;
+
+        return underlying.IsPrimitive
+            || underlying.IsEnum
+            || underlying == typeof(string)
+            || underlying == typeof(decimal)
+            || underlying == typeof(DateTime)
+            || underlying == typeof(DateTimeOffset)
+            || underlying == typeof(TimeSpan)
+            || underlying == typeof(Guid);
+    }
+
+    private async Task ExportTableToWorkbook<T>(XLWorkbook workbook, string sheetName, Func<Task<List<T>>> getData)
+    {
+        List<T> data;
         try
         {
-            return (await _context.CashAdjustments.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+            data = await getData();
         }
-        catch { return new List<dynamic>(); }
-    }
-
-    private async Task<List<dynamic>> GetCustomerItemRatesData() =>
-        (await _context.CustomerItemRates.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetCustomersData() =>
-        (await _context.Customers.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetExpenseHeadsData() =>
-        (await _context.ExpenseHeads.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetItemsData() =>
-        (await _context.Items.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetMasterPasswordsData() =>
-        (await _context.MasterPasswords.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetMonMultipliersData() =>
-        (await _context.MonMultipliers.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetPageLocksData() =>
-        (await _context.PageLocks.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetProjectsData() =>
-        (await _context.Projects.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetThemeSettingsData() =>
-        (await _context.ThemeSettings.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetUsersData() =>
-        (await _context.Users.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetVouchersData() =>
-        (await _context.Vouchers.IgnoreQueryFilters().AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
-
-    private async Task<List<dynamic>> GetTableData(string tableName)
-    {
-        return tableName switch
+        catch (Exception ex)
         {
-            "Banks" => await GetBanksData(),
-            "CashAdjustments" => await GetCashAdjustmentsData(),
-            "CustomerItemRates" => await GetCustomerItemRatesData(),
-            "Customers" => await GetCustomersData(),
-            "ExpenseHeads" => await GetExpenseHeadsData(),
-            "Items" => await GetItemsData(),
-            "MasterPasswords" => await GetMasterPasswordsData(),
-            "MonMultipliers" => await GetMonMultipliersData(),
-            "PageLocks" => await GetPageLocksData(),
-            "Projects" => await GetProjectsData(),
-            "ThemeSettings" => await GetThemeSettingsData(),
-            "Users" => await GetUsersData(),
-            "Vouchers" => await GetVouchersData(),
-            _ => new List<dynamic>()
-        };
-    }
+            _logger.LogWarning(ex, $"Skipping table {sheetName} - could not load data");
+            return;
+        }
 
-    private void ExportDataToWorksheet(IXLWorksheet worksheet, List<dynamic> data)
-    {
-        if (data.Count == 0) return;
+        var worksheet = workbook.Worksheets.Add(sheetName);
 
-        // Get properties from first item using reflection
-        var firstItem = data[0];
-        var properties = firstItem.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
+        // Get exportable scalar properties (INSTANCE + PUBLIC are both required)
+        var props = typeof(T)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(IsExportableProperty)
+            .ToList();
 
-        if (properties.Length == 0) return;
-
-        // Add headers
-        var columnIndex = 1;
-        var propertyNames = new List<string>();
-        foreach (var prop in properties)
+        // Headers
+        for (int i = 0; i < props.Count; i++)
         {
-            // Skip navigation properties and complex types
-            if (prop.PropertyType.IsGenericType || (prop.PropertyType.Namespace != null && prop.PropertyType.Namespace.StartsWith("System")))
+            var cell = worksheet.Cell(1, i + 1);
+            cell.Value = props[i].Name;
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = XLColor.LightGray;
+        }
+
+        // Data rows
+        for (int row = 0; row < data.Count; row++)
+        {
+            for (int col = 0; col < props.Count; col++)
             {
-                if (prop.PropertyType.Namespace == "System" || prop.PropertyType.Namespace.StartsWith("System."))
-                {
-                    worksheet.Cell(1, columnIndex).Value = prop.Name;
-                    worksheet.Cell(1, columnIndex).Style.Font.Bold = true;
-                    worksheet.Cell(1, columnIndex).Style.Fill.BackgroundColor = XLColor.LightGray;
-                    propertyNames.Add(prop.Name);
-                    columnIndex++;
-                }
-            }
-            else if (!prop.PropertyType.IsClass || prop.PropertyType == typeof(string))
-            {
-                worksheet.Cell(1, columnIndex).Value = prop.Name;
-                worksheet.Cell(1, columnIndex).Style.Font.Bold = true;
-                worksheet.Cell(1, columnIndex).Style.Fill.BackgroundColor = XLColor.LightGray;
-                propertyNames.Add(prop.Name);
-                columnIndex++;
+                var value = props[col].GetValue(data[row]);
+                SetCellValue(worksheet.Cell(row + 2, col + 1), value);
             }
         }
 
-        // Add data
-        var rowIndex = 2;
-        foreach (var item in data)
+        // Freeze header row and add autofilter
+        worksheet.SheetView.FreezeRows(1);
+        if (data.Count > 0)
         {
-            columnIndex = 1;
-            foreach (var propName in propertyNames)
-            {
-                var prop = firstItem.GetType().GetProperty(propName);
-                if (prop != null)
-                {
-                    var value = prop.GetValue(item);
-                    if (value != null)
-                    {
-                        worksheet.Cell(rowIndex, columnIndex).Value = value.ToString();
-                    }
-                    else
-                    {
-                        worksheet.Cell(rowIndex, columnIndex).Value = string.Empty;
-                    }
-                }
-                columnIndex++;
-            }
-            rowIndex++;
+            worksheet.Range(1, 1, data.Count + 1, props.Count).SetAutoFilter();
         }
-
-        // Auto-fit columns
         worksheet.Columns().AdjustToContents();
     }
 
-    private async Task<string> GenerateSQLBackup()
+    // Set a cell value with the correct native Excel type (so numbers/dates sort correctly)
+    private static void SetCellValue(IXLCell cell, object? value)
     {
-        var sql = new StringBuilder();
-        sql.AppendLine("-- Database Backup Generated: " + DateTime.Now);
-        sql.AppendLine("-- All Tables Backup");
-        sql.AppendLine("-- Note: Use the Excel export for a full database backup");
-        sql.AppendLine();
-        sql.AppendLine("-- This SQL file is a placeholder. The database is best backed up using:");
-        sql.AppendLine("-- 1. The Excel export (recommended) - All data with all columns");
-        sql.AppendLine("-- 2. SQL Server backup tools");
-        sql.AppendLine("-- 3. Entity Framework Core migrations");
-        sql.AppendLine();
+        if (value == null)
+        {
+            cell.Value = "";
+            return;
+        }
 
-        return sql.ToString();
+        switch (value)
+        {
+            case bool b:
+                cell.Value = b;
+                break;
+            case DateTime dt:
+                cell.Value = dt;
+                cell.Style.DateFormat.Format = "yyyy-mm-dd HH:mm:ss";
+                break;
+            case int or long or short or byte:
+                cell.Value = Convert.ToDouble(value);
+                break;
+            case decimal or double or float:
+                cell.Value = Convert.ToDouble(value);
+                break;
+            default:
+                cell.Value = value.ToString();
+                break;
+        }
     }
 
-    private string EscapeSql(string value)
+    // Generate real SQL INSERT statements for the whole database
+    private async Task<string> GenerateSqlBackup()
     {
-        return value?.Replace("'", "''") ?? "";
+        var sb = new StringBuilder();
+        sb.AppendLine("-- ============================================");
+        sb.AppendLine($"-- Database Backup (SQL INSERT statements)");
+        sb.AppendLine($"-- Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        sb.AppendLine("-- ============================================");
+        sb.AppendLine();
+
+        await AppendTableInserts(sb, "Banks", await _context.Banks.AsNoTracking().ToListAsync());
+        await AppendTableInserts(sb, "Customers", await _context.Customers.AsNoTracking().ToListAsync());
+        await AppendTableInserts(sb, "Items", await _context.Items.AsNoTracking().ToListAsync());
+        await AppendTableInserts(sb, "Projects", await _context.Projects.AsNoTracking().ToListAsync());
+        await AppendTableInserts(sb, "ExpenseHeads", await _context.ExpenseHeads.AsNoTracking().ToListAsync());
+        await AppendTableInserts(sb, "CustomerItemRates", await _context.CustomerItemRates.AsNoTracking().ToListAsync());
+        await AppendTableInserts(sb, "MonMultipliers", await _context.MonMultipliers.AsNoTracking().ToListAsync());
+        await AppendTableInserts(sb, "Users", await _context.Users.AsNoTracking().ToListAsync());
+        await AppendTableInserts(sb, "Vouchers", await _context.Vouchers.IgnoreQueryFilters().AsNoTracking().ToListAsync());
+        await AppendTableInserts(sb, "ThemeSettings", await _context.ThemeSettings.AsNoTracking().ToListAsync());
+        await AppendTableInserts(sb, "PageLocks", await _context.PageLocks.AsNoTracking().ToListAsync());
+        await AppendTableInserts(sb, "MasterPasswords", await _context.MasterPasswords.AsNoTracking().ToListAsync());
+        try
+        {
+            await AppendTableInserts(sb, "CashAdjustments", await _context.CashAdjustments.AsNoTracking().ToListAsync());
+        }
+        catch { /* table may not exist yet */ }
+
+        return sb.ToString();
+    }
+
+    private Task AppendTableInserts<T>(StringBuilder sb, string tableName, List<T> rows)
+    {
+        sb.AppendLine($"-- Table: {tableName} ({rows.Count} rows)");
+
+        if (rows.Count == 0)
+        {
+            sb.AppendLine($"-- (no data)");
+            sb.AppendLine();
+            return Task.CompletedTask;
+        }
+
+        var props = typeof(T)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(IsExportableProperty)
+            .ToList();
+
+        var columnList = string.Join(", ", props.Select(p => $"\"{p.Name}\""));
+
+        foreach (var row in rows)
+        {
+            var values = props.Select(p => FormatSqlValue(p.GetValue(row)));
+            sb.AppendLine($"INSERT INTO \"{tableName}\" ({columnList}) VALUES ({string.Join(", ", values)});");
+        }
+        sb.AppendLine();
+        return Task.CompletedTask;
+    }
+
+    private static string FormatSqlValue(object? value)
+    {
+        if (value == null) return "NULL";
+
+        switch (value)
+        {
+            case bool b:
+                return b ? "TRUE" : "FALSE";
+            case DateTime dt:
+                return $"'{dt:yyyy-MM-dd HH:mm:ss}'";
+            case int or long or short or byte or decimal or double or float:
+                return Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? "NULL";
+            default:
+                // Strings and enums: escape single quotes
+                return $"'{value.ToString()?.Replace("'", "''")}'";
+        }
     }
 }
 

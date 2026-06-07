@@ -1,0 +1,269 @@
+@{
+    ViewData["Title"] = "Database Backup & Export";
+}
+
+<!-- Loading Overlay -->
+<div id="backupLoadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
+    <div class="text-center text-white">
+        <div class="spinner-border text-light" style="width:4rem; height:4rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h4 class="mt-3" id="backupLoadingText">Preparing your backup file...</h4>
+        <p class="mb-0">Please wait, your download will start automatically.</p>
+    </div>
+</div>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2><i class="bi bi-cloud-download"></i> Database Backup & Export</h2>
+            <p class="text-muted">Download all or individual database tables with complete data</p>
+        </div>
+    </div>
+
+    <div class="row mt-4 g-3">
+        <!-- Full Database Backup -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-database"></i> Complete Database Backup</h5>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <p class="text-muted flex-grow-1">Export all 12 database tables in a single file with all columns and data</p>
+                    <form asp-action="ExportAllData" method="get" class="w-100">
+                        <input type="hidden" name="format" value="excel" />
+                        <button type="submit" class="btn btn-success w-100 mb-2">
+                            <i class="bi bi-file-earmark-excel"></i> Download All Tables (Excel)
+                        </button>
+                    </form>
+                    <form asp-action="ExportAllData" method="get" class="w-100">
+                        <input type="hidden" name="format" value="sql" />
+                        <button type="submit" class="btn btn-info w-100">
+                            <i class="bi bi-file-earmark-code"></i> Download All Tables (SQL)
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Individual Tables -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Export Individual Tables</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="Banks" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-bank"></i> Banks
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="Customers" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-people"></i> Customers
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="Items" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-box"></i> Items
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="Projects" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-diagram-3"></i> Projects
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="ExpenseHeads" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-receipt"></i> Exp. Heads
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="CustomerItemRates" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-tag"></i> Item Rates
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="MonMultipliers" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-calculator"></i> Mon Mult.
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="Users" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-person"></i> Users
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="Vouchers" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-receipt"></i> Vouchers
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="ThemeSettings" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-palette"></i> Theme
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="PageLocks" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-lock"></i> Page Locks
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="MasterPasswords" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-shield-key"></i> Passwords
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-6">
+                            <form asp-action="ExportTable" method="get" class="d-inline-block w-100">
+                                <input type="hidden" name="tableName" value="CashAdjustments" />
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-cash"></i> Cash Adj.
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Backup Information</h6>
+                <ul class="mb-0">
+                    <li><strong>Complete Data:</strong> All rows and columns from each table are included</li>
+                    <li><strong>Excel Format:</strong> Recommended for easy viewing and analysis</li>
+                    <li><strong>Timestamped Files:</strong> Each export is automatically dated for version control</li>
+                    <li><strong>Admin Only:</strong> Only administrators can access this feature</li>
+                    <li><strong>Individual Tables:</strong> Download specific tables for targeted backups</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Reports
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var overlay = document.getElementById('backupLoadingOverlay');
+            var loadingText = document.getElementById('backupLoadingText');
+            var pollTimer = null;
+            var safetyTimer = null;
+
+            function showOverlay(message) {
+                if (message) loadingText.textContent = message;
+                overlay.style.display = 'flex';
+            }
+
+            function hideOverlay() {
+                overlay.style.display = 'none';
+                if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+                if (safetyTimer) { clearTimeout(safetyTimer); safetyTimer = null; }
+                // Re-enable any disabled buttons
+                document.querySelectorAll('#backupLoadingOverlay ~ .container-fluid button[disabled]')
+                    .forEach(function (b) { b.disabled = false; });
+            }
+
+            // Read a cookie value by name
+            function getCookie(name) {
+                var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+                return match ? match[2] : null;
+            }
+
+            // Delete a cookie
+            function deleteCookie(name) {
+                document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+            }
+
+            // Attach to every export form on the page
+            document.querySelectorAll('form[action*="ExportAllData"], form[action*="ExportTable"]').forEach(function (form) {
+                form.addEventListener('submit', function () {
+                    // Build a friendly message based on what is being downloaded
+                    var msg = 'Preparing your backup file...';
+                    var tableInput = form.querySelector('input[name="tableName"]');
+                    var formatInput = form.querySelector('input[name="format"]');
+                    if (tableInput) {
+                        msg = 'Exporting "' + tableInput.value + '" table...';
+                    } else if (formatInput && formatInput.value === 'sql') {
+                        msg = 'Generating SQL backup of all tables...';
+                    } else {
+                        msg = 'Exporting all database tables to Excel...';
+                    }
+
+                    showOverlay(msg);
+
+                    // Set a unique download token so the server can signal completion
+                    var token = 'dl_' + Date.now();
+                    var tokenField = document.createElement('input');
+                    tokenField.type = 'hidden';
+                    tokenField.name = 'downloadToken';
+                    tokenField.value = token;
+                    form.appendChild(tokenField);
+
+                    // Poll for the completion cookie the server sets when the file is ready
+                    deleteCookie('downloadToken');
+                    pollTimer = setInterval(function () {
+                        if (getCookie('downloadToken') === token) {
+                            deleteCookie('downloadToken');
+                            hideOverlay();
+                        }
+                    }, 500);
+
+                    // Safety fallback: always hide after 60s even if cookie never arrives
+                    safetyTimer = setTimeout(hideOverlay, 60000);
+                });
+            });
+
+            // Hide overlay if user navigates back to the page (bfcache restore)
+            window.addEventListener('pageshow', function () { hideOverlay(); });
+        })();
+    </script>
+}
