@@ -98,9 +98,10 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-3">
-        <div class="card mb-3">
+<!-- First Row: 5 Main Reports -->
+<div class="row row-cols-5 g-3 mb-4">
+    <div class="col">
+        <div class="card h-100 mb-0">
             <div class="card-header bg-primary text-white">
                 <h5><i class="bi bi-bar-chart"></i> Project Profit & Loss Report</h5>
             </div>
@@ -130,8 +131,8 @@
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card mb-3">
+    <div class="col">
+        <div class="card h-100 mb-0">
             <div class="card-header bg-success text-white">
                 <h5><i class="bi bi-bank"></i> Bank Statement</h5>
             </div>
@@ -161,8 +162,8 @@
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card mb-3">
+    <div class="col">
+        <div class="card h-100 mb-0">
             <div class="card-header bg-success text-white">
                 <h5><i class="bi bi-cash-stack"></i> Cash Flow</h5>
             </div>
@@ -179,8 +180,8 @@
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card mb-3">
+    <div class="col">
+        <div class="card h-100 mb-0">
             <div class="card-header bg-info text-white">
                 <h5><i class="bi bi-box-seam"></i> Stock Report</h5>
             </div>
@@ -195,7 +196,10 @@
                 </form>
             </div>
         </div>
-        <div class="card mb-3">
+    </div>
+
+    <div class="col">
+        <div class="card h-100 mb-0">
             <div class="card-header bg-primary text-white">
                 <h5><i class="bi bi-box-arrow-in-down"></i> Stock Track Report</h5>
             </div>
@@ -213,9 +217,10 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-3">
-        <div class="card mb-3">
+<!-- Second Row: 5 Additional Reports -->
+<div class="row row-cols-5 g-3 mb-4">
+    <div class="col">
+        <div class="card h-100 mb-0">
             <div class="card-header text-white" style="background:#1a1a2e;">
                 <h5><i class="bi bi-journal-text"></i> کھاتا تفصیل (Urdu Khata)</h5>
             </div>
@@ -227,8 +232,8 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card mb-3">
+    <div class="col">
+        <div class="card h-100 mb-0">
             <div class="card-header bg-danger text-white">
                 <h5><i class="bi bi-person-lines-fill"></i> Customer Ledger</h5>
             </div>
@@ -240,8 +245,8 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card mb-3">
+    <div class="col">
+        <div class="card h-100 mb-0">
             <div class="card-header bg-success text-white">
                 <h5><i class="bi bi-cash-coin"></i> Advanced Payment Report</h5>
             </div>
@@ -253,8 +258,8 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card mb-3">
+    <div class="col">
+        <div class="card h-100 mb-0">
             <div class="card-header bg-warning text-dark">
                 <h5><i class="bi bi-journal-text"></i> Daily Cash Book</h5>
             </div>
@@ -270,8 +275,8 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card mb-3">
+    <div class="col">
+        <div class="card h-100 mb-0">
             <div class="card-header bg-dark text-white">
                 <h5><i class="bi bi-clock-history"></i> Activity Log</h5>
             </div>
@@ -322,6 +327,42 @@
         </div>
     </div>
 </div>
+
+@section Styles {
+    <style>
+        /* Report cards with sticky buttons at bottom */
+        .row-cols-5 .card {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .row-cols-5 .card-body {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            padding-bottom: 1rem;
+        }
+
+        .row-cols-5 .card-body p {
+            flex-grow: 1;
+            margin-bottom: 1rem;
+        }
+
+        .row-cols-5 .card-body form {
+            display: flex;
+            flex-direction: column;
+            margin-top: auto;
+        }
+
+        .row-cols-5 .card-body .btn {
+            margin-top: auto;
+        }
+
+        .row-cols-5 .card-body a.btn {
+            margin-top: auto;
+        }
+    </style>
+}
 
 @section Scripts {
     <script>
