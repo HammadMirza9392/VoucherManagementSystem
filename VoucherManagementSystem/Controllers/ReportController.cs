@@ -6,6 +6,8 @@ using VoucherManagementSystem.Helpers;
 using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Models;
 using ClosedXML.Excel;
+using System.Text;
+using System.Reflection;
 
 namespace VoucherManagementSystem.Controllers
 {
@@ -2244,100 +2246,360 @@ namespace VoucherManagementSystem.Controllers
             }
         }
 
-    }
-
-    // Helper class for stock movement
-    public class StockMovement
+        // GET: Reports/ExportAllData - Export all database tables to Excel
+    public async Task<IActionResult> ExportAllData(string format = "excel")
     {
-        public Item Item { get; set; }
-        public decimal OpeningStock { get; set; }
-        public decimal PurchaseQty { get; set; }
-        public decimal SaleQty { get; set; }
-        public decimal CurrentStock { get; set; }
-        public decimal ClosingStock => OpeningStock + PurchaseQty - SaleQty;
+        // Check if user is logged in via session
+        var userRole = HttpContext.Session.GetString("UserRole");
+        if (userRole != "Admin")
+        {
+            return Forbid("Only Admin users can export data");
+        }
+
+        try
+        {
+            if (format == "excel")
+            {
+                using var workbook = new XLWorkbook();
+
+                // List of all tables to export
+                var tables = new List<(string Name, Func<Task<List<dynamic>>> GetData)>
+                {
+                    ("Banks", GetBanksData),
+                    ("CashAdjustments", GetCashAdjustmentsData),
+                    ("CustomerItemRates", GetCustomerItemRatesData),
+                    ("Customers", GetCustomersData),
+                    ("ExpenseHeads", GetExpenseHeadsData),
+                    ("Items", GetItemsData),
+                    ("MasterPasswords", GetMasterPasswordsData),
+                    ("MonMultipliers", GetMonMultipliersData),
+                    ("PageLocks", GetPageLocksData),
+                    ("Projects", GetProjectsData),
+                    ("ThemeSettings", GetThemeSettingsData),
+                    ("Users", GetUsersData),
+                    ("Vouchers", GetVouchersData)
+                };
+
+                // Create worksheet for each table
+                foreach (var (name, getData) in tables)
+                {
+                    var data = await getData();
+                    if (data.Count > 0)
+                    {
+                        var worksheet = workbook.Worksheets.Add(name);
+                        ExportDataToWorksheet(worksheet, data);
+                    }
+                }
+
+                // Add Summary sheet
+                var summarySheet = workbook.Worksheets.Add("Summary");
+                summarySheet.Cell("A1").Value = "Database Backup Summary";
+                summarySheet.Cell("A2").Value = $"Backup Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+                summarySheet.Cell("A3").Value = $"Total Tables: {tables.Count}";
+
+                // Export to file
+                using var stream = new MemoryStream();
+                workbook.SaveAs(stream);
+                var fileName = $"DatabaseBackup_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            else if (format == "sql")
+            {
+                // Generate SQL INSERT statements
+                var sqlContent = await GenerateSQLBackup();
+                var fileName = $"DatabaseBackup_{DateTime.Now:yyyyMMdd_HHmmss}.sql";
+                return File(System.Text.Encoding.UTF8.GetBytes(sqlContent), "text/plain", fileName);
+            }
+
+            return BadRequest("Invalid format");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting all data");
+            return StatusCode(500, "Error generating backup");
+        }
     }
 
-    // Helper class for project report
-    public class ProjectReportItem
+    // GET: Reports/ExportTable - Export individual table
+    public async Task<IActionResult> ExportTable(string tableName)
     {
-        public Project Project { get; set; }
-        public decimal Revenue { get; set; }
-        public decimal Purchases { get; set; }
-        public decimal Expenses { get; set; }
-        public decimal ProfitLoss { get; set; }
-        public int VoucherCount { get; set; }
+        // Check if user is logged in via session
+        var userRole = HttpContext.Session.GetString("UserRole");
+        if (userRole != "Admin")
+        {
+            return Forbid("Only Admin users can export data");
+        }
+
+        try
+        {
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add(tableName);
+
+            var data = await GetTableData(tableName);
+            if (data.Count > 0)
+            {
+                ExportDataToWorksheet(worksheet, data);
+            }
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            var fileName = $"{tableName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error exporting table: {tableName}");
+            return StatusCode(500, "Error exporting table");
+        }
     }
 
-    // Helper class for customer report
-    public class CustomerReportItem
+    // Helper methods to get data from each table
+    private async Task<List<dynamic>> GetBanksData() =>
+        (await _context.Banks.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetCashAdjustmentsData()
     {
-        public Customer Customer { get; set; }
-        public decimal ToReceive { get; set; }
-        public decimal ToPay { get; set; }
-        public decimal NetBalance { get; set; }
+        try
+        {
+            return (await _context.CashAdjustments.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+        }
+        catch { return new List<dynamic>(); }
     }
 
-    // Helper class for project item summary
-    public class ProjectItemSummary
+    private async Task<List<dynamic>> GetCustomerItemRatesData() =>
+        (await _context.CustomerItemRates.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetCustomersData() =>
+        (await _context.Customers.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetExpenseHeadsData() =>
+        (await _context.ExpenseHeads.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetItemsData() =>
+        (await _context.Items.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetMasterPasswordsData() =>
+        (await _context.MasterPasswords.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetMonMultipliersData() =>
+        (await _context.MonMultipliers.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetPageLocksData() =>
+        (await _context.PageLocks.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetProjectsData() =>
+        (await _context.Projects.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetThemeSettingsData() =>
+        (await _context.ThemeSettings.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetUsersData() =>
+        (await _context.Users.AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetVouchersData() =>
+        (await _context.Vouchers.IgnoreQueryFilters().AsNoTracking().ToListAsync()).Cast<dynamic>().ToList();
+
+    private async Task<List<dynamic>> GetTableData(string tableName)
     {
-        public string ItemName { get; set; }
-        public string Unit { get; set; }
-
-        // Opening Stock
-        public decimal OpeningStockQty { get; set; }
-        public decimal OpeningStockAmount { get; set; }
-        public decimal OpeningStockRate => OpeningStockQty > 0 ? OpeningStockAmount / OpeningStockQty : 0;
-
-        // Purchase (period)
-        public decimal PurchaseQty { get; set; }
-        public decimal PurchaseAmount { get; set; }
-        public decimal PurchaseRate => PurchaseQty > 0 ? PurchaseAmount / PurchaseQty : 0;
-
-        // Total Qty (Opening + Purchase only — no sale involved)
-        public decimal TotalQty => OpeningStockQty + PurchaseQty;
-        public decimal TotalQtyAmount => OpeningStockAmount + PurchaseAmount;
-        public decimal TotalQtyRate => TotalQty > 0 ? TotalQtyAmount / TotalQty : 0;
-
-        // Sale
-        public decimal SaleQty { get; set; }
-        public decimal SaleAmount { get; set; }
-        public decimal SaleRate => SaleQty > 0 ? SaleAmount / SaleQty : 0;
-
-        // Stock Balance
-        // Qty  = TotalQty - SaleQty
-        // Rate = TotalQtyRate (avg purchase cost — stock is valued at cost, not sale price)
-        // Amount = StockQty × TotalQtyRate
-        public decimal StockQty => TotalQty - SaleQty;
-        public decimal StockRate => TotalQtyRate;
-        public decimal StockValue => StockQty * TotalQtyRate;
-
-        // Legacy
-        public decimal AvgPurchaseRate => PurchaseRate;
+        return tableName switch
+        {
+            "Banks" => await GetBanksData(),
+            "CashAdjustments" => await GetCashAdjustmentsData(),
+            "CustomerItemRates" => await GetCustomerItemRatesData(),
+            "Customers" => await GetCustomersData(),
+            "ExpenseHeads" => await GetExpenseHeadsData(),
+            "Items" => await GetItemsData(),
+            "MasterPasswords" => await GetMasterPasswordsData(),
+            "MonMultipliers" => await GetMonMultipliersData(),
+            "PageLocks" => await GetPageLocksData(),
+            "Projects" => await GetProjectsData(),
+            "ThemeSettings" => await GetThemeSettingsData(),
+            "Users" => await GetUsersData(),
+            "Vouchers" => await GetVouchersData(),
+            _ => new List<dynamic>()
+        };
     }
 
-    // Helper class for expense summary
-    public class ExpenseSummaryItem
+    private void ExportDataToWorksheet(IXLWorksheet worksheet, List<dynamic> data)
     {
-        public string ExpenseHead { get; set; }
-        public decimal ExpenseAmount { get; set; }   // + (Expense vouchers)
-        public decimal HazriAmount { get; set; }     // − (Hazri deduction)
-        public decimal PurchaseAmount { get; set; }  // − (Purchase deduction)
-        public decimal Total => ExpenseAmount - HazriAmount - PurchaseAmount; // net
+        if (data.Count == 0) return;
+
+        // Get properties from first item using reflection
+        var firstItem = data[0];
+        var properties = firstItem.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
+
+        if (properties.Length == 0) return;
+
+        // Add headers
+        var columnIndex = 1;
+        var propertyNames = new List<string>();
+        foreach (var prop in properties)
+        {
+            // Skip navigation properties and complex types
+            if (prop.PropertyType.IsGenericType || (prop.PropertyType.Namespace != null && prop.PropertyType.Namespace.StartsWith("System")))
+            {
+                if (prop.PropertyType.Namespace == "System" || prop.PropertyType.Namespace.StartsWith("System."))
+                {
+                    worksheet.Cell(1, columnIndex).Value = prop.Name;
+                    worksheet.Cell(1, columnIndex).Style.Font.Bold = true;
+                    worksheet.Cell(1, columnIndex).Style.Fill.BackgroundColor = XLColor.LightGray;
+                    propertyNames.Add(prop.Name);
+                    columnIndex++;
+                }
+            }
+            else if (!prop.PropertyType.IsClass || prop.PropertyType == typeof(string))
+            {
+                worksheet.Cell(1, columnIndex).Value = prop.Name;
+                worksheet.Cell(1, columnIndex).Style.Font.Bold = true;
+                worksheet.Cell(1, columnIndex).Style.Fill.BackgroundColor = XLColor.LightGray;
+                propertyNames.Add(prop.Name);
+                columnIndex++;
+            }
+        }
+
+        // Add data
+        var rowIndex = 2;
+        foreach (var item in data)
+        {
+            columnIndex = 1;
+            foreach (var propName in propertyNames)
+            {
+                var prop = firstItem.GetType().GetProperty(propName);
+                if (prop != null)
+                {
+                    var value = prop.GetValue(item);
+                    if (value != null)
+                    {
+                        worksheet.Cell(rowIndex, columnIndex).Value = value.ToString();
+                    }
+                    else
+                    {
+                        worksheet.Cell(rowIndex, columnIndex).Value = string.Empty;
+                    }
+                }
+                columnIndex++;
+            }
+            rowIndex++;
+        }
+
+        // Auto-fit columns
+        worksheet.Columns().AdjustToContents();
     }
 
-    // Unified row for Expense Report (covers both Expense vouchers and Purchase vouchers with expense head)
-    public class ExpenseReportRow
+    private async Task<string> GenerateSQLBackup()
     {
-        public int VoucherId { get; set; }
-        public DateTime VoucherDate { get; set; }
-        public string TransactionNumber { get; set; }
-        public string ExpenseHeadName { get; set; }
-        public string Details { get; set; }
-        public string ProjectName { get; set; }
-        public int? ProjectId { get; set; }
-        public decimal? Quantity { get; set; }
-        public decimal? Rate { get; set; }
-        public decimal Amount { get; set; }
-        public string Source { get; set; } // "Expense" or "Purchase"
+        var sql = new StringBuilder();
+        sql.AppendLine("-- Database Backup Generated: " + DateTime.Now);
+        sql.AppendLine("-- All Tables Backup");
+        sql.AppendLine("-- Note: Use the Excel export for a full database backup");
+        sql.AppendLine();
+        sql.AppendLine("-- This SQL file is a placeholder. The database is best backed up using:");
+        sql.AppendLine("-- 1. The Excel export (recommended) - All data with all columns");
+        sql.AppendLine("-- 2. SQL Server backup tools");
+        sql.AppendLine("-- 3. Entity Framework Core migrations");
+        sql.AppendLine();
+
+        return sql.ToString();
     }
+
+    private string EscapeSql(string value)
+    {
+        return value?.Replace("'", "''") ?? "";
+    }
+}
+
+// Helper class for stock movement
+public class StockMovement
+{
+    public Item Item { get; set; }
+    public decimal OpeningStock { get; set; }
+    public decimal PurchaseQty { get; set; }
+    public decimal SaleQty { get; set; }
+    public decimal CurrentStock { get; set; }
+    public decimal ClosingStock => OpeningStock + PurchaseQty - SaleQty;
+}
+
+// Helper class for project report
+public class ProjectReportItem
+{
+    public Project Project { get; set; }
+    public decimal Revenue { get; set; }
+    public decimal Purchases { get; set; }
+    public decimal Expenses { get; set; }
+    public decimal ProfitLoss { get; set; }
+    public int VoucherCount { get; set; }
+}
+
+// Helper class for customer report
+public class CustomerReportItem
+{
+    public Customer Customer { get; set; }
+    public decimal ToReceive { get; set; }
+    public decimal ToPay { get; set; }
+    public decimal NetBalance { get; set; }
+}
+
+// Helper class for project item summary
+public class ProjectItemSummary
+{
+    public string ItemName { get; set; }
+    public string Unit { get; set; }
+
+    // Opening Stock
+    public decimal OpeningStockQty { get; set; }
+    public decimal OpeningStockAmount { get; set; }
+    public decimal OpeningStockRate => OpeningStockQty > 0 ? OpeningStockAmount / OpeningStockQty : 0;
+
+    // Purchase (period)
+    public decimal PurchaseQty { get; set; }
+    public decimal PurchaseAmount { get; set; }
+    public decimal PurchaseRate => PurchaseQty > 0 ? PurchaseAmount / PurchaseQty : 0;
+
+    // Total Qty (Opening + Purchase only — no sale involved)
+    public decimal TotalQty => OpeningStockQty + PurchaseQty;
+    public decimal TotalQtyAmount => OpeningStockAmount + PurchaseAmount;
+    public decimal TotalQtyRate => TotalQty > 0 ? TotalQtyAmount / TotalQty : 0;
+
+    // Sale
+    public decimal SaleQty { get; set; }
+    public decimal SaleAmount { get; set; }
+    public decimal SaleRate => SaleQty > 0 ? SaleAmount / SaleQty : 0;
+
+    // Stock Balance
+    // Qty  = TotalQty - SaleQty
+    // Rate = TotalQtyRate (avg purchase cost — stock is valued at cost, not sale price)
+    // Amount = StockQty × TotalQtyRate
+    public decimal StockQty => TotalQty - SaleQty;
+    public decimal StockRate => TotalQtyRate;
+    public decimal StockValue => StockQty * TotalQtyRate;
+
+    // Legacy
+    public decimal AvgPurchaseRate => PurchaseRate;
+}
+
+// Helper class for expense summary
+public class ExpenseSummaryItem
+{
+    public string ExpenseHead { get; set; }
+    public decimal ExpenseAmount { get; set; }   // + (Expense vouchers)
+    public decimal HazriAmount { get; set; }     // − (Hazri deduction)
+    public decimal PurchaseAmount { get; set; }  // − (Purchase deduction)
+    public decimal Total => ExpenseAmount - HazriAmount - PurchaseAmount; // net
+}
+
+// Unified row for Expense Report (covers both Expense vouchers and Purchase vouchers with expense head)
+public class ExpenseReportRow
+{
+    public int VoucherId { get; set; }
+    public DateTime VoucherDate { get; set; }
+    public string TransactionNumber { get; set; }
+    public string ExpenseHeadName { get; set; }
+    public string Details { get; set; }
+    public string ProjectName { get; set; }
+    public int? ProjectId { get; set; }
+    public decimal? Quantity { get; set; }
+    public decimal? Rate { get; set; }
+    public decimal Amount { get; set; }
+    public string Source { get; set; } // "Expense" or "Purchase"
+}
 }

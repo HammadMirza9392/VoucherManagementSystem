@@ -46,9 +46,25 @@
                     <div class="col-md-6">
                         <div class="card bg-info text-white">
                             <div class="card-body text-center">
-                                <h6>Current Balance</h6>
-                                @{ decimal cb = bank?.Balance ?? 0; }
-                                <h4 class="mb-0">@(cb < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(cb))</h4>
+                                <h6>Closing Balance</h6>
+                                @{
+                                    decimal openingBal = ViewBag.OpeningBalance ?? 0;
+                                    decimal cardTotalCredit = 0;
+                                    decimal cardTotalDebit = 0;
+                                    if (ViewBag.Transactions != null)
+                                    {
+                                        var cardTransactions = ViewBag.Transactions as IEnumerable<VoucherManagementSystem.Models.Voucher>;
+                                        foreach (var t in cardTransactions)
+                                        {
+                                            if (t.BankCustomerReceiverId == bank?.Id)
+                                                cardTotalCredit += t.Amount;
+                                            if (t.BankCustomerPaidId == bank?.Id)
+                                                cardTotalDebit += t.Amount;
+                                        }
+                                    }
+                                    decimal closingBal = openingBal + cardTotalCredit - cardTotalDebit;
+                                }
+                                <h4 class="mb-0">@(closingBal < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(closingBal))</h4>
                             </div>
                         </div>
                     </div>
@@ -222,12 +238,6 @@
                             }
                         </th>
                         <th class="text-end fw-bold py-3 @(closingBalance >= 0 ? "text-success" : "text-danger")">@(closingBalance < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(closingBalance))</th>
-                    </tr>
-                    <tr class="table-info" style="font-size: 15px;">
-                        <th colspan="4" class="fw-bold py-3">CURRENT BANK BALANCE:</th>
-                        <th colspan="2" class="text-end"></th>
-                        @{ decimal bankBal = bank?.Balance ?? 0; }
-                        <th class="text-end fw-bold py-3 text-primary">@(bankBal < 0 ? "-" : "")Rs. @string.Format("{0:N0}", Math.Abs(bankBal))</th>
                     </tr>
                 </tfoot>
             </table>

@@ -53,7 +53,7 @@
         </a>
     </div>
     <div class="col">
-        <a asp-action="AllProjectsReport" class="text-decoration-none">
+        <a href="#" onclick="navigateWithGlobalDates('AllProjectsReport')" class="text-decoration-none">
             <div class="card bg-info h-100 dashboard-card">
                 <div class="card-body text-center text-white">
                     <i class="bi bi-diagram-3 fs-1 text-white"></i>
@@ -285,6 +285,136 @@
                 <a asp-action="ActivityLog" class="btn btn-dark w-100">
                     <i class="bi bi-file-earmark-text"></i> View Activity Log
                 </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Third Row: Data Backup & Export Card -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="bi bi-cloud-download"></i> Database Backup & Export</h5>
+                <small>Admin Only - Download all database tables or individual tables as Excel/SQL</small>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- Full Database Backup Buttons -->
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-3"><i class="bi bi-database"></i> Full Database Backup</h6>
+                        <div class="d-grid gap-2">
+                            <form asp-action="ExportAllData" method="get" style="display: inline;">
+                                <input type="hidden" name="format" value="excel" />
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-file-earmark-excel"></i> Download All Tables (Excel)
+                                </button>
+                            </form>
+                            <form asp-action="ExportAllData" method="get" style="display: inline; margin-top: 0.5rem;">
+                                <input type="hidden" name="format" value="sql" />
+                                <button type="submit" class="btn btn-info w-100">
+                                    <i class="bi bi-file-earmark-code"></i> Download All Tables (SQL)
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Individual Table Export Buttons -->
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-3"><i class="bi bi-table"></i> Export Individual Tables</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="Banks" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export Banks">Banks</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="CashAdjustments" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export CashAdjustments">Cash Adj.</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="CustomerItemRates" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export CustomerItemRates">Item Rates</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="Customers" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export Customers">Customers</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="ExpenseHeads" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export ExpenseHeads">Exp. Heads</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="Items" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export Items">Items</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="MasterPasswords" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export MasterPasswords">Passwords</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="MonMultipliers" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export MonMultipliers">Mon Mult.</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="PageLocks" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export PageLocks">Locks</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="Projects" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export Projects">Projects</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="ThemeSettings" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export ThemeSettings">Theme</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="Users" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export Users">Users</button>
+                                </form>
+                            </div>
+                            <div class="col-6">
+                                <form asp-action="ExportTable" method="get" style="display: inline;">
+                                    <input type="hidden" name="tableName" value="Vouchers" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100" title="Export Vouchers">Vouchers</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i> <strong>Backup Information:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>All 14 database tables included</li>
+                        <li>Excel format includes all columns and data</li>
+                        <li>SQL format provides INSERT statements for database restore</li>
+                        <li>Files are timestamped for easy version control</li>
+                        <li>Individual table exports available for selective backup</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>

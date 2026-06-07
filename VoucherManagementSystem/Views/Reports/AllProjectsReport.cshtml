@@ -119,7 +119,7 @@
                                     Rs. @string.Format("{0:N0}", p.ProfitLoss)
                                 </td>
                                 <td class="text-center">
-                                    <a asp-action="ProjectReport" asp-route-projectId="@p.Project.Id" class="btn btn-sm btn-outline-info">
+                                    <a asp-action="ProjectReport" asp-route-projectId="@p.Project.Id" asp-route-fromDate="@fromDate.ToString("yyyy-MM-dd")" asp-route-toDate="@toDate.ToString("yyyy-MM-dd")" class="btn btn-sm btn-outline-info">
                                         <i class="bi bi-eye"></i> Details
                                     </a>
                                 </td>
