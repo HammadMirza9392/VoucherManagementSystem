@@ -6,6 +6,7 @@
     var totalReceivables = (decimal)(ViewBag.TotalReceivables ?? 0);
     var totalPayables = (decimal)(ViewBag.TotalPayables ?? 0);
     var cashInHand = (decimal)(ViewBag.CashInHand ?? 0);
+    var dailyCashBalance = (decimal)(ViewBag.DailyCashBalance ?? 0);
     var totalBankBalance = (decimal)(ViewBag.TotalBankBalance ?? 0);
     var todayAmount = (decimal)(ViewBag.TodayAmount ?? 0);
     var totalExpenses30Days = (decimal)(ViewBag.TotalExpenses30Days ?? 0);
@@ -70,7 +71,7 @@
             <div class="col">
                 <div class="text-white text-uppercase small fw-bold" style="letter-spacing: 1px;">Total Capital</div>
                 <h2 class="text-white fw-bold mb-0" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Rs. @string.Format("{0:N0}", totalCapital)</h2>
-                <small class="text-white">Stock + Receivables + Cash + Bank + Advanced - Payables - Expenses</small>
+                <small class="text-white">Stock + Receivables + Cash + Daily Cash + Bank + Advanced - Payables - Expenses</small>
             </div>
             <div class="col-auto d-none d-md-block">
                 <div class="text-end">
@@ -81,9 +82,9 @@
     </div>
 </div>
 
-<!-- Summary Cards - 6 columns -->
-<div class="row g-2 mb-3">
-    <div class="col-6 col-md-2">
+<!-- Summary Cards - 7 in one row on large, 2 per row on small -->
+<div class="row g-2 mb-3 summary-cards-row">
+    <div class="col-6 summary-card-col">
         <div class="card h-100 border-success dashboard-card">
             <div class="card-body py-2 px-2 text-center">
                 <i class="bi bi-box-seam text-success"></i>
@@ -92,7 +93,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 summary-card-col">
         <div class="card h-100 border-info dashboard-card">
             <div class="card-body py-2 px-2 text-center">
                 <i class="bi bi-arrow-down-circle text-info"></i>
@@ -101,7 +102,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 summary-card-col">
         <div class="card h-100 border-danger dashboard-card">
             <div class="card-body py-2 px-2 text-center">
                 <i class="bi bi-arrow-up-circle text-danger"></i>
@@ -110,7 +111,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 summary-card-col">
         <div class="card h-100 border-warning dashboard-card">
             <div class="card-body py-2 px-2 text-center">
                 <i class="bi bi-cash-stack text-warning"></i>
@@ -119,7 +120,16 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 summary-card-col">
+        <div class="card h-100 dashboard-card" style="border-color: #fd7e14;">
+            <div class="card-body py-2 px-2 text-center">
+                <i class="bi bi-journal-text" style="color: #fd7e14;"></i>
+                <div class="small text-muted">Daily Cash</div>
+                <div class="fw-bold" style="color: #fd7e14;">@string.Format("{0:N0}", dailyCashBalance)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 summary-card-col">
         <div class="card h-100 dashboard-card" style="border-color: #6f42c1;">
             <div class="card-body py-2 px-2 text-center">
                 <i class="bi bi-bank" style="color: #6f42c1;"></i>
@@ -128,7 +138,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 summary-card-col">
         <div class="card h-100 dashboard-card" style="border-color: #e83e8c;">
             <div class="card-body py-2 px-2 text-center">
                 <i class="bi bi-graph-down" style="color: #e83e8c;"></i>
@@ -394,6 +404,14 @@
 
 @section Scripts {
     <style>
+        /* Summary cards: 2 per row on small devices, all 7 in one row on large devices */
+        @@media (min-width: 992px) {
+            .summary-cards-row .summary-card-col {
+                flex: 0 0 auto;
+                width: 14.2857%; /* 100% / 7 cards */
+            }
+        }
+
         .dashboard-card {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
@@ -436,10 +454,10 @@
         new Chart(document.getElementById('capitalChart'), {
             type: 'doughnut',
             data: {
-                labels: ['Stock', 'Receivable', 'Cash', 'Bank', 'Payable'],
+                labels: ['Stock', 'Receivable', 'Cash', 'Daily Cash', 'Bank', 'Payable'],
                 datasets: [{
-                    data: [@totalStockValue, @totalReceivables, @Math.Max(0, cashInHand), @Math.Max(0, totalBankBalance), @totalPayables],
-                    backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#6f42c1', '#dc3545'],
+                    data: [@totalStockValue, @totalReceivables, @Math.Max(0, cashInHand), @Math.Max(0, dailyCashBalance), @Math.Max(0, totalBankBalance), @totalPayables],
+                    backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#fd7e14', '#6f42c1', '#dc3545'],
                     borderWidth: 0
                 }]
             },

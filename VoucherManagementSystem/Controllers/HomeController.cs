@@ -208,6 +208,26 @@ namespace VoucherManagementSystem.Controllers
 
             ViewBag.CashInHand = cashInHand;
 
+            // 3b. Daily Cash Book balance (CashType = DailyCashBook)
+            decimal dailyCashBalance = 0;
+            foreach (var v in allVouchers.Where(v => v.CashType == CashType.DailyCashBook && v.VoucherDate < date))
+            {
+                switch (v.VoucherType)
+                {
+                    case VoucherType.Sale:
+                    case VoucherType.CashReceived:
+                        dailyCashBalance += v.Amount;
+                        break;
+                    case VoucherType.Purchase:
+                    case VoucherType.Expense:
+                    case VoucherType.CashPaid:
+                    case VoucherType.Hazri:
+                        dailyCashBalance -= v.Amount;
+                        break;
+                }
+            }
+            ViewBag.DailyCashBalance = dailyCashBalance;
+
             // 4. Bank Balances
             // bank.Balance is the live running "Current Balance" — it is already adjusted
             // (via BankRepository.UpdateBalanceAsync) every time a bank voucher is created/edited/deleted.
@@ -309,7 +329,8 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.TotalExpenses = totalExpenses;
 
             // 8. Total Capital
-            ViewBag.TotalCapital = totalStockValue + totalReceivables + cashInHand + totalBankBalance + totalAdvancedBalance - totalPayables - totalExpenses;
+            // Stock + Receivables + Cash + Daily Cash + Bank + Advanced - Payables - Expenses
+            ViewBag.TotalCapital = totalStockValue + totalReceivables + cashInHand + dailyCashBalance + totalBankBalance + totalAdvancedBalance - totalPayables - totalExpenses;
 
             // 9. Voucher Type Distribution (Last 30 days)
             var voucherTypeData = allVouchers
