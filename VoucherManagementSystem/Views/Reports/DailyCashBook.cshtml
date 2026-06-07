@@ -121,6 +121,8 @@
                         <th class="fw-bold" style="font-size: 14px;">Type</th>
                         <th class="fw-bold" style="font-size: 14px;">Customer/Party</th>
                         <th class="fw-bold" style="font-size: 14px;">Description</th>
+                        <th class="fw-bold" style="font-size: 14px;">Project</th>
+                        <th class="fw-bold" style="font-size: 14px;">Details</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Receipt (In)</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Payment (Out)</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Balance</th>
@@ -132,7 +134,7 @@
                         decimal totalReceipts = 0;
                         decimal totalPayments = 0;
 
-                        var allTransactions = new List<(DateTime Date, int Id, string TransNo, string Type, string Customer, string Desc, decimal Receipt, decimal Payment, bool IsVoucher)>();
+                        var allTransactions = new List<(DateTime Date, int Id, string TransNo, string Type, string Customer, string Desc, string Project, string Details, decimal Receipt, decimal Payment, bool IsVoucher)>();
 
                         if (vouchers != null)
                         {
@@ -142,6 +144,8 @@
                                 decimal payment = 0;
                                 string customerName = "";
                                 string description = "";
+                                string projectName = v.Project?.Name ?? "-";
+                                string details = "";
 
                                 switch (v.VoucherType)
                                 {
@@ -149,35 +153,41 @@
                                         receipt = v.Amount;
                                         customerName = v.ReceivingCustomer?.Name ?? v.ReceivingCustomerDetails ?? "N/A";
                                         description = $"Sale - {v.Item?.Name ?? "N/A"}";
+                                        details = v.ReceivingCustomerDetails ?? "";
                                         break;
                                     case VoucherManagementSystem.Models.VoucherType.CashReceived:
                                         receipt = v.Amount;
                                         customerName = v.ReceivingCustomer?.Name ?? v.ReceivingCustomerDetails ?? "N/A";
                                         description = "Cash Received";
+                                        details = v.ReceivingCustomerDetails ?? "";
                                         break;
                                     case VoucherManagementSystem.Models.VoucherType.Purchase:
                                         payment = v.Amount;
                                         customerName = v.PurchasingCustomer?.Name ?? v.PurchasingCustomerDetails ?? "N/A";
                                         description = $"Purchase - {v.Item?.Name ?? "N/A"}";
+                                        details = v.PurchasingCustomerDetails ?? "";
                                         break;
                                     case VoucherManagementSystem.Models.VoucherType.Expense:
                                         payment = v.Amount;
                                         customerName = v.ExpenseHead?.Name ?? "Expense";
-                                        description = v.ExpenseHeadDetails ?? "Expense";
+                                        description = "Expense";
+                                        details = v.ExpenseHeadDetails ?? "";
                                         break;
                                     case VoucherManagementSystem.Models.VoucherType.CashPaid:
                                         payment = v.Amount;
                                         customerName = v.PurchasingCustomer?.Name ?? v.PurchasingCustomerDetails ?? "N/A";
                                         description = "Cash Paid";
+                                        details = v.PurchasingCustomerDetails ?? "";
                                         break;
                                     case VoucherManagementSystem.Models.VoucherType.Hazri:
                                         payment = v.Amount;
                                         customerName = "Labor";
                                         description = $"Hazri - {v.ExpenseHead?.Name ?? v.Item?.Name ?? "Labor"}";
+                                        details = v.ExpenseHeadDetails ?? "";
                                         break;
                                 }
 
-                                allTransactions.Add((v.VoucherDate, v.Id, v.TransactionNumber, v.VoucherType.ToString(), customerName, description, receipt, payment, true));
+                                allTransactions.Add((v.VoucherDate, v.Id, v.TransactionNumber, v.VoucherType.ToString(), customerName, description, projectName, details, receipt, payment, true));
                             }
                         }
 
@@ -192,6 +202,8 @@
                         <td><span class="badge bg-secondary" style="font-size: 11px;">Opening</span></td>
                         <td>-</td>
                         <td class="fw-bold fs-6">Opening Balance</td>
+                        <td>-</td>
+                        <td>-</td>
                         <td class="text-end">-</td>
                         <td class="text-end">-</td>
                         <td class="text-end fw-bold text-success">@string.Format("{0:N0}", openingBalance)</td>
@@ -218,6 +230,26 @@
                             <td class="align-middle"><span class="badge bg-@(trans.Receipt > 0 ? "success" : "danger")" style="font-size: 11px;">@trans.Type</span></td>
                             <td class="align-middle">@trans.Customer</td>
                             <td class="align-middle">@trans.Desc</td>
+                            <td class="align-middle">
+                                @if (trans.Project != "-")
+                                {
+                                    <span class="badge bg-info">@trans.Project</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td class="align-middle">
+                                @if (!string.IsNullOrEmpty(trans.Details))
+                                {
+                                    <small class="text-muted">@trans.Details</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
                             <td class="text-end align-middle @(trans.Receipt > 0 ? "text-success fw-semibold" : "")">
                                 @if (trans.Receipt > 0)
                                 {
@@ -245,7 +277,7 @@
                     @if (!allTransactions.Any())
                     {
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4 fst-italic">
+                            <td colspan="10" class="text-center text-muted py-4 fst-italic">
                                 <i class="bi bi-info-circle"></i> No Daily Cash Book transactions found for the selected period.
                             </td>
                         </tr>
@@ -253,13 +285,13 @@
                 </tbody>
                 <tfoot class="table-success">
                     <tr style="font-size: 15px;">
-                        <th colspan="5" class="fw-bold py-3 text-end">PERIOD TOTAL:</th>
+                        <th colspan="7" class="fw-bold py-3 text-end">PERIOD TOTAL:</th>
                         <th class="text-end text-success fw-bold py-3">Rs. @string.Format("{0:N0}", totalReceipts)</th>
                         <th class="text-end text-danger fw-bold py-3">Rs. -@string.Format("{0:N0}", totalPayments)</th>
                         <th class="text-end"></th>
                     </tr>
                     <tr style="font-size: 15px;">
-                        <th colspan="5" class="fw-bold py-3 text-end">CLOSING BALANCE (as of @toDate.ToString("dd-MMM-yyyy")):</th>
+                        <th colspan="7" class="fw-bold py-3 text-end">CLOSING BALANCE (as of @toDate.ToString("dd-MMM-yyyy")):</th>
                         <th colspan="2" class="text-end"></th>
                         <th class="text-end fw-bold py-3 text-success">Rs. @string.Format("{0:N0}", openingBalance + totalReceipts - totalPayments)</th>
                     </tr>

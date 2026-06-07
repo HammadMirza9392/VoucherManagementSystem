@@ -1483,8 +1483,8 @@
             $('#projectCashTypeColumn, #rateAmountColumn').show();
             $('#projectRow, #cashTypeRow, #rateRow').show();
 
-            // "Daily Cash Book" cash type is only available for Cash Paid / Cash Received vouchers
-            toggleDailyCashBookOption(type === 'CashPaid' || type === 'CashReceived');
+            // "Daily Cash Book" cash type is only available for Cash Paid / Cash Received / Expense vouchers
+            toggleDailyCashBookOption(type === 'CashPaid' || type === 'CashReceived' || type === 'Expense');
 
             switch(type) {
                 case 'Purchase':

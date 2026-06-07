@@ -991,6 +991,7 @@ namespace VoucherManagementSystem.Controllers
                     .Include(v => v.ReceivingCustomer)
                     .Include(v => v.Item)
                     .Include(v => v.ExpenseHead)
+                    .Include(v => v.Project)
                     .Where(v => v.CashType == CashType.DailyCashBook &&
                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
