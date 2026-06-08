@@ -47,10 +47,13 @@ namespace VoucherManagementSystem.Repositories
                 .Include(v => v.ReceivingCustomer)
                 .Where(v => (v.BankCustomerPaidId == bankId || v.BankCustomerReceiverId == bankId) &&
                            v.VoucherDate >= fromDate && v.VoucherDate <= toDate &&
-                           v.CashType == CashType.Bank &&
-                           (v.VoucherType == VoucherType.CashPaid ||
-                            v.VoucherType == VoucherType.CashReceived ||
-                            v.VoucherType == VoucherType.Expense))
+                           // Bank-affecting cash vouchers (CashType = Bank)
+                           ((v.CashType == CashType.Bank &&
+                             (v.VoucherType == VoucherType.CashPaid ||
+                              v.VoucherType == VoucherType.CashReceived ||
+                              v.VoucherType == VoucherType.Expense))
+                            // BCR (bank-to-bank transfer) — identified by bank fields, no CashType
+                            || v.VoucherType == VoucherType.BCR))
                 .OrderByDescending(v => v.VoucherDate)
                 .ToListAsync();
         }

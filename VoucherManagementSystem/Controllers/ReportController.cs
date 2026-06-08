@@ -1494,10 +1494,13 @@ namespace VoucherManagementSystem.Controllers
             var previousVouchers = await _context.Vouchers
                 .Where(v => (v.BankCustomerPaidId == bankId || v.BankCustomerReceiverId == bankId) &&
                            v.VoucherDate < date &&
-                           v.CashType == CashType.Bank &&
-                           (v.VoucherType == VoucherType.CashPaid ||
-                            v.VoucherType == VoucherType.CashReceived ||
-                            v.VoucherType == VoucherType.Expense))
+                           // Bank-affecting cash vouchers (CashType = Bank)
+                           ((v.CashType == CashType.Bank &&
+                             (v.VoucherType == VoucherType.CashPaid ||
+                              v.VoucherType == VoucherType.CashReceived ||
+                              v.VoucherType == VoucherType.Expense))
+                            // BCR (bank-to-bank transfer) — identified by bank fields, no CashType
+                            || v.VoucherType == VoucherType.BCR))
                 .ToListAsync();
 
             foreach (var voucher in previousVouchers)
