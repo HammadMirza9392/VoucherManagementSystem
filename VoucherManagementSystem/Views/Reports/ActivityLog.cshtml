@@ -5,9 +5,13 @@
     var createdVouchers = ViewBag.CreatedVouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
     var updatedVouchers = ViewBag.UpdatedVouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
     var deletedVouchers = ViewBag.DeletedVouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
+    var revokedVouchers = ViewBag.RevokedVouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
+    var restoredVouchers = ViewBag.RestoredVouchers as IEnumerable<VoucherManagementSystem.Models.Voucher>;
     var totalCreated = (int)(ViewBag.TotalCreated ?? 0);
     var totalUpdated = (int)(ViewBag.TotalUpdated ?? 0);
     var totalDeleted = (int)(ViewBag.TotalDeleted ?? 0);
+    var totalRevoked = (int)(ViewBag.TotalRevoked ?? 0);
+    var totalRestored = (int)(ViewBag.TotalRestored ?? 0);
 }
 
 <div class="d-print-none">
@@ -39,39 +43,57 @@
 
 <!-- Summary Cards -->
 <div class="row g-2 mb-3">
-    <div class="col-md-3">
+    <div class="col-md-2 col-6">
         <div class="card bg-success text-white text-center">
             <div class="card-body py-2">
                 <h6 class="mb-0"><i class="bi bi-plus-circle"></i> Added</h6>
                 <h2 class="mb-0">@totalCreated</h2>
-                <small>entries created</small>
+                <small>created</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2 col-6">
         <div class="card bg-warning text-dark text-center">
             <div class="card-body py-2">
                 <h6 class="mb-0"><i class="bi bi-pencil-square"></i> Updated</h6>
                 <h2 class="mb-0">@totalUpdated</h2>
-                <small>entries modified</small>
+                <small>modified</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2 col-6">
         <div class="card bg-danger text-white text-center">
             <div class="card-body py-2">
                 <h6 class="mb-0"><i class="bi bi-trash"></i> Deleted</h6>
                 <h2 class="mb-0">@totalDeleted</h2>
-                <small>entries deleted</small>
+                <small>deleted</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2 col-6">
+        <div class="card text-dark text-center" style="background-color:#ffc107;">
+            <div class="card-body py-2">
+                <h6 class="mb-0"><i class="bi bi-slash-circle"></i> Revoked</h6>
+                <h2 class="mb-0">@totalRevoked</h2>
+                <small>revoked</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="card bg-info text-white text-center">
+            <div class="card-body py-2">
+                <h6 class="mb-0"><i class="bi bi-arrow-counterclockwise"></i> Restored</h6>
+                <h2 class="mb-0">@totalRestored</h2>
+                <small>restored</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
         <div class="card bg-dark text-white text-center">
             <div class="card-body py-2">
                 <h6 class="mb-0"><i class="bi bi-activity"></i> Total</h6>
-                <h2 class="mb-0">@(totalCreated + totalUpdated + totalDeleted)</h2>
-                <small>total activities</small>
+                <h2 class="mb-0">@(totalCreated + totalUpdated + totalDeleted + totalRevoked + totalRestored)</h2>
+                <small>activities</small>
             </div>
         </div>
     </div>
@@ -278,6 +300,108 @@
                         </tr>
                     </tfoot>
                 }
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Revoked Vouchers -->
+<div class="card mb-3">
+    <div class="card-header text-dark d-flex justify-content-between align-items-center" style="background-color:#ffc107;">
+        <h5 class="mb-0"><i class="bi bi-slash-circle"></i> Entries Revoked on @activityDate.ToString("dd-MMM-yyyy")</h5>
+        <span class="badge bg-white text-dark">@totalRevoked entries</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered mb-0">
+                <thead class="table-warning">
+                    <tr>
+                        <th>Time Revoked</th>
+                        <th>Voucher No</th>
+                        <th>Type</th>
+                        <th>Party</th>
+                        <th class="text-end">Amount</th>
+                        <th>Created By</th>
+                        <th>Revoked By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (revokedVouchers != null && revokedVouchers.Any())
+                    {
+                        foreach (var v in revokedVouchers)
+                        {
+                            var party = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? "-";
+                            <tr>
+                                <td><span class="badge bg-warning text-dark">@(v.RevokedDate.HasValue ? v.RevokedDate.Value.ToString("HH:mm") : "-")</span></td>
+                                <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
+                                <td><span class="badge bg-secondary">@v.VoucherType</span></td>
+                                <td>@party</td>
+                                <td class="text-end">@string.Format("{0:N0}", v.Amount)</td>
+                                <td>@(v.CreatedBy ?? "N/A")</td>
+                                <td><span class="badge bg-warning text-dark">@(v.RevokedBy ?? "System")</span></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted fst-italic py-3">
+                                <i class="bi bi-info-circle"></i> No entries were revoked on @activityDate.ToString("dd-MMM-yyyy")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Restored Vouchers -->
+<div class="card mb-3">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-arrow-counterclockwise"></i> Entries Restored on @activityDate.ToString("dd-MMM-yyyy")</h5>
+        <span class="badge bg-white text-info">@totalRestored entries</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered mb-0">
+                <thead class="table-info">
+                    <tr>
+                        <th>Time Restored</th>
+                        <th>Voucher No</th>
+                        <th>Type</th>
+                        <th>Party</th>
+                        <th class="text-end">Amount</th>
+                        <th>Created By</th>
+                        <th>Restored By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (restoredVouchers != null && restoredVouchers.Any())
+                    {
+                        foreach (var v in restoredVouchers)
+                        {
+                            var party = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? "-";
+                            <tr>
+                                <td><span class="badge bg-info">@(v.RestoredDate.HasValue ? v.RestoredDate.Value.ToString("HH:mm") : "-")</span></td>
+                                <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
+                                <td><span class="badge bg-secondary">@v.VoucherType</span></td>
+                                <td>@party</td>
+                                <td class="text-end">@string.Format("{0:N0}", v.Amount)</td>
+                                <td>@(v.CreatedBy ?? "N/A")</td>
+                                <td><span class="badge bg-info">@(v.RestoredBy ?? "System")</span></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted fst-italic py-3">
+                                <i class="bi bi-info-circle"></i> No entries were restored on @activityDate.ToString("dd-MMM-yyyy")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
             </table>
         </div>
     </div>

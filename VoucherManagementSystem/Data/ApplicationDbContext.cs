@@ -29,9 +29,13 @@ namespace VoucherManagementSystem.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Soft-delete filter: exclude deleted vouchers from all normal queries
+            // Global filter: exclude deleted AND revoked vouchers from all normal queries.
+            // A revoked voucher stays in the DB but has zero effect on any report, balance,
+            // stock, cash, bank, ledger, dashboard, or search — exactly as if it did not exist.
+            // Queries that need to see revoked vouchers (the Revoked Vouchers report) must call
+            // .IgnoreQueryFilters() and then re-filter explicitly.
             modelBuilder.Entity<Voucher>()
-                .HasQueryFilter(v => !v.IsDeleted);
+                .HasQueryFilter(v => !v.IsDeleted && !v.IsRevoked);
 
             // Voucher configurations
             modelBuilder.Entity<Voucher>()

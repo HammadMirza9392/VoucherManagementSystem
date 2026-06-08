@@ -1,0 +1,161 @@
+@* Views/Reports/RevokedVouchers.cshtml *@
+@{
+    ViewData["Title"] = "Revoked Vouchers Report";
+    var vouchers = ViewBag.RevokedVouchers as List<VoucherManagementSystem.Models.Voucher> ?? new List<VoucherManagementSystem.Models.Voucher>();
+    var fromDate = ViewBag.FromDate as DateTime?;
+    var toDate = ViewBag.ToDate as DateTime?;
+    var voucherFromDate = ViewBag.VoucherFromDate as DateTime?;
+    var voucherToDate = ViewBag.VoucherToDate as DateTime?;
+    var selectedVoucherType = ViewBag.SelectedVoucherType as string;
+}
+
+<h2><i class="bi bi-slash-circle"></i> Revoked Vouchers Report</h2>
+<p class="text-muted">Vouchers that are currently revoked — excluded from all reports, balances and calculations until restored.</p>
+
+<!-- Filters -->
+<div class="card mb-3 d-print-none">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0"><i class="bi bi-filter"></i> Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">From (Revoked Date)</label>
+                <input type="date" name="fromDate" value="@(fromDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To (Revoked Date)</label>
+                <input type="date" name="toDate" value="@(toDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From (Voucher Date)</label>
+                <input type="date" name="voucherFromDate" value="@(voucherFromDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To (Voucher Date)</label>
+                <input type="date" name="voucherToDate" value="@(voucherToDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Voucher Type</label>
+                <select name="voucherType" class="form-select">
+                    <option value="">All Types</option>
+                    @foreach (var type in Enum.GetValues<VoucherManagementSystem.Models.VoucherType>())
+                    {
+                        <option value="@type" selected="@(selectedVoucherType == type.ToString())">@type</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Party</label>
+                @Html.DropDownList("customerId", ViewBag.Customers as SelectList, "All Parties", new { @class = "form-select" })
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Revoked By</label>
+                @Html.DropDownList("revokedBy", ViewBag.RevokedByUsers as SelectList, "All Users", new { @class = "form-select" })
+            </div>
+            <div class="col-md-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+                <a asp-action="RevokedVouchers" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Revoked Vouchers (@vouchers.Count)</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered mb-0">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Voucher No</th>
+                        <th>Voucher Type</th>
+                        <th>Date</th>
+                        <th>Party Name</th>
+                        <th class="text-end">Amount</th>
+                        <th>Created By</th>
+                        <th>Revoked By</th>
+                        <th>Revoked Date &amp; Time</th>
+                        <th>Status</th>
+                        <th class="d-print-none">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (vouchers.Any())
+                    {
+                        foreach (var v in vouchers)
+                        {
+                            var partyName = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name
+                                ?? v.BankCustomerPaid?.Name ?? v.BankCustomerReceiver?.Name ?? "-";
+                            <tr>
+                                <td>
+                                    <a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a>
+                                </td>
+                                <td><span class="badge bg-secondary">@v.VoucherType</span></td>
+                                <td>@v.VoucherDate.ToPkDate()</td>
+                                <td>@partyName</td>
+                                <td class="text-end">@string.Format("{0:N0}", v.Amount)</td>
+                                <td>@(v.CreatedBy ?? "N/A")</td>
+                                <td>@(v.RevokedBy ?? "N/A")</td>
+                                <td>@(v.RevokedDate.HasValue ? v.RevokedDate.Value.ToString("dd-MMM-yyyy HH:mm") : "-")</td>
+                                <td><span class="badge bg-warning text-dark">Revoked</span></td>
+                                <td class="d-print-none">
+                                    <button type="button" class="btn btn-sm btn-success restore-voucher" data-id="@v.Id" title="Restore this voucher">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Restore
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4 fst-italic">
+                                <i class="bi bi-info-circle"></i> No revoked vouchers found.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 d-print-none">
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="bi bi-printer"></i> Print
+    </button>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Reports
+    </a>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).on('click', '.restore-voucher', function () {
+            var voucherId = $(this).data('id');
+            if (confirm('Restoring this voucher will re-apply all stock, cash, bank, ledger, and reporting effects. Do you want to continue?')) {
+                $.ajax({
+                    url: '@Url.Action("Restore", "Vouchers")/' + voucherId,
+                    type: 'POST',
+                    success: function (response) {
+                        if (response.success) {
+                            location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        alert('Error restoring voucher: ' + error);
+                    }
+                });
+            }
+        });
+    </script>
+}

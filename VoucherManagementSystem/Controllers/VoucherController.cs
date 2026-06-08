@@ -132,8 +132,9 @@ namespace VoucherManagementSystem.Controllers
                 VoucherDate = DateTimeHelper.PkNow
             };
 
-            // Get all recent vouchers (all types)
-            var allVouchers = await _voucherRepository.GetVouchersWithDetailsAsync();
+            // Get all recent vouchers (all types) — include revoked so they remain
+            // visible in this list with a Restore button.
+            var allVouchers = await _voucherRepository.GetVouchersWithDetailsIncludingRevokedAsync();
             var filteredVouchers = allVouchers
                 .OrderBy(v => v.CreatedDate)
                 .ToList();
@@ -495,6 +496,92 @@ namespace VoucherManagementSystem.Controllers
             }
 
             return RedirectToAction(nameof(Index));
+        }
+
+        // POST: Vouchers/Revoke/5
+        // Temporarily removes a voucher's effect from the ENTIRE system (stock, cash, bank,
+        // ledgers, reports, dashboard) without deleting it. The row stays in the DB and is
+        // hidden everywhere by the global query filter (!IsRevoked). Can be restored later.
+        [HttpPost]
+        public async Task<IActionResult> Revoke(int id)
+        {
+            // Use IgnoreQueryFilters in case of any edge state; FindAsync also bypasses filters.
+            var voucher = await _context.Vouchers
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(v => v.Id == id);
+
+            if (voucher == null)
+                return Json(new { success = false, message = "Voucher not found." });
+
+            if (voucher.IsRevoked)
+                return Json(new { success = false, message = "Voucher is already revoked." });
+
+            // Reverse stock changes (same as delete) - ONLY if StockInclude was true
+            if (voucher.ItemId.HasValue && voucher.Quantity.HasValue && voucher.StockInclude)
+            {
+                if (voucher.VoucherType == VoucherType.Purchase)
+                    await _itemRepository.UpdateStockAsync(voucher.ItemId.Value, voucher.Quantity.Value, false);
+                else if (voucher.VoucherType == VoucherType.Sale)
+                    await _itemRepository.UpdateStockAsync(voucher.ItemId.Value, voucher.Quantity.Value, true);
+            }
+
+            // Reverse bank balance changes (same as delete)
+            if (voucher.BankCustomerPaidId.HasValue)
+                await _bankRepository.UpdateBalanceAsync(voucher.BankCustomerPaidId.Value, voucher.Amount, true);
+            if (voucher.BankCustomerReceiverId.HasValue)
+                await _bankRepository.UpdateBalanceAsync(voucher.BankCustomerReceiverId.Value, voucher.Amount, false);
+
+            // Flag as revoked + audit trail
+            voucher.IsRevoked = true;
+            voucher.RevokedDate = DateTimeHelper.PkNow;
+            voucher.RevokedBy = HttpContext.Session.GetString("Username") ?? "admin";
+
+            _context.Vouchers.Update(voucher);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Voucher revoked successfully. It no longer affects any report or balance." });
+        }
+
+        // POST: Vouchers/Restore/5
+        // Re-activates a revoked voucher and re-applies ALL of its original stock, cash,
+        // bank, ledger and reporting effects, exactly as before it was revoked.
+        [HttpPost]
+        public async Task<IActionResult> Restore(int id)
+        {
+            var voucher = await _context.Vouchers
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(v => v.Id == id);
+
+            if (voucher == null)
+                return Json(new { success = false, message = "Voucher not found." });
+
+            if (!voucher.IsRevoked)
+                return Json(new { success = false, message = "Voucher is not revoked." });
+
+            // Re-apply stock changes (same as create) - ONLY if StockInclude is true
+            if (voucher.ItemId.HasValue && voucher.Quantity.HasValue && voucher.StockInclude)
+            {
+                if (voucher.VoucherType == VoucherType.Purchase)
+                    await _itemRepository.UpdateStockAsync(voucher.ItemId.Value, voucher.Quantity.Value, true);
+                else if (voucher.VoucherType == VoucherType.Sale)
+                    await _itemRepository.UpdateStockAsync(voucher.ItemId.Value, voucher.Quantity.Value, false);
+            }
+
+            // Re-apply bank balance changes (same as create)
+            if (voucher.BankCustomerPaidId.HasValue)
+                await _bankRepository.UpdateBalanceAsync(voucher.BankCustomerPaidId.Value, voucher.Amount, false);
+            if (voucher.BankCustomerReceiverId.HasValue)
+                await _bankRepository.UpdateBalanceAsync(voucher.BankCustomerReceiverId.Value, voucher.Amount, true);
+
+            // Clear revoked flag + audit trail
+            voucher.IsRevoked = false;
+            voucher.RestoredDate = DateTimeHelper.PkNow;
+            voucher.RestoredBy = HttpContext.Session.GetString("Username") ?? "admin";
+
+            _context.Vouchers.Update(voucher);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Voucher restored successfully. All effects re-applied." });
         }
 
         // GET: Vouchers/AdvancedPayment

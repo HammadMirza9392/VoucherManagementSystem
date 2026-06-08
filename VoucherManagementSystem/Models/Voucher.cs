@@ -142,6 +142,24 @@ namespace VoucherManagementSystem.Models
         [Display(Name = "Deleted By")]
         public string? DeletedBy { get; set; }
 
+        // === Revoke (temporary removal from all system effects, without deleting) ===
+        [Display(Name = "Revoked")]
+        public bool IsRevoked { get; set; } = false;
+
+        [Display(Name = "Revoked Date")]
+        public DateTime? RevokedDate { get; set; }
+
+        [StringLength(100)]
+        [Display(Name = "Revoked By")]
+        public string? RevokedBy { get; set; }
+
+        [Display(Name = "Restored Date")]
+        public DateTime? RestoredDate { get; set; }
+
+        [StringLength(100)]
+        [Display(Name = "Restored By")]
+        public string? RestoredBy { get; set; }
+
         // Navigation properties
         public virtual Customer? PurchasingCustomer { get; set; }
         public virtual Customer? ReceivingCustomer { get; set; }

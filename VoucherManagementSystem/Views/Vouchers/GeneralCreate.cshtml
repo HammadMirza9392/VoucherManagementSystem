@@ -89,6 +89,7 @@
                             <th>Added By</th>
                         }
                         <th>Updated By</th>
+                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -97,7 +98,7 @@
                     {
                         @foreach (var item in voucherList)
                         {
-                            <tr>
+                            <tr class="@(item.IsRevoked ? "table-secondary" : "")" style="@(item.IsRevoked ? "opacity:0.6;" : "")">
                                 <td><input type="checkbox" class="voucher-checkbox" value="@item.Id" /></td>
                                 <td>
                                     <span class="badge bg-@(item.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
@@ -146,16 +147,34 @@
                                     <td>@(item.CreatedBy ?? "N/A")</td>
                                 }
                                 <td>@(item.UpdatedBy ?? "N/A")</td>
+                                <td class="text-center">
+                                    @if (item.IsRevoked)
+                                    {
+                                        <span class="badge bg-warning text-dark mb-1 d-block">Revoked</span>
+                                        <button type="button" class="btn btn-sm btn-success restore-voucher" data-id="@item.Id" title="Restore this voucher">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Restore
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-sm btn-danger revoke-voucher" data-id="@item.Id" title="Revoke this voucher">
+                                            <i class="bi bi-slash-circle"></i> Revoke
+                                        </button>
+                                    }
+                                </td>
                                 <td>
                                     <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info" title="Details">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a asp-action="Edit" asp-route-id="@item.Id" asp-route-returnToGeneral="true" class="btn btn-sm btn-warning" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-danger delete-voucher" data-id="@item.Id" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                    @if (!item.IsRevoked)
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@item.Id" asp-route-returnToGeneral="true" class="btn btn-sm btn-warning" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-danger delete-voucher" data-id="@item.Id" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -163,7 +182,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="@(Context.Session.GetString("UserRole") == "Admin" ? "15" : "14")" class="text-center">No vouchers found.</td>
+                            <td colspan="@(Context.Session.GetString("UserRole") == "Admin" ? "16" : "15")" class="text-center">No vouchers found.</td>
                         </tr>
                     }
                 </tbody>
@@ -1382,6 +1401,48 @@
                 var voucherId = $(this).data('id');
                 if (confirm('Are you sure you want to delete this voucher?')) {
                     deleteVouchers([voucherId]);
+                }
+            });
+
+            // Revoke a voucher (remove its effect from the whole system, keep it in DB)
+            $(document).on('click', '.revoke-voucher', function() {
+                var voucherId = $(this).data('id');
+                if (confirm('Are you sure you want to revoke this voucher? This voucher will be completely excluded from all reports, balances, stock, cash, bank, and system calculations until restored.')) {
+                    $.ajax({
+                        url: '@Url.Action("Revoke", "Vouchers")/' + voucherId,
+                        type: 'POST',
+                        success: function(response) {
+                            if (response.success) {
+                                location.reload();
+                            } else {
+                                alert('Error: ' + response.message);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            alert('Error revoking voucher: ' + error);
+                        }
+                    });
+                }
+            });
+
+            // Restore a revoked voucher (re-apply all its effects)
+            $(document).on('click', '.restore-voucher', function() {
+                var voucherId = $(this).data('id');
+                if (confirm('Restoring this voucher will re-apply all stock, cash, bank, ledger, and reporting effects. Do you want to continue?')) {
+                    $.ajax({
+                        url: '@Url.Action("Restore", "Vouchers")/' + voucherId,
+                        type: 'POST',
+                        success: function(response) {
+                            if (response.success) {
+                                location.reload();
+                            } else {
+                                alert('Error: ' + response.message);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            alert('Error restoring voucher: ' + error);
+                        }
+                    });
                 }
             });
 

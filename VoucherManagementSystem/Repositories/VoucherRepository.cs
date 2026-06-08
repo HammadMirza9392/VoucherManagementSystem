@@ -127,6 +127,44 @@ namespace VoucherManagementSystem.Repositories
                 .ToListAsync();
         }
 
+        // Includes revoked vouchers (still excludes deleted) — for the GeneralCreate list.
+        public async Task<IEnumerable<Voucher>> GetVouchersWithDetailsIncludingRevokedAsync()
+        {
+            return await _context.Vouchers
+                .IgnoreQueryFilters()        // bypass the global !IsDeleted && !IsRevoked filter
+                .Where(v => !v.IsDeleted)    // ...but still hide deleted
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Include(v => v.PurchasingCustomer)
+                .Include(v => v.ReceivingCustomer)
+                .Include(v => v.BankCustomerPaid)
+                .Include(v => v.BankCustomerReceiver)
+                .Include(v => v.Item)
+                .Include(v => v.ExpenseHead)
+                .Include(v => v.Project)
+                .OrderByDescending(v => v.VoucherDate)
+                .ToListAsync();
+        }
+
+        // Only revoked (and not deleted) vouchers — for the Revoked Vouchers report.
+        public async Task<IEnumerable<Voucher>> GetRevokedVouchersAsync()
+        {
+            return await _context.Vouchers
+                .IgnoreQueryFilters()
+                .Where(v => v.IsRevoked && !v.IsDeleted)
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Include(v => v.PurchasingCustomer)
+                .Include(v => v.ReceivingCustomer)
+                .Include(v => v.BankCustomerPaid)
+                .Include(v => v.BankCustomerReceiver)
+                .Include(v => v.Item)
+                .Include(v => v.ExpenseHead)
+                .Include(v => v.Project)
+                .OrderByDescending(v => v.RevokedDate)
+                .ToListAsync();
+        }
+
         public async Task<decimal> GetProjectProfitLossAsync(int projectId, DateTime fromDate, DateTime toDate)
         {
             // Optimized: Calculate directly in database instead of loading all vouchers

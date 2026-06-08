@@ -431,8 +431,11 @@ namespace VoucherManagementSystem.Controllers
                 var logDate = activityDate ?? DateTimeHelper.PkToday;
                 var nextDay = logDate.AddDays(1);
 
-                // Find all vouchers created on this date (not deleted)
+                // Find all vouchers created on this date (exclude deleted, but include revoked
+                // so the audit log still shows them; bypass global filter then re-filter).
                 var createdVouchers = await _context.Vouchers
+                    .IgnoreQueryFilters()
+                    .Where(v => !v.IsDeleted)
                     .Include(v => v.PurchasingCustomer)
                     .Include(v => v.ReceivingCustomer)
                     .Include(v => v.Item)
@@ -444,6 +447,8 @@ namespace VoucherManagementSystem.Controllers
 
                 // Find all vouchers updated on this date
                 var updatedVouchers = await _context.Vouchers
+                    .IgnoreQueryFilters()
+                    .Where(v => !v.IsDeleted)
                     .Include(v => v.PurchasingCustomer)
                     .Include(v => v.ReceivingCustomer)
                     .Include(v => v.Item)
@@ -465,13 +470,41 @@ namespace VoucherManagementSystem.Controllers
                     .OrderBy(v => v.DeletedDate)
                     .ToListAsync();
 
+                // Find all vouchers revoked on this date — bypass the global filter
+                var revokedVouchers = await _context.Vouchers
+                    .IgnoreQueryFilters()
+                    .Include(v => v.PurchasingCustomer)
+                    .Include(v => v.ReceivingCustomer)
+                    .Include(v => v.Item)
+                    .Include(v => v.ExpenseHead)
+                    .Include(v => v.Project)
+                    .Where(v => v.RevokedDate.HasValue && v.RevokedDate >= logDate && v.RevokedDate < nextDay)
+                    .OrderBy(v => v.RevokedDate)
+                    .ToListAsync();
+
+                // Find all vouchers restored on this date — bypass the global filter
+                var restoredVouchers = await _context.Vouchers
+                    .IgnoreQueryFilters()
+                    .Include(v => v.PurchasingCustomer)
+                    .Include(v => v.ReceivingCustomer)
+                    .Include(v => v.Item)
+                    .Include(v => v.ExpenseHead)
+                    .Include(v => v.Project)
+                    .Where(v => v.RestoredDate.HasValue && v.RestoredDate >= logDate && v.RestoredDate < nextDay)
+                    .OrderBy(v => v.RestoredDate)
+                    .ToListAsync();
+
                 ViewBag.ActivityDate = logDate;
                 ViewBag.CreatedVouchers = createdVouchers;
                 ViewBag.UpdatedVouchers = updatedVouchers;
                 ViewBag.DeletedVouchers = deletedVouchers;
+                ViewBag.RevokedVouchers = revokedVouchers;
+                ViewBag.RestoredVouchers = restoredVouchers;
                 ViewBag.TotalCreated = createdVouchers.Count;
                 ViewBag.TotalUpdated = updatedVouchers.Count;
                 ViewBag.TotalDeleted = deletedVouchers.Count;
+                ViewBag.TotalRevoked = revokedVouchers.Count;
+                ViewBag.TotalRestored = restoredVouchers.Count;
 
                 return View();
             }
@@ -479,6 +512,69 @@ namespace VoucherManagementSystem.Controllers
             {
                 _logger.LogError(ex, "Error generating activity log");
                 TempData["Error"] = "Error generating activity log.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        // GET: Reports/RevokedVouchers - lists only revoked vouchers with restore option
+        public async Task<IActionResult> RevokedVouchers(DateTime? fromDate, DateTime? toDate, DateTime? voucherFromDate, DateTime? voucherToDate, string? voucherType, int? customerId, string? revokedBy)
+        {
+            try
+            {
+                // Load all revoked vouchers (bypasses the global filter inside the repo method)
+                var revoked = (await _voucherRepository.GetRevokedVouchersAsync()).AsEnumerable();
+
+                // Date range filter (by RevokedDate)
+                if (fromDate.HasValue)
+                    revoked = revoked.Where(v => v.RevokedDate.HasValue && v.RevokedDate.Value.Date >= fromDate.Value.Date);
+                if (toDate.HasValue)
+                    revoked = revoked.Where(v => v.RevokedDate.HasValue && v.RevokedDate.Value.Date <= toDate.Value.Date);
+
+                // Date range filter (by VoucherDate)
+                if (voucherFromDate.HasValue)
+                    revoked = revoked.Where(v => v.VoucherDate.Date >= voucherFromDate.Value.Date);
+                if (voucherToDate.HasValue)
+                    revoked = revoked.Where(v => v.VoucherDate.Date <= voucherToDate.Value.Date);
+
+                // Voucher type filter
+                if (!string.IsNullOrEmpty(voucherType) && Enum.TryParse<VoucherType>(voucherType, out var vType))
+                    revoked = revoked.Where(v => v.VoucherType == vType);
+
+                // Party filter
+                if (customerId.HasValue)
+                    revoked = revoked.Where(v => v.PurchasingCustomerId == customerId || v.ReceivingCustomerId == customerId);
+
+                // Revoked-by filter
+                if (!string.IsNullOrEmpty(revokedBy))
+                    revoked = revoked.Where(v => v.RevokedBy == revokedBy);
+
+                var list = revoked.ToList();
+
+                // Filter dropdown data
+                ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
+                var revokedByUsers = (await _voucherRepository.GetRevokedVouchersAsync())
+                    .Where(v => !string.IsNullOrEmpty(v.RevokedBy))
+                    .Select(v => v.RevokedBy!)
+                    .Distinct()
+                    .OrderBy(u => u)
+                    .ToList();
+                ViewBag.RevokedByUsers = new SelectList(revokedByUsers, revokedBy);
+
+                ViewBag.FromDate = fromDate;
+                ViewBag.ToDate = toDate;
+                ViewBag.VoucherFromDate = voucherFromDate;
+                ViewBag.VoucherToDate = voucherToDate;
+                ViewBag.SelectedVoucherType = voucherType;
+                ViewBag.SelectedCustomerId = customerId;
+                ViewBag.SelectedRevokedBy = revokedBy;
+                ViewBag.RevokedVouchers = list;
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating revoked vouchers report");
+                TempData["Error"] = "Error generating revoked vouchers report.";
                 return RedirectToAction(nameof(Index));
             }
         }
