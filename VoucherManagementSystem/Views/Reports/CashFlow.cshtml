@@ -114,7 +114,8 @@
                             foreach (var voucher in vouchers)
                             {
                                 bool isCashIn = (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ||
-                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.CashReceived) &&
+                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.CashReceived ||
+                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.ATMCash) &&
                                 voucher.CashType == VoucherManagementSystem.Models.CashType.Cash;
                                 bool isCashOut = (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ||
                                 voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense ||
@@ -146,6 +147,14 @@
                                                 <br /><small class="text-muted">@voucher.ExpenseHeadDetails</small>
                                             }
                                         }
+                                        else if (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.ATMCash)
+                                        {
+                                            <strong>ATM Cash (from Bank)</strong>
+                                            @if (!string.IsNullOrEmpty(voucher.BankCustomerPaidDetails))
+                                            {
+                                                <br /><small class="text-muted">@voucher.BankCustomerPaidDetails</small>
+                                            }
+                                        }
                                         else
                                         {
                                             @(voucher.Item?.Name ??
@@ -157,6 +166,10 @@
                                         @if (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense)
                                         {
                                             <span>-</span>
+                                        }
+                                        else if (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.ATMCash)
+                                        {
+                                            @(voucher.BankCustomerPaid?.Name ?? "-")
                                         }
                                         else
                                         {

@@ -268,7 +268,18 @@
                         @foreach (var type in Enum.GetValues<VoucherManagementSystem.Models.VoucherType>()
                             .Where(t => t != VoucherManagementSystem.Models.VoucherType.AdvancedPayment))
                         {
-                            <option value="@type">@type</option>
+                            @if (type == VoucherManagementSystem.Models.VoucherType.ATMCash)
+                            {
+                                <option value="@type">ATM Cash</option>
+                            }
+                            else if (type == VoucherManagementSystem.Models.VoucherType.ATMDailyCash)
+                            {
+                                <option value="@type">ATM Daily Cash</option>
+                            }
+                            else
+                            {
+                                <option value="@type">@type</option>
+                            }
                         }
                     </select>
                 </div>
@@ -1526,6 +1537,14 @@
                     $('#projectRow, #cashTypeRow, #rateRow').hide();
                     $('#ProjectId').val('');  // Clear project for BCR
                     break;
+                case 'ATMCash':
+                case 'ATMDailyCash':
+                    // Only Bank Paid + Bank Paid Details and Amount — nothing else
+                    $('#bankColumn').show();
+                    $('#bankPaidRow, #bankPaidDetailsRow').show();
+                    $('#bankReceiverColumn, #projectRow, #cashTypeRow, #rateRow').hide();
+                    $('#ProjectId').val('');  // No project for ATM vouchers
+                    break;
                 case 'AdvancedPayment':
                     $('#receivingCustomerColumn').show();
                     $('#projectRow, #rateRow').hide();
@@ -1563,7 +1582,8 @@
 
             if (bankType === 'paid') {
                 return voucherType === 'Purchase' || voucherType === 'CashPaid' ||
-                       voucherType === 'AdvancedCashPaid' || voucherType === 'BCR';
+                       voucherType === 'AdvancedCashPaid' || voucherType === 'BCR' ||
+                       voucherType === 'ATMCash' || voucherType === 'ATMDailyCash';
             } else if (bankType === 'receiver') {
                 return voucherType === 'Sale' || voucherType === 'CashReceived' ||
                        voucherType === 'AdvancedCashReceived' || voucherType === 'BCR';

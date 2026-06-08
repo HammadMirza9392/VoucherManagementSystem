@@ -12,7 +12,9 @@
         BCR,
         AdvancedPayment,
         AdvancedCashPaid,
-        AdvancedCashReceived
+        AdvancedCashReceived,
+        ATMCash,
+        ATMDailyCash
     }
 
     public enum CashType

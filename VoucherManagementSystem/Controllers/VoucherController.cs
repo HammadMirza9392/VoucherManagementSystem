@@ -225,6 +225,13 @@ namespace VoucherManagementSystem.Controllers
                 if (voucher.VoucherType == VoucherType.AdvancedCashReceived)
                     return await SaveAdvancedCashReceived(voucher);
 
+                // ATM vouchers: money is withdrawn from a bank into cash / daily cash.
+                // Force the CashType so the correct cash report picks it up.
+                if (voucher.VoucherType == VoucherType.ATMCash)
+                    voucher.CashType = CashType.Cash;
+                else if (voucher.VoucherType == VoucherType.ATMDailyCash)
+                    voucher.CashType = CashType.DailyCashBook;
+
                 // Generate transaction number
                 voucher.TransactionNumber = await _voucherRepository.GenerateTransactionNumberAsync(voucher.VoucherType);
                 voucher.CreatedBy = HttpContext.Session.GetString("Username") ?? "admin";
@@ -327,6 +334,12 @@ namespace VoucherManagementSystem.Controllers
                     await PrepareViewBags();
                     return View(voucher);
                 }
+
+                // ATM vouchers: keep CashType consistent so reports pick them up correctly
+                if (voucher.VoucherType == VoucherType.ATMCash)
+                    voucher.CashType = CashType.Cash;
+                else if (voucher.VoucherType == VoucherType.ATMDailyCash)
+                    voucher.CashType = CashType.DailyCashBook;
 
                 // Get original voucher for stock/balance reversal
                 var originalVoucher = await _context.Vouchers

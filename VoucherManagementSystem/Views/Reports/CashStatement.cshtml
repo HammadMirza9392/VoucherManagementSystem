@@ -168,6 +168,11 @@
                                         customerName = v.ReceivingCustomer?.Name ?? v.ReceivingCustomerDetails ?? "N/A";
                                         description = "Cash Received";
                                         break;
+                                    case VoucherManagementSystem.Models.VoucherType.ATMCash:
+                                        receipt = v.Amount;
+                                        customerName = v.BankCustomerPaid?.Name ?? "ATM Withdrawal";
+                                        description = "ATM Cash (from Bank)";
+                                        break;
                                     case VoucherManagementSystem.Models.VoucherType.Purchase:
                                         payment = v.Amount;
                                         customerName = v.PurchasingCustomer?.Name ?? v.PurchasingCustomerDetails ?? "N/A";

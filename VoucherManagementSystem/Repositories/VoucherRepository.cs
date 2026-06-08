@@ -26,6 +26,8 @@ namespace VoucherManagementSystem.Repositories
                 VoucherType.AdvancedPayment => "ADV",
                 VoucherType.AdvancedCashPaid => "ACP",
                 VoucherType.AdvancedCashReceived => "ACR",
+                VoucherType.ATMCash => "ATM",
+                VoucherType.ATMDailyCash => "ATMD",
                 _ => "VCH"
             };
 
@@ -75,6 +77,7 @@ namespace VoucherManagementSystem.Repositories
                 .Include(v => v.Item)
                 .Include(v => v.Project)
                 .Include(v => v.ExpenseHead)
+                .Include(v => v.BankCustomerPaid)
                 .Where(v => v.VoucherDate >= fromDate && v.VoucherDate <= toDate)
                 .OrderByDescending(v => v.VoucherDate)
                 .ToListAsync();

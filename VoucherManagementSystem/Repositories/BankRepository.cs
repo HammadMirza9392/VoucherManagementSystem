@@ -53,7 +53,10 @@ namespace VoucherManagementSystem.Repositories
                               v.VoucherType == VoucherType.CashReceived ||
                               v.VoucherType == VoucherType.Expense))
                             // BCR (bank-to-bank transfer) — identified by bank fields, no CashType
-                            || v.VoucherType == VoucherType.BCR))
+                            || v.VoucherType == VoucherType.BCR
+                            // ATM withdrawals — money out of bank into cash / daily cash
+                            || v.VoucherType == VoucherType.ATMCash
+                            || v.VoucherType == VoucherType.ATMDailyCash))
                 .OrderByDescending(v => v.VoucherDate)
                 .ToListAsync();
         }

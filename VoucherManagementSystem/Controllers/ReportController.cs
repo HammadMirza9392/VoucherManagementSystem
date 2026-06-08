@@ -291,6 +291,7 @@ namespace VoucherManagementSystem.Controllers
                     .Include(v => v.Item)
                     .Include(v => v.ExpenseHead)
                     .Include(v => v.Project)
+                    .Include(v => v.BankCustomerPaid)
                     .Where(v => v.CashType == CashType.Cash &&
                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
@@ -337,6 +338,7 @@ namespace VoucherManagementSystem.Controllers
                     {
                         case VoucherType.Sale:
                         case VoucherType.CashReceived:
+                        case VoucherType.ATMCash:   // ATM withdrawal → cash in
                             totalReceipts += v.Amount;
                             break;
                         case VoucherType.Purchase:
@@ -503,6 +505,7 @@ namespace VoucherManagementSystem.Controllers
                 {
                     case VoucherType.Sale:
                     case VoucherType.CashReceived:
+                    case VoucherType.ATMCash:   // ATM withdrawal → cash in
                         balance += v.Amount;
                         break;
                     case VoucherType.Purchase:
@@ -811,6 +814,7 @@ namespace VoucherManagementSystem.Controllers
                     {
                         case VoucherType.Sale:
                         case VoucherType.CashReceived:
+                        case VoucherType.ATMCash:   // ATM withdrawal → cash in
                             cashIn += voucher.Amount;
                             break;
                         case VoucherType.Purchase:
@@ -924,6 +928,7 @@ namespace VoucherManagementSystem.Controllers
                 {
                     case VoucherType.Sale:
                     case VoucherType.CashReceived:
+                    case VoucherType.ATMCash:   // ATM withdrawal → cash in
                         balance += voucher.Amount;
                         break;
                     case VoucherType.Purchase:
@@ -994,6 +999,7 @@ namespace VoucherManagementSystem.Controllers
                     .Include(v => v.Item)
                     .Include(v => v.ExpenseHead)
                     .Include(v => v.Project)
+                    .Include(v => v.BankCustomerPaid)
                     .Where(v => v.CashType == CashType.DailyCashBook &&
                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
@@ -1026,6 +1032,7 @@ namespace VoucherManagementSystem.Controllers
                     {
                         case VoucherType.Sale:
                         case VoucherType.CashReceived:
+                        case VoucherType.ATMDailyCash:   // ATM withdrawal → daily cash in
                             totalReceipts += v.Amount;
                             break;
                         case VoucherType.Purchase:
@@ -1077,6 +1084,7 @@ namespace VoucherManagementSystem.Controllers
                 {
                     case VoucherType.Sale:
                     case VoucherType.CashReceived:
+                    case VoucherType.ATMDailyCash:   // ATM withdrawal → daily cash in
                         balance += v.Amount;
                         break;
                     case VoucherType.Purchase:
@@ -1500,7 +1508,10 @@ namespace VoucherManagementSystem.Controllers
                               v.VoucherType == VoucherType.CashReceived ||
                               v.VoucherType == VoucherType.Expense))
                             // BCR (bank-to-bank transfer) — identified by bank fields, no CashType
-                            || v.VoucherType == VoucherType.BCR))
+                            || v.VoucherType == VoucherType.BCR
+                            // ATM withdrawals — money out of bank into cash / daily cash
+                            || v.VoucherType == VoucherType.ATMCash
+                            || v.VoucherType == VoucherType.ATMDailyCash))
                 .ToListAsync();
 
             foreach (var voucher in previousVouchers)

@@ -183,6 +183,7 @@ namespace VoucherManagementSystem.Controllers
                 {
                     case VoucherType.Sale:
                     case VoucherType.CashReceived:
+                    case VoucherType.ATMCash:   // ATM withdrawal → cash in
                         cashInHand += v.Amount;
                         break;
                     case VoucherType.Purchase:
@@ -216,6 +217,7 @@ namespace VoucherManagementSystem.Controllers
                 {
                     case VoucherType.Sale:
                     case VoucherType.CashReceived:
+                    case VoucherType.ATMDailyCash:   // ATM withdrawal → daily cash in
                         dailyCashBalance += v.Amount;
                         break;
                     case VoucherType.Purchase:
