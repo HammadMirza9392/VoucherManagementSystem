@@ -6,36 +6,53 @@
 }
 
 <!-- Global Date Filter -->
-<div class="card mb-4">
-    <div class="card-header bg-dark text-white">
-        <h5 class="mb-0"><i class="bi bi-calendar-range"></i> Global Date Filter</h5>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-3">
-                <label class="form-label fw-bold">From Date</label>
-                <input type="date" id="globalFromDate" class="form-control" value="@globalFromDate" />
+<div class="card mb-4 border-0 shadow-sm global-filter-card">
+    <div class="card-body p-4">
+        <div class="d-flex align-items-center mb-3">
+            <div class="global-filter-icon me-3">
+                <i class="bi bi-calendar-range"></i>
             </div>
-            <div class="col-md-3">
-                <label class="form-label fw-bold">To Date</label>
-                <input type="date" id="globalToDate" class="form-control" value="@globalToDate" />
+            <div>
+                <h5 class="mb-0 fw-bold text-white">Global Date Filter</h5>
+                <small class="text-white-50">Applied automatically to every report below</small>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">&nbsp;</label>
-                <button type="button" id="applyGlobalDates" class="btn btn-primary w-100">
-                    <i class="bi bi-check-circle"></i> Apply Dates
+        </div>
+
+        <!-- Quick presets -->
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="btn btn-sm preset-btn" data-preset="today">Today</button>
+            <button type="button" class="btn btn-sm preset-btn" data-preset="week">Last 7 Days</button>
+            <button type="button" class="btn btn-sm preset-btn" data-preset="month">This Month</button>
+            <button type="button" class="btn btn-sm preset-btn" data-preset="last30">Last 30 Days</button>
+            <button type="button" class="btn btn-sm preset-btn" data-preset="year">This Year</button>
+        </div>
+
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3 col-6">
+                <label class="form-label fw-semibold text-white-50 small text-uppercase">From Date</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-0"><i class="bi bi-calendar-event text-primary"></i></span>
+                    <input type="date" id="globalFromDate" class="form-control border-0" value="@globalFromDate" />
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <label class="form-label fw-semibold text-white-50 small text-uppercase">To Date</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-0"><i class="bi bi-calendar-check text-primary"></i></span>
+                    <input type="date" id="globalToDate" class="form-control border-0" value="@globalToDate" />
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <button type="button" id="applyGlobalDates" class="btn btn-light fw-semibold w-100 shadow-sm">
+                    <i class="bi bi-check-circle-fill text-success"></i> Apply Dates
                 </button>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">&nbsp;</label>
-                <button type="button" id="resetGlobalDates" class="btn btn-secondary w-100">
+            <div class="col-md-3 col-6">
+                <button type="button" id="resetGlobalDates" class="btn btn-outline-light fw-semibold w-100">
                     <i class="bi bi-arrow-counterclockwise"></i> Reset
                 </button>
             </div>
         </div>
-        <small class="text-muted mt-2 d-block">
-            <i class="bi bi-info-circle"></i> These dates will be automatically applied to all report forms below.
-        </small>
     </div>
 </div>
 
@@ -361,6 +378,53 @@
 
 @section Styles {
     <style>
+        /* === Global Date Filter === */
+        .global-filter-card {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+            border-radius: 14px;
+        }
+
+        .global-filter-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .global-filter-card .input-group {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .global-filter-card .form-control:focus {
+            box-shadow: none;
+        }
+
+        .global-filter-card .preset-btn {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .global-filter-card .preset-btn:hover,
+        .global-filter-card .preset-btn.active {
+            background: #fff;
+            color: #1e3c72;
+            border-color: #fff;
+            font-weight: 600;
+        }
+
         /* Report cards with sticky buttons at bottom */
         .row-cols-5 .card {
             display: flex;
@@ -450,14 +514,55 @@
                 // Show success message
                 var btn = $('#applyGlobalDates');
                 var originalText = btn.html();
-                btn.html('<i class="bi bi-check-circle"></i> Applied!').addClass('btn-success').removeClass('btn-primary');
+                btn.html('<i class="bi bi-check-circle-fill text-success"></i> Applied!');
                 setTimeout(function() {
-                    btn.html(originalText).removeClass('btn-success').addClass('btn-primary');
+                    btn.html(originalText);
                 }, 2000);
             }
 
             // Apply button click
             $('#applyGlobalDates').on('click', function() {
+                applyGlobalDates();
+            });
+
+            // Quick preset buttons (Today / Last 7 Days / This Month / Last 30 Days / This Year)
+            function fmt(d) {
+                var y = d.getFullYear();
+                var m = String(d.getMonth() + 1).padStart(2, '0');
+                var day = String(d.getDate()).padStart(2, '0');
+                return y + '-' + m + '-' + day;
+            }
+
+            $('.preset-btn').on('click', function() {
+                var preset = $(this).data('preset');
+                var today = new Date();
+                var from = new Date();
+                var to = new Date();
+
+                switch (preset) {
+                    case 'today':
+                        from = today; to = today;
+                        break;
+                    case 'week':
+                        from = new Date(); from.setDate(today.getDate() - 6); to = today;
+                        break;
+                    case 'month':
+                        from = new Date(today.getFullYear(), today.getMonth(), 1); to = today;
+                        break;
+                    case 'last30':
+                        from = new Date(); from.setDate(today.getDate() - 29); to = today;
+                        break;
+                    case 'year':
+                        from = new Date(today.getFullYear(), 0, 1); to = today;
+                        break;
+                }
+
+                $('#globalFromDate').val(fmt(from));
+                $('#globalToDate').val(fmt(to));
+
+                $('.preset-btn').removeClass('active');
+                $(this).addClass('active');
+
                 applyGlobalDates();
             });
 
@@ -487,8 +592,9 @@
                 applyGlobalDates();
             }
 
-            // Apply dates when global date inputs change
+            // Apply dates when global date inputs change (manual change clears preset highlight)
             $('#globalFromDate, #globalToDate').on('change', function() {
+                $('.preset-btn').removeClass('active');
                 applyGlobalDates();
             });
         });
