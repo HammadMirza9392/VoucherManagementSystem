@@ -99,6 +99,8 @@
                     <th>Date</th>
                     <th>Customer</th>
                     <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Gari No.</th>
                     <th>Project</th>
                     <th>Stock</th>
                     <th>Amount</th>
@@ -131,6 +133,8 @@
                             }
                         </td>
                         <td>@item.Item?.Name</td>
+                        <td class="text-end">@(item.Quantity.HasValue ? string.Format("{0:N2}", item.Quantity.Value) : "")</td>
+                        <td>@item.GariNo</td>
                         <td>
                             @if (item.ProjectId.HasValue && item.Project != null)
                             {
