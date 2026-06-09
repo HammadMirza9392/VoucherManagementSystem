@@ -107,15 +107,17 @@
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0" id="createdTable">
+            <table class="table table-hover table-bordered mb-0" id="createdTable">
                 <thead class="table-success">
                     <tr>
                         <th>Time Added</th>
-                        <th>Trans No</th>
+                        <th>Voucher No</th>
                         <th>Type</th>
                         <th>Voucher Date</th>
                         <th>Customer</th>
                         <th>Item</th>
+                        <th class="text-end">Quantity</th>
+                        <th class="text-end">Rate</th>
                         <th>Project</th>
                         <th class="text-end">Amount</th>
                         <th>Added By</th>
@@ -128,7 +130,7 @@
                         {
                             var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
                             <tr>
-                                <td><span class="badge bg-success">@v.CreatedDate.ToPkTime()</span></td>
+                                <td><span class="badge bg-success">@(v.CreatedDate.ToString("HH:mm"))</span></td>
                                 <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
                                 <td>
                                     <span class="badge bg-@(v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
@@ -141,31 +143,23 @@
                                 <td>@v.VoucherDate.ToPkDate()</td>
                                 <td>@customer</td>
                                 <td>@(v.Item?.Name ?? "-")</td>
+                                <td class="text-end">@(v.Quantity.HasValue ? v.Quantity.Value.ToString("#,##0.###") : "-")</td>
+                                <td class="text-end">@(v.Rate.HasValue ? v.Rate.Value.ToString("#,##0.##") : "-")</td>
                                 <td>@(v.Project?.Name ?? "-")</td>
-                                <td class="text-end fw-bold text-success">Rs. @string.Format("{0:N0}", v.Amount)</td>
-                                <td><span class="badge bg-secondary">@(v.CreatedBy ?? "System")</span></td>
+                                <td class="text-end">@string.Format("{0:N0}", v.Amount)</td>
+                                <td>@(v.CreatedBy ?? "N/A")</td>
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="9" class="text-center text-muted fst-italic py-3">
+                            <td colspan="11" class="text-center text-muted fst-italic py-3">
                                 <i class="bi bi-info-circle"></i> No entries were added on @activityDate.ToString("dd-MMM-yyyy")
                             </td>
                         </tr>
                     }
                 </tbody>
-                @if (createdVouchers != null && createdVouchers.Any())
-                {
-                    <tfoot class="table-success">
-                        <tr>
-                            <th colspan="7" class="text-end">Total Created Amount:</th>
-                            <th class="text-end">Rs. @string.Format("{0:N0}", createdVouchers.Sum(v => v.Amount))</th>
-                            <th></th>
-                        </tr>
-                    </tfoot>
-                }
             </table>
         </div>
     </div>
@@ -179,15 +173,17 @@
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0" id="updatedTable">
+            <table class="table table-hover table-bordered mb-0" id="updatedTable">
                 <thead class="table-warning">
                     <tr>
                         <th>Time Updated</th>
-                        <th>Trans No</th>
+                        <th>Voucher No</th>
                         <th>Type</th>
                         <th>Voucher Date</th>
                         <th>Customer</th>
                         <th>Item</th>
+                        <th class="text-end">Quantity</th>
+                        <th class="text-end">Rate</th>
                         <th>Project</th>
                         <th class="text-end">Amount</th>
                         <th>Updated By</th>
@@ -200,7 +196,7 @@
                         {
                             var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
                             <tr>
-                                <td><span class="badge bg-warning text-dark">@v.UpdatedDate.ToPkTime()</span></td>
+                                <td><span class="badge bg-warning text-dark">@(v.UpdatedDate.HasValue ? v.UpdatedDate.Value.ToString("HH:mm") : "-")</span></td>
                                 <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
                                 <td>
                                     <span class="badge bg-@(v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
@@ -213,16 +209,18 @@
                                 <td>@v.VoucherDate.ToPkDate()</td>
                                 <td>@customer</td>
                                 <td>@(v.Item?.Name ?? "-")</td>
+                                <td class="text-end">@(v.Quantity.HasValue ? v.Quantity.Value.ToString("#,##0.###") : "-")</td>
+                                <td class="text-end">@(v.Rate.HasValue ? v.Rate.Value.ToString("#,##0.##") : "-")</td>
                                 <td>@(v.Project?.Name ?? "-")</td>
-                                <td class="text-end fw-bold">Rs. @string.Format("{0:N0}", v.Amount)</td>
-                                <td><span class="badge bg-secondary">@(v.UpdatedBy ?? "System")</span></td>
+                                <td class="text-end">@string.Format("{0:N0}", v.Amount)</td>
+                                <td>@(v.UpdatedBy ?? "N/A")</td>
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="9" class="text-center text-muted fst-italic py-3">
+                            <td colspan="11" class="text-center text-muted fst-italic py-3">
                                 <i class="bi bi-info-circle"></i> No entries were updated on @activityDate.ToString("dd-MMM-yyyy")
                             </td>
                         </tr>
@@ -241,15 +239,17 @@
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0" id="deletedTable">
+            <table class="table table-hover table-bordered mb-0" id="deletedTable">
                 <thead class="table-danger">
                     <tr>
                         <th>Time Deleted</th>
-                        <th>Trans No</th>
+                        <th>Voucher No</th>
                         <th>Type</th>
                         <th>Voucher Date</th>
                         <th>Customer</th>
                         <th>Item</th>
+                        <th class="text-end">Quantity</th>
+                        <th class="text-end">Rate</th>
                         <th>Project</th>
                         <th class="text-end">Amount</th>
                         <th>Deleted By</th>
@@ -261,9 +261,9 @@
                         foreach (var v in deletedVouchers)
                         {
                             var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
-                            <tr class="table-danger">
-                                <td><span class="badge bg-danger">@v.DeletedDate.ToPkTime()</span></td>
-                                <td><span class="text-decoration-line-through text-muted">@v.TransactionNumber</span></td>
+                            <tr>
+                                <td><span class="badge bg-danger">@(v.DeletedDate.HasValue ? v.DeletedDate.Value.ToString("HH:mm") : "-")</span></td>
+                                <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
                                 <td>
                                     <span class="badge bg-@(v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
                                                            v.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ? "success" :
@@ -275,31 +275,23 @@
                                 <td>@v.VoucherDate.ToPkDate()</td>
                                 <td>@customer</td>
                                 <td>@(v.Item?.Name ?? "-")</td>
+                                <td class="text-end">@(v.Quantity.HasValue ? v.Quantity.Value.ToString("#,##0.###") : "-")</td>
+                                <td class="text-end">@(v.Rate.HasValue ? v.Rate.Value.ToString("#,##0.##") : "-")</td>
                                 <td>@(v.Project?.Name ?? "-")</td>
-                                <td class="text-end fw-bold text-danger">Rs. @string.Format("{0:N0}", v.Amount)</td>
-                                <td><span class="badge bg-danger">@(v.DeletedBy ?? "System")</span></td>
+                                <td class="text-end">@string.Format("{0:N0}", v.Amount)</td>
+                                <td>@(v.DeletedBy ?? "N/A")</td>
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="9" class="text-center text-muted fst-italic py-3">
+                            <td colspan="11" class="text-center text-muted fst-italic py-3">
                                 <i class="bi bi-info-circle"></i> No entries were deleted on @activityDate.ToString("dd-MMM-yyyy")
                             </td>
                         </tr>
                     }
                 </tbody>
-                @if (deletedVouchers != null && deletedVouchers.Any())
-                {
-                    <tfoot class="table-danger">
-                        <tr>
-                            <th colspan="7" class="text-end">Total Deleted Amount:</th>
-                            <th class="text-end">Rs. @string.Format("{0:N0}", deletedVouchers.Sum(v => v.Amount))</th>
-                            <th></th>
-                        </tr>
-                    </tfoot>
-                }
             </table>
         </div>
     </div>
@@ -320,6 +312,8 @@
                         <th>Voucher No</th>
                         <th>Type</th>
                         <th>Party</th>
+                        <th class="text-end">Quantity</th>
+                        <th class="text-end">Rate</th>
                         <th class="text-end">Amount</th>
                         <th>Created By</th>
                         <th>Revoked By</th>
@@ -334,8 +328,17 @@
                             <tr>
                                 <td><span class="badge bg-warning text-dark">@(v.RevokedDate.HasValue ? v.RevokedDate.Value.ToString("HH:mm") : "-")</span></td>
                                 <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
-                                <td><span class="badge bg-secondary">@v.VoucherType</span></td>
+                                <td>
+                                    <span class="badge bg-@(v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ? "success" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense ? "danger" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Hazri ? "warning" : "secondary")">
+                                        @v.VoucherType
+                                    </span>
+                                </td>
                                 <td>@party</td>
+                                <td class="text-end">@(v.Quantity.HasValue ? v.Quantity.Value.ToString("#,##0.###") : "-")</td>
+                                <td class="text-end">@(v.Rate.HasValue ? v.Rate.Value.ToString("#,##0.##") : "-")</td>
                                 <td class="text-end">@string.Format("{0:N0}", v.Amount)</td>
                                 <td>@(v.CreatedBy ?? "N/A")</td>
                                 <td><span class="badge bg-warning text-dark">@(v.RevokedBy ?? "System")</span></td>
@@ -345,7 +348,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center text-muted fst-italic py-3">
+                            <td colspan="9" class="text-center text-muted fst-italic py-3">
                                 <i class="bi bi-info-circle"></i> No entries were revoked on @activityDate.ToString("dd-MMM-yyyy")
                             </td>
                         </tr>
@@ -371,6 +374,8 @@
                         <th>Voucher No</th>
                         <th>Type</th>
                         <th>Party</th>
+                        <th class="text-end">Quantity</th>
+                        <th class="text-end">Rate</th>
                         <th class="text-end">Amount</th>
                         <th>Created By</th>
                         <th>Restored By</th>
@@ -385,8 +390,17 @@
                             <tr>
                                 <td><span class="badge bg-info">@(v.RestoredDate.HasValue ? v.RestoredDate.Value.ToString("HH:mm") : "-")</span></td>
                                 <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
-                                <td><span class="badge bg-secondary">@v.VoucherType</span></td>
+                                <td>
+                                    <span class="badge bg-@(v.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ? "primary" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ? "success" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense ? "danger" :
+                                                           v.VoucherType == VoucherManagementSystem.Models.VoucherType.Hazri ? "warning" : "secondary")">
+                                        @v.VoucherType
+                                    </span>
+                                </td>
                                 <td>@party</td>
+                                <td class="text-end">@(v.Quantity.HasValue ? v.Quantity.Value.ToString("#,##0.###") : "-")</td>
+                                <td class="text-end">@(v.Rate.HasValue ? v.Rate.Value.ToString("#,##0.##") : "-")</td>
                                 <td class="text-end">@string.Format("{0:N0}", v.Amount)</td>
                                 <td>@(v.CreatedBy ?? "N/A")</td>
                                 <td><span class="badge bg-info">@(v.RestoredBy ?? "System")</span></td>
@@ -396,7 +410,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center text-muted fst-italic py-3">
+                            <td colspan="9" class="text-center text-muted fst-italic py-3">
                                 <i class="bi bi-info-circle"></i> No entries were restored on @activityDate.ToString("dd-MMM-yyyy")
                             </td>
                         </tr>
