@@ -39,8 +39,8 @@ namespace VoucherManagementSystem.Controllers
         // GET: Vouchers
         public async Task<IActionResult> Index(VoucherType? voucherType, int? customerId, int? projectId, int? itemId, DateTime? fromDate, DateTime? toDate, bool? stockInclude)
         {
-            // Start with all vouchers
-            var vouchers = await _voucherRepository.GetVouchersWithDetailsAsync();
+            // Start with all vouchers — include revoked so they appear in the list with a Restore button.
+            var vouchers = await _voucherRepository.GetVouchersWithDetailsIncludingRevokedAsync();
 
             // Apply filters progressively
             if (voucherType.HasValue)
