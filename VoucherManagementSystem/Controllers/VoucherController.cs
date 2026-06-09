@@ -888,10 +888,33 @@ namespace VoucherManagementSystem.Controllers
         private async Task PrepareViewBags()
         {
             ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name");
-            ViewBag.Items = new SelectList(await _itemRepository.GetActiveItemsAsync(), "Id", "Name");
+            ViewBag.Items = new SelectList(await GetItemsMostUsedFirstAsync(), "Id", "Name");
             ViewBag.Banks = new SelectList(await _bankRepository.GetActiveBanksAsync(), "Id", "Name");
             ViewBag.ExpenseHeads = new SelectList(await _expenseHeadRepository.GetActiveExpenseHeadsAsync(), "Id", "Name");
             ViewBag.Projects = new SelectList(await _projectRepository.GetActiveProjectsAsync(), "Id", "Name");
+        }
+
+        // Returns active items with the most-used item (by Purchase/Sale voucher count) placed
+        // first, so it appears at the top of the Item dropdown for quick selection.
+        private async Task<List<Item>> GetItemsMostUsedFirstAsync()
+        {
+            var items = (await _itemRepository.GetActiveItemsAsync()).ToList();
+
+            // Count how often each item is used in Purchase/Sale vouchers
+            var usageCounts = await _context.Vouchers
+                .Where(v => v.ItemId.HasValue &&
+                            (v.VoucherType == VoucherType.Purchase || v.VoucherType == VoucherType.Sale))
+                .GroupBy(v => v.ItemId!.Value)
+                .Select(g => new { ItemId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            var countById = usageCounts.ToDictionary(x => x.ItemId, x => x.Count);
+
+            // Order by usage (highest first), then alphabetically for the rest
+            return items
+                .OrderByDescending(i => countById.TryGetValue(i.Id, out var c) ? c : 0)
+                .ThenBy(i => i.Name)
+                .ToList();
         }
     }
 }
