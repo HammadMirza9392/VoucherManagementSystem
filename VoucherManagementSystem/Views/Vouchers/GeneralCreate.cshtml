@@ -62,15 +62,21 @@
 
 <!-- All Vouchers List Section -->
 <div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <h5 class="mb-0">All Vouchers (Total: @ViewBag.TotalRecords)</h5>
-        <button type="button" id="deleteSelected" class="btn btn-danger btn-sm" style="display:none;">
-            <i class="bi bi-trash"></i> Delete Selected
-        </button>
+        <div class="d-flex align-items-center gap-2">
+            <div class="input-group input-group-sm" style="width: 260px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="voucherTableSearch" class="form-control" placeholder="Search this page..." />
+            </div>
+            <button type="button" id="deleteSelected" class="btn btn-danger btn-sm" style="display:none;">
+                <i class="bi bi-trash"></i> Delete Selected
+            </button>
+        </div>
     </div>
     <div class="card-body p-0 d-flex flex-column" style="height:420px;">
         <div class="table-responsive flex-grow-1" style="overflow-y:auto; overflow-x:auto;">
-            <table class="table table-striped table-sm mb-0">
+            <table class="table table-striped table-sm mb-0" id="vouchersListTable">
                 <thead class="sticky-top" style="z-index:1;">
                     <tr>
                         <th><input type="checkbox" id="selectAll" title="Select All" /></th>
@@ -696,6 +702,21 @@
         $(document).ready(function() {
             // Initialize stock include hidden field on page load (default to True for Purchase/Sale)
             $('#stockInclude').val('True');
+
+            // Search box for the All Vouchers table — filters across all columns,
+            // but only within the rows currently shown on this page (not other pages).
+            $('#voucherTableSearch').on('keyup', function() {
+                var term = $(this).val().toLowerCase().trim();
+                $('#vouchersListTable tbody tr').each(function() {
+                    var $row = $(this);
+                    // Skip the "No vouchers found" placeholder row
+                    if ($row.find('td[colspan]').length) {
+                        return;
+                    }
+                    var match = $row.text().toLowerCase().indexOf(term) !== -1;
+                    $row.toggle(term === '' || match);
+                });
+            });
 
             // Load saved voucher date from localStorage or set to today
             var savedDate = localStorage.getItem('voucherDate');
