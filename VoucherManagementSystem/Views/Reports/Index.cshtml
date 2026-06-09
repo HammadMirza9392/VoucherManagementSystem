@@ -57,7 +57,7 @@
 </div>
 
 <!-- Quick Access Cards -->
-<div class="row mb-4 mt-4 row-cols-5 g-3">
+<div class="row mb-4 mt-4 row-cols-2 row-cols-lg-5 g-3">
     <div class="col">
         <a asp-action="AllCustomersReport" class="text-decoration-none">
             <div class="card bg-primary h-100 dashboard-card">
@@ -116,7 +116,7 @@
 </div>
 
 <!-- First Row: 5 Main Reports -->
-<div class="row row-cols-5 g-3 mb-4">
+<div class="row row-cols-2 row-cols-lg-5 g-3 mb-4">
     <div class="col">
         <div class="card h-100 mb-0">
             <div class="card-header bg-primary text-white">
@@ -235,7 +235,7 @@
 </div>
 
 <!-- Second Row: 5 Additional Reports -->
-<div class="row row-cols-5 g-3 mb-4">
+<div class="row row-cols-2 row-cols-lg-5 g-3 mb-4">
     <div class="col">
         <div class="card h-100 mb-0">
             <div class="card-header text-white" style="background:#1a1a2e;">
@@ -426,34 +426,34 @@
         }
 
         /* Report cards with sticky buttons at bottom */
-        .row-cols-5 .card {
+        .row-cols-lg-5 .card {
             display: flex;
             flex-direction: column;
         }
 
-        .row-cols-5 .card-body {
+        .row-cols-lg-5 .card-body {
             display: flex;
             flex-direction: column;
             flex-grow: 1;
             padding-bottom: 1rem;
         }
 
-        .row-cols-5 .card-body p {
+        .row-cols-lg-5 .card-body p {
             flex-grow: 1;
             margin-bottom: 1rem;
         }
 
-        .row-cols-5 .card-body form {
+        .row-cols-lg-5 .card-body form {
             display: flex;
             flex-direction: column;
             margin-top: auto;
         }
 
-        .row-cols-5 .card-body .btn {
+        .row-cols-lg-5 .card-body .btn {
             margin-top: auto;
         }
 
-        .row-cols-5 .card-body a.btn {
+        .row-cols-lg-5 .card-body a.btn {
             margin-top: auto;
         }
     </style>
