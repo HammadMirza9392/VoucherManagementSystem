@@ -901,6 +901,16 @@
                     $('#ProjectId').focus();
                     return false;
                 }
+
+                // For a Cash Paid voucher paid via Bank, the customer is mandatory.
+                if (voucherType === 'CashPaid' && $('#cashType').val() === 'Bank' && $('#bankPaid').val()) {
+                    if (!$('#purchasingCustomer').val()) {
+                        e.preventDefault();
+                        alert('Add customer first.');
+                        $('#purchasingCustomer').select2('open');
+                        return false;
+                    }
+                }
             });
 
             // Enter and Arrow key navigation for Select2 search boxes
