@@ -306,7 +306,15 @@ namespace VoucherManagementSystem.Controllers
                 .Take(10)
                 .ToList();
             ViewBag.ExpenseData = expenseData;
-            ViewBag.TotalExpenses30Days = expenseVouchers.Sum(v => v.Amount);
+            // Expense card total (all-time): only Expense vouchers whose CashType is anything except Credit.
+            // Mirrors exactly: SELECT SUM("Amount") FROM "Vouchers" WHERE "VoucherType" = 2 AND "CashType" != 0;
+            // Uses IgnoreQueryFilters() so the figure matches the raw DB query (counts every such row).
+            var expenseCardTotal = await _context.Vouchers
+                .IgnoreQueryFilters()
+                .Where(v => v.VoucherType == VoucherType.Expense &&
+                            v.CashType.HasValue && v.CashType.Value != CashType.Credit)
+                .SumAsync(v => v.Amount);
+            ViewBag.TotalExpenses30Days = expenseCardTotal;
 
             // 6. Monthly Trends (Last 6 months) - bucketed in memory
             var monthlyData = new List<DashboardMonthlyData>();
@@ -332,7 +340,9 @@ namespace VoucherManagementSystem.Controllers
 
             // 8. Total Capital
             // Stock + Receivables + Cash + Daily Cash + Bank + Advanced - Payables - Expenses
-            ViewBag.TotalCapital = totalStockValue + totalReceivables + cashInHand + dailyCashBalance + totalBankBalance + totalAdvancedBalance - totalPayables - totalExpenses;
+            // Expenses here uses the same figure shown on the Expense card
+            // (Expense vouchers with CashType != Credit).
+            ViewBag.TotalCapital = totalStockValue + totalReceivables + cashInHand + dailyCashBalance + totalBankBalance + totalAdvancedBalance - totalPayables - expenseCardTotal;
 
             // 9. Voucher Type Distribution (Last 30 days)
             var voucherTypeData = allVouchers
