@@ -127,37 +127,52 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.TotalStockValue = totalStockValue;
             ViewBag.StockData = stockData.ToList();
 
-            // 2. Customer Receivables & Payables - computed in memory from the single voucher load
+            // 2. Customer Receivables & Payables - computed in memory from the single voucher load.
+            // This MUST match the Customer Ledger's net balance logic exactly so the figures agree:
+            //   Purchasing side: Purchase = CR (-),  CashPaid/CCR = DR (+)
+            //   Receiving  side: Sale = DR (+),  CashReceived/CCR/AdvancedPayment = CR (-)
+            // Positive net = receivable (customer owes us), Negative net = payable (we owe them).
             decimal totalReceivables = 0;
             decimal totalPayables = 0;
             var receivablesData = new List<DashboardNameAmount>();
             var payablesData = new List<DashboardNameAmount>();
 
-            // Net per customer: + for receivable side, - for payable side
-            var receiveByCustomer = new Dictionary<int, decimal>();
-            var payByCustomer = new Dictionary<int, decimal>();
+            var netByCustomer = new Dictionary<int, decimal>();
 
             foreach (var v in allVouchers.Where(v => v.VoucherDate < date))
             {
-                if (v.ReceivingCustomerId.HasValue)
-                {
-                    if (v.VoucherType == VoucherType.Sale)
-                        receiveByCustomer[v.ReceivingCustomerId.Value] = receiveByCustomer.GetValueOrDefault(v.ReceivingCustomerId.Value) + v.Amount;
-                    else if (v.VoucherType == VoucherType.CashReceived)
-                        receiveByCustomer[v.ReceivingCustomerId.Value] = receiveByCustomer.GetValueOrDefault(v.ReceivingCustomerId.Value) - v.Amount;
-                }
                 if (v.PurchasingCustomerId.HasValue)
                 {
-                    if (v.VoucherType == VoucherType.Purchase)
-                        payByCustomer[v.PurchasingCustomerId.Value] = payByCustomer.GetValueOrDefault(v.PurchasingCustomerId.Value) + v.Amount;
-                    else if (v.VoucherType == VoucherType.CashPaid)
-                        payByCustomer[v.PurchasingCustomerId.Value] = payByCustomer.GetValueOrDefault(v.PurchasingCustomerId.Value) - v.Amount;
+                    switch (v.VoucherType)
+                    {
+                        case VoucherType.Purchase:
+                            netByCustomer[v.PurchasingCustomerId.Value] = netByCustomer.GetValueOrDefault(v.PurchasingCustomerId.Value) - v.Amount; // CR
+                            break;
+                        case VoucherType.CashPaid:
+                        case VoucherType.CCR:
+                            netByCustomer[v.PurchasingCustomerId.Value] = netByCustomer.GetValueOrDefault(v.PurchasingCustomerId.Value) + v.Amount; // DR
+                            break;
+                    }
+                }
+                if (v.ReceivingCustomerId.HasValue)
+                {
+                    switch (v.VoucherType)
+                    {
+                        case VoucherType.Sale:
+                            netByCustomer[v.ReceivingCustomerId.Value] = netByCustomer.GetValueOrDefault(v.ReceivingCustomerId.Value) + v.Amount; // DR
+                            break;
+                        case VoucherType.CashReceived:
+                        case VoucherType.CCR:
+                        case VoucherType.AdvancedPayment:
+                            netByCustomer[v.ReceivingCustomerId.Value] = netByCustomer.GetValueOrDefault(v.ReceivingCustomerId.Value) - v.Amount; // CR
+                            break;
+                    }
                 }
             }
 
             foreach (var customer in customers)
             {
-                decimal netBalance = receiveByCustomer.GetValueOrDefault(customer.Id) - payByCustomer.GetValueOrDefault(customer.Id);
+                decimal netBalance = netByCustomer.GetValueOrDefault(customer.Id);
 
                 if (netBalance > 0)
                 {
