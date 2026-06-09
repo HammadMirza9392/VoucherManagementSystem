@@ -1670,7 +1670,7 @@ namespace VoucherManagementSystem.Controllers
         }
 
         // GET: Reports/AllExpensesReport - All expenses in one page
-        public async Task<IActionResult> AllExpensesReport(DateTime? fromDate, DateTime? toDate, int? expenseHeadId, int? projectId)
+        public async Task<IActionResult> AllExpensesReport(DateTime? fromDate, DateTime? toDate, int? expenseHeadId, int? projectId, string? voucherType)
         {
             try
             {
@@ -1680,34 +1680,49 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.ExpenseHeads = new SelectList(await _expenseHeadRepository.GetActiveExpenseHeadsAsync(), "Id", "Name", expenseHeadId);
                 ViewBag.Projects = new SelectList(await _projectRepository.GetActiveProjectsAsync(), "Id", "Name", projectId);
 
-                // 1. Expense + Hazri vouchers
-                var expHazQuery = _context.Vouchers
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
-                    .Where(v => (v.VoucherType == VoucherType.Expense || v.VoucherType == VoucherType.Hazri) &&
-                               v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
+                // Voucher type filter — only Expense, Hazri, Purchase are relevant here
+                Enum.TryParse<VoucherType>(voucherType, out var selectedType);
+                bool hasTypeFilter = !string.IsNullOrEmpty(voucherType) &&
+                    (selectedType == VoucherType.Expense || selectedType == VoucherType.Hazri || selectedType == VoucherType.Purchase);
 
-                if (expenseHeadId.HasValue)
-                    expHazQuery = expHazQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
-                if (projectId.HasValue)
-                    expHazQuery = expHazQuery.Where(v => v.ProjectId == projectId);
+                // 1. Expense + Hazri vouchers (skipped entirely if the filter is "Purchase")
+                var expHazVouchers = new List<Voucher>();
+                if (!hasTypeFilter || selectedType == VoucherType.Expense || selectedType == VoucherType.Hazri)
+                {
+                    var expHazQuery = _context.Vouchers
+                        .Include(v => v.ExpenseHead)
+                        .Include(v => v.Project)
+                        .Where(v => (v.VoucherType == VoucherType.Expense || v.VoucherType == VoucherType.Hazri) &&
+                                   v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
-                var expHazVouchers = await expHazQuery.ToListAsync();
+                    if (hasTypeFilter)
+                        expHazQuery = expHazQuery.Where(v => v.VoucherType == selectedType);
+                    if (expenseHeadId.HasValue)
+                        expHazQuery = expHazQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
+                    if (projectId.HasValue)
+                        expHazQuery = expHazQuery.Where(v => v.ProjectId == projectId);
 
-                // 2. Purchase vouchers with an expense head
-                var purchaseQuery = _context.Vouchers
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
-                    .Where(v => v.VoucherType == VoucherType.Purchase &&
-                               v.ExpenseHeadId != null &&
-                               v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
+                    expHazVouchers = await expHazQuery.ToListAsync();
+                }
 
-                if (expenseHeadId.HasValue)
-                    purchaseQuery = purchaseQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
-                if (projectId.HasValue)
-                    purchaseQuery = purchaseQuery.Where(v => v.ProjectId == projectId);
+                // 2. Purchase vouchers with an expense head (skipped if the filter is Expense/Hazri)
+                var purchaseVouchers = new List<Voucher>();
+                if (!hasTypeFilter || selectedType == VoucherType.Purchase)
+                {
+                    var purchaseQuery = _context.Vouchers
+                        .Include(v => v.ExpenseHead)
+                        .Include(v => v.Project)
+                        .Where(v => v.VoucherType == VoucherType.Purchase &&
+                                   v.ExpenseHeadId != null &&
+                                   v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
-                var purchaseVouchers = await purchaseQuery.ToListAsync();
+                    if (expenseHeadId.HasValue)
+                        purchaseQuery = purchaseQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
+                    if (projectId.HasValue)
+                        purchaseQuery = purchaseQuery.Where(v => v.ProjectId == projectId);
+
+                    purchaseVouchers = await purchaseQuery.ToListAsync();
+                }
 
                 // 3. Build unified rows
                 var rows = new List<ExpenseReportRow>();
@@ -1764,6 +1779,8 @@ namespace VoucherManagementSystem.Controllers
                                ((v.VoucherType == VoucherType.Expense) ||
                                 (v.VoucherType == VoucherType.Hazri) ||
                                 (v.VoucherType == VoucherType.Purchase && v.ExpenseHeadId != null)));
+                if (hasTypeFilter)
+                    openingBalanceQuery = openingBalanceQuery.Where(v => v.VoucherType == selectedType);
                 if (expenseHeadId.HasValue)
                     openingBalanceQuery = openingBalanceQuery.Where(v => v.ExpenseHeadId == expenseHeadId);
                 if (projectId.HasValue)
@@ -1798,6 +1815,7 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.ToDate                = endDate;
                 ViewBag.SelectedExpenseHeadId = expenseHeadId;
                 ViewBag.SelectedProjectId     = projectId;
+                ViewBag.SelectedVoucherType   = voucherType;
                 ViewBag.Expenses              = rows;
                 ViewBag.ExpenseSummary        = expenseSummary;
                 ViewBag.TotalExpenses         = totalExpenses;

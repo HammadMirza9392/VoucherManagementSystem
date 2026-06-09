@@ -11,6 +11,7 @@
     var totalPurchaseDeductions = (decimal)(ViewBag.TotalPurchaseDeductions ?? 0);
     var openingBalance = (decimal)(ViewBag.OpeningBalance ?? 0);
     var netTotal = (decimal)(ViewBag.NetTotal ?? 0);
+    var selectedVoucherType = ViewBag.SelectedVoucherType as string;
 }
 
 <div class="d-print-none">
@@ -42,10 +43,21 @@
                 @Html.DropDownList("expenseHeadId", ViewBag.ExpenseHeads as SelectList, "-- All Expense Heads --", new { @class = "form-select" })
             </div>
             <div class="col-md-2">
-                <label class="form-label">&nbsp;</label>
-                <button type="submit" class="btn btn-danger w-100">
+                <label class="form-label">Filter by Voucher Type</label>
+                <select name="voucherType" class="form-select">
+                    <option value="">-- All Types --</option>
+                    <option value="Expense" selected="@(selectedVoucherType == "Expense")">Expense</option>
+                    <option value="Hazri" selected="@(selectedVoucherType == "Hazri")">Hazri</option>
+                    <option value="Purchase" selected="@(selectedVoucherType == "Purchase")">Purchase</option>
+                </select>
+            </div>
+            <div class="col-md-12">
+                <button type="submit" class="btn btn-danger">
                     <i class="bi bi-search"></i> Generate
                 </button>
+                <a asp-action="AllExpensesReport" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
             </div>
         </form>
     </div>
