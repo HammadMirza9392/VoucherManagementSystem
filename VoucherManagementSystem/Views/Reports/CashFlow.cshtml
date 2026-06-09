@@ -107,6 +107,20 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <!-- Opening Balance Row -->
+                    <tr class="table-warning">
+                        <td>@fromDate.ToString("dd-MMM-yy")</td>
+                        <td>-</td>
+                        <td><span class="badge bg-secondary">Opening</span></td>
+                        <td class="fw-bold">Opening Balance</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end fw-bold @(openingBalance >= 0 ? "text-primary" : "text-danger")">
+                            @string.Format("{0:N0}", openingBalance)
+                        </td>
+                    </tr>
                     @{
                         decimal runningBalance = openingBalance;
                         if (vouchers != null)
@@ -210,7 +224,12 @@
                 </tbody>
                 <tfoot>
                     <tr class="table-dark">
-                        <th colspan="6">Total</th>
+                        <th>Total</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
                         <th class="text-end">@string.Format("{0:N0}", cashIn)</th>
                         <th class="text-end">@string.Format("{0:N0}", cashOut)</th>
                         <th class="text-end">@string.Format("{0:N0}", closingBalance)</th>
@@ -238,7 +257,9 @@
     <script>
         $(document).ready(function() {
             $('#cashFlowTable').DataTable({
-                "order": [[0, "asc"]],
+                // No initial re-sort: keep the server order so the Opening Balance row
+                // stays pinned at the top and vouchers remain in date order.
+                "order": [],
                 "pageLength": 50
             });
 
