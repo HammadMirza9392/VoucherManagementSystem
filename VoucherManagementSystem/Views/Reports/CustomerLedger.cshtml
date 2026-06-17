@@ -435,13 +435,11 @@ else
             const timestamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
             const filename = 'CustomerLedger_' + customerName.replace(/\s+/g, '_') + '_' + timestamp + '.pdf';
 
-            // Clone the entire report content
-            const element = document.querySelector('body').cloneNode(true);
+            // Build a clean clone of just the report (no navbar/footer/buttons),
+            // expanded so every row and every column is rendered.
+            const element = buildPdfElement();
 
-            // Remove all elements with d-print-none class from clone
-            element.querySelectorAll('.d-print-none').forEach(el => el.remove());
-
-            // Configure PDF options
+            // Configure PDF options — landscape so all 13 columns fit the page width
             const opt = {
                 margin: [10, 10, 10, 10],
                 filename: filename,
@@ -451,14 +449,16 @@ else
                     useCORS: true,
                     logging: false,
                     scrollY: 0,
-                    scrollX: 0
+                    scrollX: 0,
+                    windowHeight: element.scrollHeight
                 },
                 jsPDF: {
                     unit: 'mm',
                     format: 'a4',
-                    orientation: 'portrait'
+                    orientation: 'landscape'
                 },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                // Let the table flow across pages; break only between rows, never inside one
+                pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
             };
 
             // Generate PDF and download
@@ -471,6 +471,55 @@ else
                 button.innerHTML = originalText;
                 button.disabled = false;
             });
+        }
+
+        // Builds a clean clone of just the report content (no navbar/footer/buttons),
+        // expanded so html2pdf captures every row and every column.
+        function buildPdfElement() {
+            const element = document.querySelector('body').cloneNode(true);
+
+            // Body uses flex column layout for sticky footer — neutralize it on the
+            // clone so the report content flows normally for capture.
+            element.style.display = 'block';
+            element.style.height = 'auto';
+
+            // Strip the site chrome: top navbar, page footer, modals, and any
+            // screen-only controls (filter form, search box, action buttons).
+            element.querySelectorAll('header, footer, .modal, .d-print-none')
+                   .forEach(el => el.remove());
+
+            // Remove the scrollable/fixed-height container so the full table renders.
+            element.querySelectorAll('.table-responsive').forEach(function(el) {
+                el.style.maxHeight = 'none';
+                el.style.overflow = 'visible';
+                el.style.overflowX = 'visible';
+                el.style.overflowY = 'visible';
+            });
+
+            // Sticky headers confuse html2canvas page splitting — make them static
+            // and ensure the header repeats on every page via table-header-group.
+            element.querySelectorAll('#ledgerTable thead').forEach(function(thead) {
+                thead.style.display = 'table-header-group';
+            });
+            element.querySelectorAll('#ledgerTable thead th').forEach(function(th) {
+                th.style.position = 'static';
+            });
+            element.querySelectorAll('#ledgerTable tfoot').forEach(function(tfoot) {
+                tfoot.style.display = 'table-footer-group';
+            });
+
+            // Force the table to fit the page width so no columns are clipped.
+            element.querySelectorAll('#ledgerTable').forEach(function(tbl) {
+                tbl.style.width = '100%';
+                tbl.style.tableLayout = 'fixed';
+            });
+            element.querySelectorAll('#ledgerTable th, #ledgerTable td').forEach(function(cell) {
+                cell.style.wordBreak = 'break-word';
+                cell.style.whiteSpace = 'normal';
+                cell.style.overflowWrap = 'anywhere';
+            });
+
+            return element;
         }
 
         async function sendToWhatsApp() {
@@ -496,16 +545,15 @@ else
             const filename = timestamp + '-CustomerLedger_' + customerName.replace(/\s+/g, '_') + '.pdf';
 
             try {
-                const element = document.querySelector('body').cloneNode(true);
-                element.querySelectorAll('.d-print-none').forEach(el => el.remove());
+                const element = buildPdfElement();
 
                 const opt = {
                     margin: [10, 10, 10, 10],
                     filename: filename,
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, scrollX: 0 },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                    html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, scrollX: 0, windowHeight: element.scrollHeight },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                    pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
                 };
 
                 // Step 1: Generate PDF blob
@@ -621,6 +669,9 @@ else
             padding: 15px 20px;
         }
 
+        /* On-screen: keep a fixed-height scroll container so very large ledgers
+           render fast and never hang the page. The PDF export expands its own
+           clone (see buildPdfElement), so it still captures every row/column. */
         .table-responsive {
             max-height: 600px;
             overflow-y: auto;
@@ -652,10 +703,6 @@ else
         }
 
         @@media print {
-            .card {
-                page-break-inside: avoid;
-            }
-
             .table {
                 font-size: 9pt;
             }
@@ -671,7 +718,21 @@ else
             }
 
             #ledgerTable thead th {
-                position: relative;
+                position: static;
+            }
+
+            /* Repeat the table header on every printed page */
+            #ledgerTable thead {
+                display: table-header-group;
+            }
+
+            #ledgerTable tfoot {
+                display: table-footer-group;
+            }
+
+            /* Never split a row across a page boundary */
+            #ledgerTable tr {
+                page-break-inside: avoid;
             }
         }
     </style>
