@@ -253,7 +253,9 @@
         <div class="card h-100 dashboard-card">
             <div class="card-header py-1 bg-primary text-white d-flex justify-content-between align-items-center">
                 <small><i class="bi bi-box-seam"></i> Stock Items (@stockData.Count)</small>
-                <small class="fw-bold">@string.Format("{0:N0}", totalStockValue)</small>
+                <small class="fw-bold @(totalStockValue >= 0 ? "" : "text-warning")">
+                    @(totalStockValue < 0 ? "-" : "")@string.Format("{0:N0}", Math.Abs(totalStockValue))
+                </small>
             </div>
             <div class="card-body p-0 dashboard-scroll-body">
                 <table class="table table-sm mb-0" style="font-size: 0.8rem;">
@@ -262,8 +264,12 @@
                         {
                             <tr>
                                 <td class="text-truncate" style="max-width: 80px;">@item.Name</td>
-                                <td class="text-end">@string.Format("{0:N0}", item.Quantity)</td>
-                                <td class="text-end text-primary fw-bold">@string.Format("{0:N0}", item.Value)</td>
+                                <td class="text-end @(item.Quantity < 0 ? "text-danger fw-bold" : "")">
+                                    @(item.Quantity < 0 ? "-" : "")@string.Format("{0:N0}", Math.Abs(item.Quantity))
+                                </td>
+                                <td class="text-end fw-bold @(item.Value >= 0 ? "text-primary" : "text-danger")">
+                                    @(item.Value < 0 ? "-" : "")@string.Format("{0:N0}", Math.Abs(item.Value))
+                                </td>
                             </tr>
                         }
                         @if (!stockData.Any())

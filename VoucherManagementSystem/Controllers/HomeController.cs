@@ -109,17 +109,38 @@ namespace VoucherManagementSystem.Controllers
                     g => g.Key,
                     g => new { Amount = g.Sum(p => p.Amount), Qty = g.Sum(p => p.Quantity ?? 0) });
 
+            // Sale-average rate per item — used as a fallback when an item has no
+            // purchase rows (typical for an over-sold/negative-stock item). Without
+            // this, the rate would fall back to a 0 DefaultRate and the negative stock
+            // value would render as 0, hiding it from the card and from Total Capital.
+            var stockSaleByItem = allVouchers
+                .Where(v => v.ItemId.HasValue && v.VoucherType == VoucherType.Sale)
+                .GroupBy(v => v.ItemId!.Value)
+                .ToDictionary(
+                    g => g.Key,
+                    g => new { Amount = g.Sum(s => s.Amount), Qty = g.Sum(s => s.Quantity ?? 0) });
+
             foreach (var item in items)
             {
                 decimal currentQty = item.CurrentStock;
-                if (currentQty > 0)
+                // Include items with negative stock too: an over-sold item carries a
+                // negative stock value that must reduce both the Stock Items total and
+                // Total Capital. Only items at exactly zero stock are skipped.
+                if (currentQty != 0)
                 {
+                    // Resolve the best available rate: purchase average → sale average
+                    // → item default. Guarantees a non-zero rate for negative stock so
+                    // its value is actually shown and netted into the totals.
                     decimal avgRate = item.DefaultRate;
                     if (stockPurchaseByItem.TryGetValue(item.Id, out var p) && p.Qty > 0)
                     {
                         avgRate = p.Amount / p.Qty;
                     }
-                    decimal stockValue = currentQty * avgRate;
+                    else if (stockSaleByItem.TryGetValue(item.Id, out var s) && s.Qty > 0)
+                    {
+                        avgRate = s.Amount / s.Qty;
+                    }
+                    decimal stockValue = currentQty * avgRate; // negative when currentQty < 0
                     totalStockValue += stockValue;
                     stockData.Add(new DashboardStockItem { Name = item.Name, Quantity = currentQty, Value = stockValue });
                 }
