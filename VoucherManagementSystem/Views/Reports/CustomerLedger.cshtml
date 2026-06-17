@@ -508,15 +508,55 @@ else
                 tfoot.style.display = 'table-footer-group';
             });
 
-            // Force the table to fit the page width so no columns are clipped.
+            // Force the table to fit the page width so no columns are clipped, and
+            // assign proportional column widths so badges/numbers don't overlap.
+            // Column order: Date, Txn No, Type, Items, Gari No, Description,
+            // Weight, Kat, Net Weight, Rate, Debit, Credit, Balance.
+            const colWidths = ['7%', '7%', '8%', '10%', '6%', '10%', '5%', '4%', '5%', '4%', '10%', '10%', '14%'];
             element.querySelectorAll('#ledgerTable').forEach(function(tbl) {
                 tbl.style.width = '100%';
                 tbl.style.tableLayout = 'fixed';
+
+                // Inject a colgroup so every page uses the same column proportions.
+                const existing = tbl.querySelector('colgroup');
+                if (existing) existing.remove();
+                const colgroup = document.createElement('colgroup');
+                colWidths.forEach(function(w) {
+                    const col = document.createElement('col');
+                    col.style.width = w;
+                    colgroup.appendChild(col);
+                });
+                tbl.insertBefore(colgroup, tbl.firstChild);
             });
+
             element.querySelectorAll('#ledgerTable th, #ledgerTable td').forEach(function(cell) {
                 cell.style.wordBreak = 'break-word';
                 cell.style.whiteSpace = 'normal';
                 cell.style.overflowWrap = 'anywhere';
+                cell.style.fontSize = '11px';
+                cell.style.padding = '4px 5px';
+                cell.style.verticalAlign = 'middle';
+            });
+
+            // Keep type badges on a single line inside their cell so they don't
+            // overflow into the adjacent Items column.
+            element.querySelectorAll('#ledgerTable .badge').forEach(function(badge) {
+                badge.style.whiteSpace = 'nowrap';
+                badge.style.display = 'inline-block';
+                badge.style.maxWidth = '100%';
+                badge.style.fontSize = '9px';
+                badge.style.overflow = 'hidden';
+                badge.style.textOverflow = 'ellipsis';
+            });
+
+            // Footer TOTAL cells: keep each amount on one line and right-aligned so
+            // the three totals don't run into each other.
+            element.querySelectorAll('#ledgerTable tfoot th').forEach(function(cell) {
+                cell.style.fontSize = '11px';
+                cell.style.whiteSpace = 'nowrap';
+                cell.style.wordBreak = 'normal';
+                cell.style.overflowWrap = 'normal';
+                cell.style.padding = '6px 5px';
             });
 
             return element;
