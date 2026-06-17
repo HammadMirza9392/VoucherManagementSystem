@@ -397,6 +397,7 @@
                         <th class="fw-bold" style="font-size: 14px;">Date</th>
                         <th class="fw-bold" style="font-size: 14px;">Transaction No</th>
                         <th class="fw-bold" style="font-size: 14px;">Type</th>
+                        <th class="fw-bold" style="font-size: 14px;">Gari No</th>
                         <th class="fw-bold" style="font-size: 14px;">Customer/Item</th>
                         <th class="fw-bold" style="font-size: 14px;">Description</th>
                         <th class="fw-bold" style="font-size: 14px;">Expense Head Details</th>
@@ -447,6 +448,7 @@
                                     <td class="align-middle">
                                         <span class="badge bg-@(isSale ? "success" : isPurchase ? "warning text-dark" : "secondary")" style="font-size: 11px;">@voucher.VoucherType</span>
                                     </td>
+                                    <td class="align-middle">@(string.IsNullOrWhiteSpace(voucher.GariNo) ? "-" : voucher.GariNo)</td>
                                     <td class="align-middle">
                                         @(voucher.PurchasingCustomer?.Name ?? voucher.ReceivingCustomer?.Name ?? "-")
                                         @if (voucher.Item != null)
@@ -504,6 +506,7 @@
                 <tfoot class="table-success">
                     <tr style="font-size: 15px;">
                         <th class="fw-bold py-3">TOTAL:</th>
+                        <th></th>
                         <th></th>
                         <th></th>
                         <th></th>
