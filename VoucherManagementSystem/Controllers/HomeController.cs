@@ -375,10 +375,9 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.TotalExpenses = totalExpenses;
 
             // 8. Total Capital
-            // Stock + Receivables + Cash + Daily Cash + Bank + Advanced - Payables - Expenses
-            // Expenses here uses the same figure shown on the Expense card
-            // (Expense vouchers with CashType != Credit).
-            ViewBag.TotalCapital = totalStockValue + totalReceivables + cashInHand + dailyCashBalance + totalBankBalance + totalAdvancedBalance - totalPayables - expenseCardTotal;
+            // Stock + Receivables + Cash + Daily Cash + Bank + Advanced - Payables
+            // (Expenses are intentionally excluded from the capital calculation.)
+            ViewBag.TotalCapital = totalStockValue + totalReceivables + cashInHand + dailyCashBalance + totalBankBalance + totalAdvancedBalance - totalPayables;
 
             // 9. Voucher Type Distribution (Last 30 days)
             var voucherTypeData = allVouchers

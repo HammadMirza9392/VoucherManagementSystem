@@ -71,7 +71,7 @@
             <div class="col">
                 <div class="text-white text-uppercase small fw-bold" style="letter-spacing: 1px;">Total Capital</div>
                 <h2 class="text-white fw-bold mb-0" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Rs. @string.Format("{0:N0}", totalCapital)</h2>
-                <small class="text-white">Stock + Receivables + Cash + Daily Cash + Bank + Advanced - Payables - Expenses</small>
+                <small class="text-white">Stock + Receivables + Cash + Daily Cash + Bank + Advanced - Payables</small>
             </div>
             <div class="col-auto d-none d-md-block">
                 <div class="text-end">
@@ -135,15 +135,6 @@
                 <i class="bi bi-bank" style="color: #6f42c1;"></i>
                 <div class="small text-muted">Bank</div>
                 <div class="fw-bold" style="color: #6f42c1;">@string.Format("{0:N0}", totalBankBalance)</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 summary-card-col">
-        <div class="card h-100 dashboard-card" style="border-color: #e83e8c;">
-            <div class="card-body py-2 px-2 text-center">
-                <i class="bi bi-graph-down" style="color: #e83e8c;"></i>
-                <div class="small text-muted">Expenses</div>
-                <div class="fw-bold" style="color: #e83e8c;">@string.Format("{0:N0}", totalExpenses30Days)</div>
             </div>
         </div>
     </div>
