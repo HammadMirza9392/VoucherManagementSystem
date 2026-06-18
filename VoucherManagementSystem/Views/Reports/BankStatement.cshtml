@@ -252,12 +252,18 @@
     <button onclick="exportTableToExcel('bankStatementTable', 'BankStatement_@bank?.Name')" class="btn btn-success">
         <i class="bi bi-file-earmark-excel"></i> Export to Excel
     </button>
+    <button onclick="generatePDF()" class="btn btn-danger" data-bank-name="@bank?.Name">
+        <i class="bi bi-file-pdf"></i> Generate PDF
+    </button>
     <a asp-action="Index" class="btn btn-secondary">
         <i class="bi bi-arrow-left"></i> Back to Reports
     </a>
 </div>
 
 @section Scripts {
+    <!-- html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <script>
         $(document).ready(function() {
             var $rows = $('#bankStatementTable tbody tr:not(.table-warning)');
@@ -360,14 +366,114 @@
                 downloadLink.click();
             }
         }
+
+        // Builds a clean clone of just the statement content (no navbar/footer/buttons),
+        // expanded so html2pdf captures every row and every column.
+        function buildPdfElement() {
+            const element = document.querySelector('body').cloneNode(true);
+
+            // Body uses flex column layout for the sticky footer \u2014 neutralize it on the
+            // clone so the report content flows normally for capture.
+            element.style.display = 'block';
+            element.style.height = 'auto';
+
+            // Strip site chrome: top navbar, page footer, modals, and screen-only controls
+            // (filter form, search box, action buttons).
+            element.querySelectorAll('header, footer, .modal, .d-print-none')
+                   .forEach(el => el.remove());
+
+            // Remove the scrollable/fixed-height container so the full table renders.
+            element.querySelectorAll('.table-responsive').forEach(function(el) {
+                el.style.maxHeight = 'none';
+                el.style.overflow = 'visible';
+                el.style.overflowX = 'visible';
+                el.style.overflowY = 'visible';
+            });
+
+            // Sticky headers confuse html2canvas page splitting \u2014 make them static and
+            // ensure the header repeats on every page via table-header-group.
+            element.querySelectorAll('#bankStatementTable thead').forEach(function(thead) {
+                thead.style.display = 'table-header-group';
+            });
+            element.querySelectorAll('#bankStatementTable thead th').forEach(function(th) {
+                th.style.position = 'static';
+            });
+            element.querySelectorAll('#bankStatementTable tfoot').forEach(function(tfoot) {
+                tfoot.style.display = 'table-footer-group';
+            });
+
+            // Fit the table to the page width with proportional column widths so no
+            // column is clipped. Columns: Date, Txn No, Type, Description, Debit, Credit, Balance.
+            const colWidths = ['11%', '13%', '16%', '20%', '13%', '13%', '14%'];
+            element.querySelectorAll('#bankStatementTable').forEach(function(tbl) {
+                tbl.style.width = '100%';
+                tbl.style.tableLayout = 'fixed';
+
+                const existing = tbl.querySelector('colgroup');
+                if (existing) existing.remove();
+                const colgroup = document.createElement('colgroup');
+                colWidths.forEach(function(w) {
+                    const col = document.createElement('col');
+                    col.style.width = w;
+                    colgroup.appendChild(col);
+                });
+                tbl.insertBefore(colgroup, tbl.firstChild);
+            });
+
+            element.querySelectorAll('#bankStatementTable th, #bankStatementTable td').forEach(function(cell) {
+                cell.style.wordBreak = 'break-word';
+                cell.style.whiteSpace = 'normal';
+                cell.style.overflowWrap = 'anywhere';
+                cell.style.fontSize = '11px';
+                cell.style.padding = '4px 5px';
+                cell.style.verticalAlign = 'middle';
+            });
+
+            element.querySelectorAll('#bankStatementTable .badge').forEach(function(badge) {
+                badge.style.whiteSpace = 'nowrap';
+                badge.style.fontSize = '9px';
+            });
+
+            return element;
+        }
+
+        function generatePDF() {
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating PDF...';
+            button.disabled = true;
+
+            const bankName = button.getAttribute('data-bank-name') || 'Bank';
+            const timestamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
+            const filename = 'BankStatement_' + bankName.replace(/\s+/g, '_') + '_' + timestamp + '.pdf';
+
+            // Build a clean clone of just the statement, expanded so every row/column renders.
+            const element = buildPdfElement();
+
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, scrollX: 0, windowHeight: element.scrollHeight },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                // Flow across pages; break only between rows, never inside one.
+                pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(function() {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }).catch(function(error) {
+                console.error('PDF generation error:', error);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+        }
     </script>
 
     <style>
         /* Enhanced table styling */
         #bankStatementTable thead th {
-            position: sticky;
-            top: 0;
-            z-index: 10;
             background-color: #cfe2ff !important;
             border-bottom: 2px solid #0d6efd;
             padding: 12px 8px;
@@ -381,35 +487,14 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
+        /* No fixed-height scroll container — the table expands to show every row
+           so all records are visible on screen and captured in the PDF. */
         .table-responsive {
-            max-height: 600px;
-            overflow-y: auto;
-        }
-
-        /* Custom scrollbar */
-        .table-responsive::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        .table-responsive::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        .table-responsive::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        .table-responsive::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            max-height: none;
+            overflow: visible;
         }
 
         @@media print {
-            .card {
-                page-break-inside: avoid;
-            }
-
             .table {
                 font-size: 10pt;
             }
@@ -420,7 +505,21 @@
             }
 
             #bankStatementTable thead th {
-                position: relative;
+                position: static;
+            }
+
+            /* Repeat the table header on every printed page */
+            #bankStatementTable thead {
+                display: table-header-group;
+            }
+
+            #bankStatementTable tfoot {
+                display: table-footer-group;
+            }
+
+            /* Never split a row across a page boundary */
+            #bankStatementTable tr {
+                page-break-inside: avoid;
             }
         }
     </style>
