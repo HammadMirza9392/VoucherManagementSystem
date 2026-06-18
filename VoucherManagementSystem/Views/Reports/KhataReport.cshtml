@@ -373,9 +373,22 @@ else
                     @foreach (var v in purchaseVouchers)
                     {
                         var isCashReceived = v.VoucherType == VoucherManagementSystem.Models.VoucherType.CashReceived;
-                        var itemName = isCashReceived
-                            ? "CASH RECEIVED" + (string.IsNullOrEmpty(v.ReceivingCustomerDetails) ? "" : $" {v.ReceivingCustomerDetails}")
-                            : (v.Item?.Name ?? "-");
+                        var isCcrReceived = v.VoucherType == VoucherManagementSystem.Models.VoucherType.CCR;
+                        string itemName;
+                        if (isCashReceived)
+                        {
+                            itemName = "CASH RECEIVED" + (string.IsNullOrEmpty(v.ReceivingCustomerDetails) ? "" : $" {v.ReceivingCustomerDetails}");
+                        }
+                        else if (isCcrReceived)
+                        {
+                            // CCR received: money received from another (purchasing) customer
+                            itemName = "RECEIVED FROM " + (v.PurchasingCustomer?.Name ?? "-")
+                                + (string.IsNullOrEmpty(v.ReceivingCustomerDetails) ? "" : $" {v.ReceivingCustomerDetails}");
+                        }
+                        else
+                        {
+                            itemName = v.Item?.Name ?? "-";
+                        }
                         var weight = v.Weight.HasValue ? v.Weight.Value.ToString("N2") : "-";
                         var kat = v.Kat.HasValue ? v.Kat.Value.ToString("N2") : "0.00";
                         var qty = v.Quantity.HasValue ? v.Quantity.Value.ToString("N2") : "-";
@@ -440,12 +453,15 @@ else
                     @foreach (var v in paymentVouchers)
                     {
                         runningPayTotal += v.Amount;
+                        var isCcrPaid = v.VoucherType == VoucherManagementSystem.Models.VoucherType.CCR;
                         var details = v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? v.BankCustomerPaidDetails ?? v.BankCustomerReceiverDetails ?? "";
                         var voucherDesc = v.VoucherType switch {
                             VoucherManagementSystem.Models.VoucherType.CashPaid => "CASH",
                             VoucherManagementSystem.Models.VoucherType.CashReceived => "CASH RECEIVED",
                             VoucherManagementSystem.Models.VoucherType.AdvancedPayment => "ADVANCE",
                             VoucherManagementSystem.Models.VoucherType.Sale => "SALE",
+                            // CCR paid: money paid to another (receiving) customer
+                            VoucherManagementSystem.Models.VoucherType.CCR => "PAID TO " + (v.ReceivingCustomer?.Name ?? "-"),
                             _ => v.VoucherType.ToString()
                         };
                         var fullDetails = string.IsNullOrEmpty(details) ? voucherDesc : $"{voucherDesc} {details}";

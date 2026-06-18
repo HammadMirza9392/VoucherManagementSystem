@@ -2296,25 +2296,32 @@ namespace VoucherManagementSystem.Controllers
 
                 // Bill table (top) vouchers in range:
                 //  - Purchase vouchers (customer is PurchasingCustomer)
-                //  - CashReceived / CRC vouchers (customer is ReceivingCustomer) — shown as positive, added to the bill side
+                //  - CashReceived vouchers (customer is ReceivingCustomer) — shown as positive, added to the bill side
+                //  - CCR vouchers where customer is the ReceivingCustomer (money received from another customer) —
+                //    treated like CashReceived and added to the bill side
                 var purchaseVouchers = await _context.Vouchers
                     .Include(v => v.Item)
                     .Include(v => v.Project)
+                    .Include(v => v.PurchasingCustomer)
+                    .Include(v => v.ReceivingCustomer)
                     .Where(v =>
                         ((v.PurchasingCustomerId == customerId.Value && v.VoucherType == VoucherType.Purchase) ||
-                         (v.ReceivingCustomerId == customerId.Value && v.VoucherType == VoucherType.CashReceived)) &&
+                         (v.ReceivingCustomerId == customerId.Value && v.VoucherType == VoucherType.CashReceived) ||
+                         (v.ReceivingCustomerId == customerId.Value && v.VoucherType == VoucherType.CCR)) &&
                         v.VoucherDate >= startDate &&
                         v.VoucherDate <= endDate.AddDays(1))
                     .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
                     .ToListAsync();
 
-                // Payment table (رقم ادائیگی): only money we PAID to this customer => CashPaid (CPD)
+                // Payment table (رقم ادائیگی): money we PAID to this customer:
+                //  - CashPaid (CPD) where customer is the PurchasingCustomer
+                //  - CCR where customer is the PurchasingCustomer (money paid to another customer)
                 var paymentVouchers = await _context.Vouchers
                     .Include(v => v.PurchasingCustomer)
                     .Include(v => v.ReceivingCustomer)
                     .Where(v =>
                         v.PurchasingCustomerId == customerId.Value &&
-                        v.VoucherType == VoucherType.CashPaid &&
+                        (v.VoucherType == VoucherType.CashPaid || v.VoucherType == VoucherType.CCR) &&
                         v.VoucherDate >= startDate &&
                         v.VoucherDate <= endDate.AddDays(1))
                     .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
