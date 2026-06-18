@@ -1066,6 +1066,19 @@
                     }
                     return;
                 }
+                // Expense: money leaves the bank → only Bank Paid (+ details).
+                // Never show Bank Receiver for an expense.
+                if (voucherType === 'Expense') {
+                    $('#bankColumn').toggle(isBank);
+                    $('#bankReceiverColumn').hide();
+                    $('#bankReceiver').val('');
+                    $('#hiddenBankReceiverId').val('');
+                    if (!isBank) {
+                        $('#bankPaid').val('');
+                        $('#hiddenBankPaidId').val('');
+                    }
+                    return;
+                }
                 // Advanced types: bank columns always stay visible, ignore cash type change
                 if (voucherType === 'AdvancedCashPaid' || voucherType === 'AdvancedCashReceived') {
                     return;
@@ -1603,6 +1616,12 @@
                 case 'Expense':
                     $('#expenseHeadColumn').show();
                     $('#rateRow').hide();
+                    // If paying the expense from a bank, show only Bank Paid (+ details);
+                    // Bank Receiver is never used for an expense.
+                    if ($('#cashType').val() === 'Bank') {
+                        $('#bankColumn').show();
+                    }
+                    $('#bankReceiverColumn').hide();
                     break;
                 case 'Hazri':
                     $('#expenseHeadColumn, #katQuantityColumn').show();
@@ -1675,7 +1694,8 @@
             if (bankType === 'paid') {
                 return voucherType === 'Purchase' || voucherType === 'CashPaid' ||
                        voucherType === 'AdvancedCashPaid' || voucherType === 'BCR' ||
-                       voucherType === 'ATMCash' || voucherType === 'ATMDailyCash';
+                       voucherType === 'ATMCash' || voucherType === 'ATMDailyCash' ||
+                       voucherType === 'Expense';
             } else if (bankType === 'receiver') {
                 return voucherType === 'Sale' || voucherType === 'CashReceived' ||
                        voucherType === 'AdvancedCashReceived' || voucherType === 'BCR';
