@@ -2381,6 +2381,122 @@ namespace VoucherManagementSystem.Controllers
             }
         }
 
+        // GET: Reports/KhataReportSale - Urdu Khata Detail for SALE vouchers (PDF-style)
+        // Mirrors KhataReport but from the sale side: the top table lists Sale items the
+        // customer bought from us (DR / increases what they owe), and the bottom table
+        // (رقم وصولی) lists money received from the customer (CR / decreases what they owe).
+        public async Task<IActionResult> KhataReportSale(int? customerId, DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                var endDate = toDate ?? DateTimeHelper.PkToday;
+                var startDate = fromDate ?? DateTimeHelper.PkToday.AddMonths(-1);
+
+                ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
+                ViewBag.FromDate = startDate;
+                ViewBag.ToDate = endDate;
+
+                if (!customerId.HasValue)
+                    return View();
+
+                var customer = await _customerRepository.GetByIdAsync(customerId.Value);
+                if (customer == null)
+                {
+                    TempData["Error"] = "Customer not found.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Opening balance before startDate (same shared helper, sale side already
+                // increases the balance there, so the sign is consistent for this report).
+                var openingBalance = await GetCustomerOpeningBalanceAsync(customerId.Value, startDate);
+
+                // Sale (bill) table (top) vouchers in range:
+                //  - Sale vouchers (customer is ReceivingCustomer) — items the customer bought from us
+                //  - CCR vouchers where customer is the PurchasingCustomer (opposite of the regular
+                //    Khata report: here CCR-as-purchasing goes in the TOP table)
+                var saleVouchers = await _context.Vouchers
+                    .Include(v => v.Item)
+                    .Include(v => v.Project)
+                    .Include(v => v.PurchasingCustomer)
+                    .Include(v => v.ReceivingCustomer)
+                    .Where(v =>
+                        ((v.ReceivingCustomerId == customerId.Value && v.VoucherType == VoucherType.Sale) ||
+                         (v.PurchasingCustomerId == customerId.Value && v.VoucherType == VoucherType.CCR)) &&
+                        v.VoucherDate >= startDate &&
+                        v.VoucherDate <= endDate.AddDays(1))
+                    .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
+                    .ToListAsync();
+
+                // Receipt table (رقم وصولی): money RECEIVED from this customer:
+                //  - CashReceived (CRC) where customer is the ReceivingCustomer
+                //  - CCR where customer is the ReceivingCustomer (opposite of the regular Khata
+                //    report: here CCR-as-receiving goes in the receipt/ادائیگی table)
+                var receiptVouchers = await _context.Vouchers
+                    .Include(v => v.PurchasingCustomer)
+                    .Include(v => v.ReceivingCustomer)
+                    .Where(v =>
+                        ((v.ReceivingCustomerId == customerId.Value && v.VoucherType == VoucherType.CashReceived) ||
+                         (v.ReceivingCustomerId == customerId.Value && v.VoucherType == VoucherType.CCR)) &&
+                        v.VoucherDate >= startDate &&
+                        v.VoucherDate <= endDate.AddDays(1))
+                    .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
+                    .ToListAsync();
+
+                // Totals
+                decimal totalBillWeight = saleVouchers.Sum(v => v.Weight ?? 0);
+                decimal totalBillKat = saleVouchers.Sum(v => v.Kat ?? 0);
+                decimal totalBillQty = saleVouchers.Sum(v => v.Quantity ?? 0);
+                decimal totalBillAmount = saleVouchers.Sum(v => v.Amount);
+
+                decimal totalPayment = receiptVouchers.Sum(v => v.Amount);
+
+                // Sale side: customer owes us for sales (DR, +), receipts reduce that (CR, -).
+                decimal closingBalance = openingBalance + totalBillAmount - totalPayment;
+
+                // Advanced balance (display only, not included in calculation)
+                var advancedVouchers = await _context.Vouchers
+                    .Where(v => (v.VoucherType == VoucherType.AdvancedPayment ||
+                                 v.VoucherType == VoucherType.AdvancedCashPaid ||
+                                 v.VoucherType == VoucherType.AdvancedCashReceived) &&
+                               (v.AdvancedPurchasingCustomerId == customerId.Value ||
+                                v.AdvancedReceivingCustomerId == customerId.Value ||
+                                v.ReceivingCustomerId == customerId.Value))
+                    .ToListAsync();
+
+                decimal advancedBalance = 0;
+                foreach (var av in advancedVouchers)
+                {
+                    if ((av.VoucherType == VoucherType.AdvancedCashReceived && av.AdvancedReceivingCustomerId == customerId.Value) ||
+                        (av.VoucherType == VoucherType.AdvancedPayment && av.ReceivingCustomerId == customerId.Value))
+                        advancedBalance -= av.Amount;
+                    else if (av.VoucherType == VoucherType.AdvancedCashPaid && av.AdvancedPurchasingCustomerId == customerId.Value)
+                        advancedBalance += av.Amount;
+                }
+
+                ViewBag.Customer = customer;
+                ViewBag.FromDate = startDate;
+                ViewBag.ToDate = endDate;
+                ViewBag.OpeningBalance = openingBalance;
+                ViewBag.PurchaseVouchers = saleVouchers;     // reuse same view bag keys as KhataReport
+                ViewBag.PaymentVouchers = receiptVouchers;
+                ViewBag.TotalBillWeight = totalBillWeight;
+                ViewBag.TotalBillKat = totalBillKat;
+                ViewBag.TotalBillQty = totalBillQty;
+                ViewBag.TotalBillAmount = totalBillAmount;
+                ViewBag.TotalPayment = totalPayment;
+                ViewBag.ClosingBalance = closingBalance;
+                ViewBag.AdvancedBalance = advancedBalance;
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating khata sale report");
+                TempData["Error"] = "Error generating khata sale report.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
         // GET: Reports/DatabaseBackup - Show backup page with all export options
     public IActionResult DatabaseBackup()
     {
