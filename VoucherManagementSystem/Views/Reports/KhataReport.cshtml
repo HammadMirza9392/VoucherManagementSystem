@@ -92,6 +92,16 @@
     }
     .khata-table td.text-right { text-align: right; }
     .khata-table td.text-left { text-align: left; }
+    /* Detail columns: wrap long text onto a second line instead of widening
+       the column. Caps the width and breaks long words so the table stays fixed. */
+    .khata-table th.detail-col,
+    .khata-table td.detail-col {
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 180px;
+        min-width: 120px;
+    }
     .khata-table tr.total-row td {
         background: #f5f5f5;
         font-weight: bold;
@@ -347,7 +357,7 @@ else
                     <th style="min-width:80px;">تاریخ</th>
                     <th style="min-width:80px;">رسیدنمبر</th>
                     <th style="min-width:80px;"># گیٹ پاس</th>
-                    <th>آئیٹم تفصیل</th>
+                    <th class="detail-col">آئیٹم تفصیل</th>
                     <th>سب آئیٹم</th>
                     <th>وزن کلو</th>
                     <th>کاٹ</th>
@@ -402,7 +412,7 @@ else
                             <td>@vdate</td>
                             <td>@txnNo</td>
                             <td>@gariNo</td>
-                            <td>@itemName</td>
+                            <td class="detail-col">@itemName</td>
                             <td>@mon</td>
                             <td class="text-right">@weight</td>
                             <td class="text-right">@kat</td>
@@ -440,7 +450,7 @@ else
                     <th>تاریخ</th>
                     <th>رسیدنمبر</th>
                     <th># گیٹ پاس</th>
-                    <th>تفصیل</th>
+                    <th class="detail-col">تفصیل</th>
                     <th>نام</th>
                     <th>جمع</th>
                     <th>بقیہ رقم</th>
@@ -469,7 +479,7 @@ else
                             <td>@v.VoucherDate.ToString("dd/MM/yyyy")</td>
                             <td>@v.TransactionNumber</td>
                             <td>@(v.GariNo ?? "")</td>
-                            <td class="text-left">@fullDetails</td>
+                            <td class="text-left detail-col">@fullDetails</td>
                             <td class="text-right">@v.Amount.ToString("N2")</td>
                             <td class="text-right">0.00</td>
                             <td class="text-right">@runningPayTotal.ToString("N2")</td>
