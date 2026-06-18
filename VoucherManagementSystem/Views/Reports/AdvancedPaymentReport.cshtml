@@ -259,6 +259,9 @@ else
         <button onclick="window.print()" class="btn btn-primary">
             <i class="bi bi-printer"></i> Print
         </button>
+        <button onclick="generatePDF()" class="btn btn-danger" data-customer-name="@customer.Name">
+            <i class="bi bi-file-pdf"></i> Generate PDF
+        </button>
         <a asp-action="CustomerLedger" asp-route-customerId="@customer.Id"
            asp-route-fromDate="@fromDate.ToString("yyyy-MM-dd")"
            asp-route-toDate="@toDate.ToString("yyyy-MM-dd")" class="btn btn-info">
@@ -278,11 +281,96 @@ else
 }
 
 @section Scripts {
+    <!-- html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
             if ($('.select2').length) {
                 $('.select2').select2({ theme: 'bootstrap-5', width: '100%' });
             }
         });
+
+        // Builds a clean clone of just the report (no navbar/footer/buttons),
+        // expanded so html2pdf captures every row and every column.
+        function buildPdfElement() {
+            const element = document.querySelector('body').cloneNode(true);
+            element.style.display = 'block';
+            element.style.height = 'auto';
+
+            element.querySelectorAll('header, footer, .modal, .d-print-none')
+                   .forEach(el => el.remove());
+
+            element.querySelectorAll('.table-responsive').forEach(function(el) {
+                el.style.maxHeight = 'none';
+                el.style.overflow = 'visible';
+                el.style.overflowX = 'visible';
+                el.style.overflowY = 'visible';
+            });
+
+            element.querySelectorAll('#advancedTable thead').forEach(t => t.style.display = 'table-header-group');
+            element.querySelectorAll('#advancedTable thead th').forEach(th => th.style.position = 'static');
+            element.querySelectorAll('#advancedTable tfoot').forEach(t => t.style.display = 'table-footer-group');
+
+            // Columns: Date, Txn No, Type, Details, Received, Paid, Balance
+            const colWidths = ['12%', '15%', '15%', '24%', '12%', '10%', '12%'];
+            element.querySelectorAll('#advancedTable').forEach(function(tbl) {
+                tbl.style.width = '100%';
+                tbl.style.tableLayout = 'fixed';
+                const existing = tbl.querySelector('colgroup');
+                if (existing) existing.remove();
+                const colgroup = document.createElement('colgroup');
+                colWidths.forEach(function(w) {
+                    const col = document.createElement('col');
+                    col.style.width = w;
+                    colgroup.appendChild(col);
+                });
+                tbl.insertBefore(colgroup, tbl.firstChild);
+            });
+
+            element.querySelectorAll('#advancedTable th, #advancedTable td').forEach(function(cell) {
+                cell.style.wordBreak = 'break-word';
+                cell.style.whiteSpace = 'normal';
+                cell.style.overflowWrap = 'anywhere';
+                cell.style.fontSize = '11px';
+                cell.style.padding = '4px 5px';
+                cell.style.verticalAlign = 'middle';
+            });
+            element.querySelectorAll('#advancedTable .badge').forEach(function(badge) {
+                badge.style.whiteSpace = 'nowrap';
+                badge.style.fontSize = '9px';
+            });
+
+            return element;
+        }
+
+        function generatePDF() {
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating PDF...';
+            button.disabled = true;
+
+            const customerName = button.getAttribute('data-customer-name') || 'Customer';
+            const timestamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
+            const filename = 'AdvancedPaymentReport_' + customerName.replace(/\s+/g, '_') + '_' + timestamp + '.pdf';
+
+            const element = buildPdfElement();
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, scrollX: 0, windowHeight: element.scrollHeight },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(function() {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }).catch(function(error) {
+                console.error('PDF generation error:', error);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+        }
     </script>
 }

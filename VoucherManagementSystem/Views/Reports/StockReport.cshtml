@@ -291,6 +291,9 @@ else
     <button onclick="exportTableToExcel('stockTable', 'StockReport_@DateTime.Now.ToString("yyyyMMdd")')" class="btn btn-success">
         <i class="bi bi-file-earmark-excel"></i> Export to Excel
     </button>
+    <button onclick="generatePDF()" class="btn btn-danger">
+        <i class="bi bi-file-pdf"></i> Generate PDF
+    </button>
     <a asp-controller="Reports" asp-action="ExportToExcel" asp-route-reportType="stock" class="btn btn-warning">
         <i class="bi bi-download"></i> Download Full Report
     </a>
@@ -300,16 +303,87 @@ else
 </div>
 
 @section Scripts {
+    <!-- html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
             $('#stockTable').DataTable({
                 "order": [[1, "asc"]],
-                "pageLength": 25,
+                // Show all rows on one page (no pagination / no scrolling) so the full
+                // table is always visible and every row is captured in the PDF.
+                "paging": false,
+                "info": false,
                 "columnDefs": [
                     { "orderable": false, "targets": [0] }
                 ]
             });
         });
+
+        // Builds a clean clone of just the report (no navbar/footer/buttons),
+        // expanded so html2pdf captures every row and every column.
+        function buildPdfElement() {
+            const element = document.querySelector('body').cloneNode(true);
+            element.style.display = 'block';
+            element.style.height = 'auto';
+
+            // Strip site chrome, screen-only controls, and the DataTables search/length bars.
+            element.querySelectorAll('header, footer, .modal, .d-print-none, .dataTables_filter, .dataTables_length, .dataTables_paginate, .dataTables_info')
+                   .forEach(el => el.remove());
+
+            element.querySelectorAll('.table-responsive').forEach(function(el) {
+                el.style.maxHeight = 'none';
+                el.style.overflow = 'visible';
+                el.style.overflowX = 'visible';
+                el.style.overflowY = 'visible';
+            });
+
+            element.querySelectorAll('#stockTable thead').forEach(t => t.style.display = 'table-header-group');
+            element.querySelectorAll('#stockTable thead th').forEach(th => th.style.position = 'static');
+            element.querySelectorAll('#stockTable tfoot').forEach(t => t.style.display = 'table-footer-group');
+
+            element.querySelectorAll('#stockTable').forEach(function(tbl) {
+                tbl.style.width = '100%';
+            });
+            element.querySelectorAll('#stockTable th, #stockTable td').forEach(function(cell) {
+                cell.style.wordBreak = 'break-word';
+                cell.style.whiteSpace = 'normal';
+                cell.style.overflowWrap = 'anywhere';
+                cell.style.fontSize = '11px';
+                cell.style.padding = '4px 5px';
+                cell.style.verticalAlign = 'middle';
+            });
+
+            return element;
+        }
+
+        function generatePDF() {
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating PDF...';
+            button.disabled = true;
+
+            const timestamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
+            const filename = 'StockReport_' + timestamp + '.pdf';
+
+            const element = buildPdfElement();
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, scrollX: 0, windowHeight: element.scrollHeight },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(function() {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }).catch(function(error) {
+                console.error('PDF generation error:', error);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+        }
 
         function exportTableToExcel(tableID, filename = ''){
             var downloadLink;
@@ -337,9 +411,6 @@ else
     <style>
         /* Enhanced table styling */
         #stockTable thead th {
-            position: sticky;
-            top: 0;
-            z-index: 10;
             background-color: #cfe2ff !important;
             border-bottom: 2px solid #0d6efd;
             padding: 12px 8px;
@@ -353,35 +424,14 @@ else
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
+        /* No fixed-height scroll container — the table expands to show every row
+           so all records are visible on screen and captured in the PDF. */
         .table-responsive {
-            max-height: 600px;
-            overflow-y: auto;
-        }
-
-        /* Custom scrollbar */
-        .table-responsive::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        .table-responsive::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        .table-responsive::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        .table-responsive::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            max-height: none;
+            overflow: visible;
         }
 
         @@media print {
-            .card {
-                page-break-inside: avoid;
-            }
-
             .table {
                 font-size: 10pt;
             }
@@ -397,7 +447,19 @@ else
             }
 
             #stockTable thead th {
-                position: relative;
+                position: static;
+            }
+
+            #stockTable thead {
+                display: table-header-group;
+            }
+
+            #stockTable tfoot {
+                display: table-footer-group;
+            }
+
+            #stockTable tr {
+                page-break-inside: avoid;
             }
         }
     </style>

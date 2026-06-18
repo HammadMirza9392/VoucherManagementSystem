@@ -314,13 +314,102 @@
     <button onclick="exportTableToExcel('dailyCashBookTable', 'DailyCashBook_@fromDate.ToString("yyyyMMdd")_@toDate.ToString("yyyyMMdd")')" class="btn btn-success">
         <i class="bi bi-file-earmark-excel"></i> Export to Excel
     </button>
+    <button onclick="generatePDF()" class="btn btn-danger"
+            data-from-date="@fromDate.ToString("yyyyMMdd")" data-to-date="@toDate.ToString("yyyyMMdd")">
+        <i class="bi bi-file-pdf"></i> Generate PDF
+    </button>
     <a asp-action="Index" class="btn btn-secondary">
         <i class="bi bi-arrow-left"></i> Back to Reports
     </a>
 </div>
 
 @section Scripts {
+    <!-- html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
+        // Builds a clean clone of just the report (no navbar/footer/buttons),
+        // expanded so html2pdf captures every row and every column.
+        function buildPdfElement() {
+            const element = document.querySelector('body').cloneNode(true);
+            element.style.display = 'block';
+            element.style.height = 'auto';
+
+            element.querySelectorAll('header, footer, .modal, .d-print-none')
+                   .forEach(el => el.remove());
+
+            element.querySelectorAll('.table-responsive').forEach(function(el) {
+                el.style.maxHeight = 'none';
+                el.style.overflow = 'visible';
+                el.style.overflowX = 'visible';
+                el.style.overflowY = 'visible';
+            });
+
+            element.querySelectorAll('#dailyCashBookTable thead').forEach(t => t.style.display = 'table-header-group');
+            element.querySelectorAll('#dailyCashBookTable thead th').forEach(th => th.style.position = 'static');
+            element.querySelectorAll('#dailyCashBookTable tfoot').forEach(t => t.style.display = 'table-footer-group');
+
+            // Columns: Date, Txn No, Type, Customer, Description, Project, Details, Receipt, Payment, Balance
+            const colWidths = ['8%', '9%', '9%', '11%', '13%', '9%', '12%', '9%', '9%', '11%'];
+            element.querySelectorAll('#dailyCashBookTable').forEach(function(tbl) {
+                tbl.style.width = '100%';
+                tbl.style.tableLayout = 'fixed';
+                const existing = tbl.querySelector('colgroup');
+                if (existing) existing.remove();
+                const colgroup = document.createElement('colgroup');
+                colWidths.forEach(function(w) {
+                    const col = document.createElement('col');
+                    col.style.width = w;
+                    colgroup.appendChild(col);
+                });
+                tbl.insertBefore(colgroup, tbl.firstChild);
+            });
+
+            element.querySelectorAll('#dailyCashBookTable th, #dailyCashBookTable td').forEach(function(cell) {
+                cell.style.wordBreak = 'break-word';
+                cell.style.whiteSpace = 'normal';
+                cell.style.overflowWrap = 'anywhere';
+                cell.style.fontSize = '10px';
+                cell.style.padding = '4px 4px';
+                cell.style.verticalAlign = 'middle';
+            });
+            element.querySelectorAll('#dailyCashBookTable .badge').forEach(function(badge) {
+                badge.style.whiteSpace = 'nowrap';
+                badge.style.fontSize = '8px';
+            });
+
+            return element;
+        }
+
+        function generatePDF() {
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating PDF...';
+            button.disabled = true;
+
+            const f = button.getAttribute('data-from-date') || '';
+            const t = button.getAttribute('data-to-date') || '';
+            const filename = 'DailyCashBook_' + f + '_' + t + '.pdf';
+
+            const element = buildPdfElement();
+            const opt = {
+                margin: [8, 8, 8, 8],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, scrollX: 0, windowHeight: element.scrollHeight },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(function() {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }).catch(function(error) {
+                console.error('PDF generation error:', error);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+        }
+
         function exportTableToExcel(tableID, filename = ''){
             var downloadLink;
             var dataType = 'application/vnd.ms-excel';
@@ -347,9 +436,6 @@
     <style>
         /* Enhanced table styling */
         #dailyCashBookTable thead th {
-            position: sticky;
-            top: 0;
-            z-index: 10;
             background-color: #cfe2ff !important;
             border-bottom: 2px solid #0d6efd;
             padding: 12px 8px;
@@ -363,32 +449,14 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
+        /* No fixed-height scroll container — the table expands to show every row
+           so all records are visible on screen and captured in the PDF. */
         .table-responsive {
-            max-height: 600px;
-            overflow-y: auto;
-        }
-
-        /* Custom scrollbar */
-        .table-responsive::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        .table-responsive::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        .table-responsive::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        .table-responsive::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            max-height: none;
+            overflow: visible;
         }
 
         @@media print {
-            .card { page-break-inside: avoid; }
             .table { font-size: 9pt; }
 
             .table-responsive {
@@ -397,7 +465,19 @@
             }
 
             #dailyCashBookTable thead th {
-                position: relative;
+                position: static;
+            }
+
+            #dailyCashBookTable thead {
+                display: table-header-group;
+            }
+
+            #dailyCashBookTable tfoot {
+                display: table-footer-group;
+            }
+
+            #dailyCashBookTable tr {
+                page-break-inside: avoid;
             }
         }
     </style>

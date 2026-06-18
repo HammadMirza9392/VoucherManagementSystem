@@ -244,6 +244,10 @@
     <button onclick="window.print()" class="btn btn-primary">
         <i class="bi bi-printer"></i> Print Report
     </button>
+    <button onclick="generatePDF()" class="btn btn-danger"
+            data-from-date="@fromDate.ToString("yyyyMMdd")" data-to-date="@toDate.ToString("yyyyMMdd")">
+        <i class="bi bi-file-pdf"></i> Generate PDF
+    </button>
     <a asp-action="DailyCashBook" class="btn btn-info">
         <i class="bi bi-journal-text"></i> Daily Cash Book
     </a>
@@ -254,13 +258,18 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
             $('#cashFlowTable').DataTable({
                 // No initial re-sort: keep the server order so the Opening Balance row
                 // stays pinned at the top and vouchers remain in date order.
                 "order": [],
-                "pageLength": 50
+                // Show all rows on one page (no pagination / no scrolling) so the full
+                // table is always visible and every row is captured in the PDF.
+                "paging": false,
+                "info": false
             });
 
             // Create cash flow chart
@@ -296,5 +305,90 @@
                 }
             });
         });
+
+        // Builds a clean clone of just the report (no navbar/footer/buttons/chart),
+        // expanded so html2pdf captures every row and every column.
+        function buildPdfElement() {
+            const element = document.querySelector('body').cloneNode(true);
+            element.style.display = 'block';
+            element.style.height = 'auto';
+
+            // Strip site chrome, screen-only controls, the chart canvas, and the
+            // DataTables search/length/paging bars.
+            element.querySelectorAll('header, footer, .modal, .d-print-none, #cashFlowChart, .dataTables_filter, .dataTables_length, .dataTables_paginate, .dataTables_info')
+                   .forEach(el => el.remove());
+
+            element.querySelectorAll('.table-responsive').forEach(function(el) {
+                el.style.maxHeight = 'none';
+                el.style.overflow = 'visible';
+                el.style.overflowX = 'visible';
+                el.style.overflowY = 'visible';
+            });
+
+            element.querySelectorAll('#cashFlowTable thead').forEach(t => t.style.display = 'table-header-group');
+            element.querySelectorAll('#cashFlowTable thead th').forEach(th => th.style.position = 'static');
+            element.querySelectorAll('#cashFlowTable tfoot').forEach(t => t.style.display = 'table-footer-group');
+
+            // Columns: Date, Txn No, Type, Description, Customer/Party, Project, Cash In, Cash Out, Balance
+            const colWidths = ['9%', '10%', '9%', '15%', '13%', '11%', '11%', '11%', '11%'];
+            element.querySelectorAll('#cashFlowTable').forEach(function(tbl) {
+                tbl.style.width = '100%';
+                tbl.style.tableLayout = 'fixed';
+                const existing = tbl.querySelector('colgroup');
+                if (existing) existing.remove();
+                const colgroup = document.createElement('colgroup');
+                colWidths.forEach(function(w) {
+                    const col = document.createElement('col');
+                    col.style.width = w;
+                    colgroup.appendChild(col);
+                });
+                tbl.insertBefore(colgroup, tbl.firstChild);
+            });
+
+            element.querySelectorAll('#cashFlowTable th, #cashFlowTable td').forEach(function(cell) {
+                cell.style.wordBreak = 'break-word';
+                cell.style.whiteSpace = 'normal';
+                cell.style.overflowWrap = 'anywhere';
+                cell.style.fontSize = '10px';
+                cell.style.padding = '4px 4px';
+                cell.style.verticalAlign = 'middle';
+            });
+            element.querySelectorAll('#cashFlowTable .badge').forEach(function(badge) {
+                badge.style.whiteSpace = 'nowrap';
+                badge.style.fontSize = '8px';
+            });
+
+            return element;
+        }
+
+        function generatePDF() {
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating PDF...';
+            button.disabled = true;
+
+            const f = button.getAttribute('data-from-date') || '';
+            const t = button.getAttribute('data-to-date') || '';
+            const filename = 'CashFlow_' + f + '_' + t + '.pdf';
+
+            const element = buildPdfElement();
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, scrollX: 0, windowHeight: element.scrollHeight },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(function() {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }).catch(function(error) {
+                console.error('PDF generation error:', error);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+        }
     </script>
 }
