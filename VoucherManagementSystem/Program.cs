@@ -7,14 +7,33 @@ using VoucherManagementSystem.Filters;
 // Tell Npgsql to treat all DateTime as UTC globally — avoids errors across the whole app
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
+// Disable file watching outside development. Each watched file consumes an inotify
+// instance, and Linux hosts (Render) cap these at 128 per user — exhausting them
+// crashes the app at CreateBuilder with an IOException before startup completes.
+var isDevelopment = string.Equals(
+    Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+    "Development",
+    StringComparison.OrdinalIgnoreCase);
+
+if (!isDevelopment)
+{
+    Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "true");
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews(options =>
+var mvcBuilder = builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<PageLockFilter>();
-})
-    .AddRazorRuntimeCompilation();
+});
+
+// Razor runtime compilation is a development-only convenience (edit .cshtml without
+// restarting). In production it watches the whole Views tree, burning inotify handles.
+if (builder.Environment.IsDevelopment())
+{
+    mvcBuilder.AddRazorRuntimeCompilation();
+}
 
 // Configure Entity Framework with performance optimizations
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
