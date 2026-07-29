@@ -64,8 +64,27 @@
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <h5 class="mb-0">All Vouchers (Total: @ViewBag.TotalRecords)</h5>
-        <div class="d-flex align-items-center gap-2">
-            <div class="input-group input-group-sm" style="width: 260px;">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            @* Database lookup by Transaction No. — searches every voucher, not just the
+               rows on screen. Submits on button click so no query runs while typing. *@
+            <form method="get" asp-action="GeneralCreate" class="d-flex align-items-center gap-1">
+                <div class="input-group input-group-sm" style="width: 250px;">
+                    <span class="input-group-text"><i class="bi bi-database-search"></i></span>
+                    <input type="text" name="searchTransactionNo" value="@ViewBag.SearchTransactionNo"
+                           class="form-control" placeholder="Find Voucher by Txn No..." />
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Find
+                    </button>
+                </div>
+                @if (!string.IsNullOrEmpty(ViewBag.SearchTransactionNo as string))
+                {
+                    <a asp-action="GeneralCreate" class="btn btn-secondary btn-sm" title="Clear search">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                }
+            </form>
+            @* Client-side filter over the rows already on screen — unchanged. *@
+            <div class="input-group input-group-sm" style="width: 220px;">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input type="text" id="voucherTableSearch" class="form-control" placeholder="Search this page..." />
             </div>
@@ -204,26 +223,27 @@
                 int pageRange = 10;
                 int startPage = Math.Max(1, currentPage - pageRange);
                 int endPage = Math.Min(startPage + pageRange - 1, totalPages);
+                string? txnSearch = ViewBag.SearchTransactionNo as string;
 
                 <nav aria-label="Voucher pagination">
                     <ul class="pagination pagination-sm justify-content-center mb-0">
                         <!-- Go to Start -->
                         <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="1" title="Go to first page">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="1" asp-route-searchTransactionNo="@txnSearch" title="Go to first page">
                                 <i class="bi bi-skip-start-fill"></i> Start
                             </a>
                         </li>
 
                         <!-- Fast Previous (jump back 10 pages) -->
                         <li class="page-item @(currentPage - pageRange < 1 ? "disabled" : "")">
-                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@Math.Max(1, currentPage - pageRange)" title="Previous 10 pages">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@Math.Max(1, currentPage - pageRange)" asp-route-searchTransactionNo="@txnSearch" title="Previous 10 pages">
                                 <i class="bi bi-chevron-double-left"></i>
                             </a>
                         </li>
 
                         <!-- Previous -->
                         <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(currentPage - 1)" title="Previous page">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(currentPage - 1)" asp-route-searchTransactionNo="@txnSearch" title="Previous page">
                                 <i class="bi bi-chevron-left"></i>
                             </a>
                         </li>
@@ -232,27 +252,27 @@
                         @for (int i = startPage; i <= endPage; i++)
                         {
                             <li class="page-item @(currentPage == i ? "active" : "")">
-                                <a class="page-link" asp-action="GeneralCreate" asp-route-page="@i">@i</a>
+                                <a class="page-link" asp-action="GeneralCreate" asp-route-page="@i" asp-route-searchTransactionNo="@txnSearch">@i</a>
                             </li>
                         }
 
                         <!-- Next -->
                         <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(currentPage + 1)" title="Next page">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@(currentPage + 1)" asp-route-searchTransactionNo="@txnSearch" title="Next page">
                                 <i class="bi bi-chevron-right"></i>
                             </a>
                         </li>
 
                         <!-- Fast Next (jump forward 10 pages) -->
                         <li class="page-item @(currentPage + pageRange > totalPages ? "disabled" : "")">
-                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@Math.Min(totalPages, currentPage + pageRange)" title="Next 10 pages">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@Math.Min(totalPages, currentPage + pageRange)" asp-route-searchTransactionNo="@txnSearch" title="Next 10 pages">
                                 <i class="bi bi-chevron-double-right"></i>
                             </a>
                         </li>
 
                         <!-- Go to End -->
                         <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@totalPages" title="Go to last page">
+                            <a class="page-link" asp-action="GeneralCreate" asp-route-page="@totalPages" asp-route-searchTransactionNo="@txnSearch" title="Go to last page">
                                 End <i class="bi bi-skip-end-fill"></i>
                             </a>
                         </li>

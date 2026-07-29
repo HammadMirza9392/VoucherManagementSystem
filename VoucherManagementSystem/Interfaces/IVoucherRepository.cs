@@ -13,6 +13,9 @@ namespace VoucherManagementSystem.Interfaces
         // Same as above but INCLUDES revoked vouchers (still excludes deleted).
         // Used by the GeneralCreate list so revoked rows stay visible for Restore.
         Task<IEnumerable<Voucher>> GetVouchersWithDetailsIncludingRevokedAsync();
+        // Composable query (excludes deleted, keeps revoked) so callers can filter and
+        // page in the database rather than materialising the whole table.
+        IQueryable<Voucher> QueryVouchersIncludingRevoked();
         // Only revoked (and not deleted) vouchers — for the Revoked Vouchers report.
         Task<IEnumerable<Voucher>> GetRevokedVouchersAsync();
         Task<decimal> GetProjectProfitLossAsync(int projectId, DateTime fromDate, DateTime toDate);

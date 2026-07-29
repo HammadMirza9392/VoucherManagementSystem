@@ -337,67 +337,26 @@
     </div>
 </div>
 
-<!-- Recent Transactions -->
+@* The Recent Transactions table was removed from the dashboard: it pulled voucher rows
+   with all their related records on every page load, which is what drove the database
+   egress overage. Today's totals are kept below, and the full list lives on the
+   Vouchers page. *@
 <div class="row">
     <div class="col-12">
         <div class="card dashboard-card">
-            <div class="card-header py-1 bg-dark text-white d-flex justify-content-between">
-                <small><i class="bi bi-clock-history"></i> Recent Transactions</small>
-                <small>Today: @ViewBag.TodayTransactions txns | Rs. @string.Format("{0:N0}", todayAmount)</small>
-            </div>
-            <div class="card-body p-0" style="max-height: 250px; overflow-y: auto;">
-                <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
-                    <thead class="table-light sticky-top">
-                        <tr>
-                            <th>Date</th>
-                            <th>Txn #</th>
-                            <th>Type</th>
-                            <th>Customer</th>
-                            <th class="text-end">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (ViewBag.RecentVouchers != null)
-                        {
-                            foreach (var v in ViewBag.RecentVouchers)
-                            {
-                                var customer = v.PurchasingCustomer?.Name ?? v.ReceivingCustomer?.Name ?? v.PurchasingCustomerDetails ?? v.ReceivingCustomerDetails ?? "-";
-                                <tr>
-                                    <td>@((DateTime)v.VoucherDate).ToPkDateAlt()</td>
-                                    <td><a asp-controller="Vouchers" asp-action="Details" asp-route-id="@v.Id">@v.TransactionNumber</a></td>
-                                    <td><span class="badge bg-@GetVoucherColor(v.VoucherType.ToString())">@v.VoucherType</span></td>
-                                    <td class="text-truncate" style="max-width: 150px;">@customer</td>
-                                    <td class="text-end fw-bold">Rs. @string.Format("{0:N0}", v.Amount)</td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <div class="card-footer py-1 bg-white">
-                <a asp-controller="Vouchers" asp-action="Index" class="btn btn-sm btn-outline-dark w-100 py-0">View All Vouchers</a>
+            <div class="card-body py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span>
+                    <i class="bi bi-clock-history"></i>
+                    <strong>Today:</strong> @ViewBag.TodayTransactions transactions
+                    &nbsp;|&nbsp; Rs. @string.Format("{0:N0}", todayAmount)
+                </span>
+                <a asp-controller="Vouchers" asp-action="Index" class="btn btn-sm btn-outline-dark">
+                    View All Vouchers
+                </a>
             </div>
         </div>
     </div>
 </div>
-
-@functions {
-    string GetVoucherColor(string type)
-    {
-        return type switch
-        {
-            "Purchase" => "success",
-            "Sale" => "warning",
-            "Expense" => "danger",
-            "Hazri" => "info",
-            "CashPaid" => "secondary",
-            "CashReceived" => "primary",
-            "CCR" => "dark",
-            "BCR" => "dark",
-            _ => "secondary"
-        };
-    }
-}
 
 @section Scripts {
     <style>

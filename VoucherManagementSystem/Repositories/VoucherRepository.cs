@@ -146,6 +146,25 @@ namespace VoucherManagementSystem.Repositories
                 .ToListAsync();
         }
 
+        // Base query for the voucher lists: excludes deleted but keeps revoked rows
+        // (they render with a Restore button). Returned as IQueryable so callers can
+        // filter/page in the database instead of pulling everything into memory.
+        public IQueryable<Voucher> QueryVouchersIncludingRevoked()
+        {
+            return _context.Vouchers
+                .IgnoreQueryFilters()        // bypass the global !IsDeleted && !IsRevoked filter
+                .Where(v => !v.IsDeleted)    // ...but still hide deleted
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Include(v => v.PurchasingCustomer)
+                .Include(v => v.ReceivingCustomer)
+                .Include(v => v.BankCustomerPaid)
+                .Include(v => v.BankCustomerReceiver)
+                .Include(v => v.Item)
+                .Include(v => v.ExpenseHead)
+                .Include(v => v.Project);
+        }
+
         // Only revoked (and not deleted) vouchers — for the Revoked Vouchers report.
         public async Task<IEnumerable<Voucher>> GetRevokedVouchersAsync()
         {

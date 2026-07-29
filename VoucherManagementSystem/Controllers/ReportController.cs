@@ -584,51 +584,46 @@ namespace VoucherManagementSystem.Controllers
         {
             decimal balance = 0;
 
-            // Get voucher transactions before date
+            // Get voucher transactions before date. Netted in the database — one number
+            // back instead of every prior cash voucher.
+            //   In:  Sale, CashReceived, ATMCash (withdrawal → cash in)
+            //   Out: Purchase, Expense, CashPaid, Hazri
             var voucherQuery = _context.Vouchers
-                .Where(v => v.CashType == CashType.Cash && v.VoucherDate < date);
+                .AsNoTracking()
+                .Where(v => v.CashType == CashType.Cash && v.VoucherDate < date &&
+                            (v.VoucherType == VoucherType.Sale ||
+                             v.VoucherType == VoucherType.CashReceived ||
+                             v.VoucherType == VoucherType.ATMCash ||
+                             v.VoucherType == VoucherType.Purchase ||
+                             v.VoucherType == VoucherType.Expense ||
+                             v.VoucherType == VoucherType.CashPaid ||
+                             v.VoucherType == VoucherType.Hazri));
 
             if (customerId.HasValue)
             {
                 voucherQuery = voucherQuery.Where(v => v.PurchasingCustomerId == customerId || v.ReceivingCustomerId == customerId);
             }
 
-            var previousVouchers = await voucherQuery.ToListAsync();
-
-            foreach (var v in previousVouchers)
-            {
-                switch (v.VoucherType)
-                {
-                    case VoucherType.Sale:
-                    case VoucherType.CashReceived:
-                    case VoucherType.ATMCash:   // ATM withdrawal → cash in
-                        balance += v.Amount;
-                        break;
-                    case VoucherType.Purchase:
-                    case VoucherType.Expense:
-                    case VoucherType.CashPaid:
-                    case VoucherType.Hazri:
-                        balance -= v.Amount;
-                        break;
-                }
-            }
+            balance += await voucherQuery
+                .SumAsync(v => (decimal?)(
+                    v.VoucherType == VoucherType.Sale ||
+                    v.VoucherType == VoucherType.CashReceived ||
+                    v.VoucherType == VoucherType.ATMCash
+                        ? v.Amount
+                        : -v.Amount)) ?? 0m;
 
             // Add cash adjustments before date (only if no customer filter)
             if (!customerId.HasValue)
             {
                 try
                 {
-                    var adjustments = await _context.CashAdjustments
+                    // Netted in the database. Matches the original: CashIn adds, anything
+                    // else subtracts.
+                    balance += await _context.CashAdjustments
+                        .AsNoTracking()
                         .Where(a => a.AdjustmentDate < date)
-                        .ToListAsync();
-
-                    foreach (var adj in adjustments)
-                    {
-                        if (adj.AdjustmentType == CashAdjustmentType.CashIn)
-                            balance += adj.Amount;
-                        else
-                            balance -= adj.Amount;
-                    }
+                        .SumAsync(a => (decimal?)(
+                            a.AdjustmentType == CashAdjustmentType.CashIn ? a.Amount : -a.Amount)) ?? 0m;
                 }
                 catch
                 {
@@ -1013,35 +1008,32 @@ namespace VoucherManagementSystem.Controllers
         // Helper method to get opening cash balance (CashType = Cash only)
         private async Task<decimal> GetOpeningCashBalanceAsync(DateTime date)
         {
-            var previousVouchers = await _context.Vouchers
-                .Where(v => v.VoucherDate < date && v.CashType == CashType.Cash)
-                .ToListAsync();
-
-            decimal balance = 0;
-            foreach (var voucher in previousVouchers)
-            {
-                switch (voucher.VoucherType)
-                {
-                    case VoucherType.Sale:
-                    case VoucherType.CashReceived:
-                    case VoucherType.ATMCash:   // ATM withdrawal → cash in
-                        balance += voucher.Amount;
-                        break;
-                    case VoucherType.Purchase:
-                    case VoucherType.Expense:
-                    case VoucherType.CashPaid:
-                    case VoucherType.Hazri:
-                        balance -= voucher.Amount;
-                        break;
-                }
-            }
-            return balance;
+            // Netted in the database.
+            //   In:  Sale, CashReceived, ATMCash (withdrawal → cash in)
+            //   Out: Purchase, Expense, CashPaid, Hazri
+            return await _context.Vouchers
+                .AsNoTracking()
+                .Where(v => v.VoucherDate < date && v.CashType == CashType.Cash &&
+                            (v.VoucherType == VoucherType.Sale ||
+                             v.VoucherType == VoucherType.CashReceived ||
+                             v.VoucherType == VoucherType.ATMCash ||
+                             v.VoucherType == VoucherType.Purchase ||
+                             v.VoucherType == VoucherType.Expense ||
+                             v.VoucherType == VoucherType.CashPaid ||
+                             v.VoucherType == VoucherType.Hazri))
+                .SumAsync(v => (decimal?)(
+                    v.VoucherType == VoucherType.Sale ||
+                    v.VoucherType == VoucherType.CashReceived ||
+                    v.VoucherType == VoucherType.ATMCash
+                        ? v.Amount
+                        : -v.Amount)) ?? 0m;
         }
 
         // Helper method to get opening stock
         private async Task<decimal> GetOpeningStockAsync(int itemId, DateTime date, int? projectId = null)
         {
             var query = _context.Vouchers
+                .AsNoTracking()
                 .Where(v => v.ItemId == itemId &&
                             v.VoucherDate < date &&
                             (v.VoucherType == VoucherType.Purchase || v.VoucherType == VoucherType.Sale));
@@ -1049,17 +1041,12 @@ namespace VoucherManagementSystem.Controllers
             if (projectId.HasValue)
                 query = query.Where(v => v.ProjectId == projectId.Value);
 
-            var previousVouchers = await query.ToListAsync();
-
-            decimal stock = 0;
-            foreach (var voucher in previousVouchers)
-            {
-                if (voucher.VoucherType == VoucherType.Purchase)
-                    stock += voucher.Quantity ?? 0;
-                else if (voucher.VoucherType == VoucherType.Sale)
-                    stock -= voucher.Quantity ?? 0;
-            }
-            return stock;
+            // Purchases add quantity, sales subtract it — netted in the database.
+            return await query
+                .SumAsync(v => (decimal?)(
+                    v.VoucherType == VoucherType.Purchase
+                        ? (v.Quantity ?? 0)
+                        : -(v.Quantity ?? 0))) ?? 0m;
         }
 
         // GET: Reports/DailyCashBook - Tracks cash from vouchers (CashType = DailyCashBook)
@@ -1162,37 +1149,32 @@ namespace VoucherManagementSystem.Controllers
         // Helper method to get opening Daily Cash Book balance (mirrors GetCashOpeningBalanceAsync but for CashType.DailyCashBook)
         private async Task<decimal> GetDailyCashBookOpeningBalanceAsync(DateTime date, int? customerId = null)
         {
-            decimal balance = 0;
-
+            // Netted in the database.
+            //   In:  Sale, CashReceived, ATMDailyCash (withdrawal → daily cash in)
+            //   Out: Purchase, Expense, CashPaid, Hazri
             var voucherQuery = _context.Vouchers
-                .Where(v => v.CashType == CashType.DailyCashBook && v.VoucherDate < date);
+                .AsNoTracking()
+                .Where(v => v.CashType == CashType.DailyCashBook && v.VoucherDate < date &&
+                            (v.VoucherType == VoucherType.Sale ||
+                             v.VoucherType == VoucherType.CashReceived ||
+                             v.VoucherType == VoucherType.ATMDailyCash ||
+                             v.VoucherType == VoucherType.Purchase ||
+                             v.VoucherType == VoucherType.Expense ||
+                             v.VoucherType == VoucherType.CashPaid ||
+                             v.VoucherType == VoucherType.Hazri));
 
             if (customerId.HasValue)
             {
                 voucherQuery = voucherQuery.Where(v => v.PurchasingCustomerId == customerId || v.ReceivingCustomerId == customerId);
             }
 
-            var previousVouchers = await voucherQuery.ToListAsync();
-
-            foreach (var v in previousVouchers)
-            {
-                switch (v.VoucherType)
-                {
-                    case VoucherType.Sale:
-                    case VoucherType.CashReceived:
-                    case VoucherType.ATMDailyCash:   // ATM withdrawal → daily cash in
-                        balance += v.Amount;
-                        break;
-                    case VoucherType.Purchase:
-                    case VoucherType.Expense:
-                    case VoucherType.CashPaid:
-                    case VoucherType.Hazri:
-                        balance -= v.Amount;
-                        break;
-                }
-            }
-
-            return balance;
+            return await voucherQuery
+                .SumAsync(v => (decimal?)(
+                    v.VoucherType == VoucherType.Sale ||
+                    v.VoucherType == VoucherType.CashReceived ||
+                    v.VoucherType == VoucherType.ATMDailyCash
+                        ? v.Amount
+                        : -v.Amount)) ?? 0m;
         }
 
         // GET: Reports/AdvancedPaymentReport
@@ -1435,48 +1417,28 @@ namespace VoucherManagementSystem.Controllers
         // NEW DR/CR Logic: Purchase=CR, Sale=DR
         private async Task<decimal> GetCustomerOpeningBalanceAsync(int customerId, DateTime date)
         {
-            var previousVouchers = await _context.Vouchers
-                .Where(v => (v.PurchasingCustomerId == customerId || v.ReceivingCustomerId == customerId) &&
-                           v.VoucherDate < date)
-                .ToListAsync();
+            // Both sides netted in the database — two scalar results instead of every
+            // voucher row for this customer. Sign rules are unchanged.
+            //   Purchase = CR (we owe them) → -,  CashPaid/CCR = DR (we paid) → +
+            var purchasingSide = await _context.Vouchers
+                .AsNoTracking()
+                .Where(v => v.PurchasingCustomerId == customerId && v.VoucherDate < date &&
+                            (v.VoucherType == VoucherType.Purchase ||
+                             v.VoucherType == VoucherType.CashPaid ||
+                             v.VoucherType == VoucherType.CCR))
+                .SumAsync(v => (decimal?)(v.VoucherType == VoucherType.Purchase ? -v.Amount : v.Amount)) ?? 0m;
 
-            decimal balance = 0;
-            foreach (var voucher in previousVouchers)
-            {
-                // Purchase = CR (we owe them) - decreases balance
-                // CashPaid = DR (we paid) - increases balance
-                if (voucher.PurchasingCustomerId == customerId)
-                {
-                    switch (voucher.VoucherType)
-                    {
-                        case VoucherType.Purchase:
-                            balance -= voucher.Amount;  // CR decreases balance
-                            break;
-                        case VoucherType.CashPaid:
-                        case VoucherType.CCR:
-                            balance += voucher.Amount;  // DR increases balance
-                            break;
-                    }
-                }
+            //   Sale = DR (they owe us) → +,  CashReceived/CCR/AdvancedPayment = CR → -
+            var receivingSide = await _context.Vouchers
+                .AsNoTracking()
+                .Where(v => v.ReceivingCustomerId == customerId && v.VoucherDate < date &&
+                            (v.VoucherType == VoucherType.Sale ||
+                             v.VoucherType == VoucherType.CashReceived ||
+                             v.VoucherType == VoucherType.CCR ||
+                             v.VoucherType == VoucherType.AdvancedPayment))
+                .SumAsync(v => (decimal?)(v.VoucherType == VoucherType.Sale ? v.Amount : -v.Amount)) ?? 0m;
 
-                // Sale = DR (they owe us) - increases balance
-                // CashReceived / AdvancedPayment = CR (they paid) - decreases balance
-                if (voucher.ReceivingCustomerId == customerId)
-                {
-                    switch (voucher.VoucherType)
-                    {
-                        case VoucherType.Sale:
-                            balance += voucher.Amount;  // DR increases balance
-                            break;
-                        case VoucherType.CashReceived:
-                        case VoucherType.CCR:
-                        case VoucherType.AdvancedPayment:
-                            balance -= voucher.Amount;  // CR decreases balance
-                            break;
-                    }
-                }
-            }
-            return balance;
+            return purchasingSide + receivingSide;
         }
 
         // Helper method to get item-wise purchase and sale summary for a project
@@ -1514,6 +1476,28 @@ namespace VoucherManagementSystem.Controllers
             var itemGroups = vouchers.GroupBy(v => v.ItemId.Value);
             var summary = new List<ProjectItemSummary>();
 
+            // Opening (pre-fromDate) purchase/sale totals for every item in this project,
+            // fetched once as grouped sums. Previously this ran two full-row queries per
+            // item inside the loop below — and AllProjectsReport calls this method once per
+            // project, so the cost multiplied out to projects × items × 2 queries.
+            var openingTotals = (await _context.Vouchers
+                .AsNoTracking()
+                .Where(v => v.ItemId.HasValue &&
+                            v.ProjectId == projectId &&
+                            v.VoucherDate < fromDate &&
+                            (v.VoucherType == VoucherType.Purchase || v.VoucherType == VoucherType.Sale))
+                .GroupBy(v => v.ItemId!.Value)
+                .Select(g => new
+                {
+                    ItemId = g.Key,
+                    PurchaseQty = g.Sum(v => v.VoucherType == VoucherType.Purchase ? (v.Quantity ?? 0) : 0m),
+                    PurchaseAmt = g.Sum(v => v.VoucherType == VoucherType.Purchase ? v.Amount : 0m),
+                    SaleQty = g.Sum(v => v.VoucherType == VoucherType.Sale ? (v.Quantity ?? 0) : 0m),
+                    SaleAmt = g.Sum(v => v.VoucherType == VoucherType.Sale ? v.Amount : 0m)
+                })
+                .ToListAsync())
+                .ToDictionary(x => x.ItemId);
+
             foreach (var group in itemGroups)
             {
                 var item = group.First().Item;
@@ -1531,24 +1515,12 @@ namespace VoucherManagementSystem.Controllers
                 var openingStockQty = await GetOpeningStockAsync(item.Id, fromDate, projectId);
 
                 // Opening stock amount = net cost of stock before fromDate
-                // Get all purchase and sale vouchers before fromDate
-                var openingPurchases = await _context.Vouchers
-                    .Where(v => v.ItemId == item.Id &&
-                                v.ProjectId == projectId &&
-                                v.VoucherType == VoucherType.Purchase &&
-                                v.VoucherDate < fromDate)
-                    .ToListAsync();
-                var openingSales = await _context.Vouchers
-                    .Where(v => v.ItemId == item.Id &&
-                                v.ProjectId == projectId &&
-                                v.VoucherType == VoucherType.Sale &&
-                                v.VoucherDate < fromDate)
-                    .ToListAsync();
+                openingTotals.TryGetValue(item.Id, out var opening);
 
-                var openingTotalPurchaseQty = openingPurchases.Sum(p => p.Quantity ?? 0);
-                var openingTotalPurchaseAmt = openingPurchases.Sum(p => p.Amount);
-                var openingTotalSaleQty = openingSales.Sum(s => s.Quantity ?? 0);
-                var openingTotalSaleAmt = openingSales.Sum(s => s.Amount);
+                var openingTotalPurchaseQty = opening?.PurchaseQty ?? 0m;
+                var openingTotalPurchaseAmt = opening?.PurchaseAmt ?? 0m;
+                var openingTotalSaleQty = opening?.SaleQty ?? 0m;
+                var openingTotalSaleAmt = opening?.SaleAmt ?? 0m;
 
                 // Calculate opening stock amount based on weighted average cost method
                 decimal openingStockAmount = 0;
@@ -2008,21 +1980,39 @@ namespace VoucherManagementSystem.Controllers
                 var projects = await _projectRepository.GetActiveProjectsAsync();
                 var projectReports = new List<ProjectReportItem>();
 
+                // Per-project totals in a single grouped query instead of one full voucher
+                // download per project. Same date window and same voucher-type buckets as before.
+                var windowEnd = endDate.AddDays(1);
+                var projectTotals = (await _context.Vouchers
+                    .AsNoTracking()
+                    .Where(v => v.ProjectId.HasValue &&
+                                v.VoucherDate >= startDate && v.VoucherDate <= windowEnd)
+                    .GroupBy(v => v.ProjectId!.Value)
+                    .Select(g => new
+                    {
+                        ProjectId = g.Key,
+                        TotalSale = g.Sum(v => v.VoucherType == VoucherType.Sale ||
+                                               v.VoucherType == VoucherType.CashReceived ? v.Amount : 0m),
+                        Purchases = g.Sum(v => v.VoucherType == VoucherType.Purchase ? v.Amount : 0m),
+                        Expenses = g.Sum(v => v.VoucherType == VoucherType.Expense ||
+                                              v.VoucherType == VoucherType.Hazri ? v.Amount : 0m),
+                        VoucherCount = g.Count()
+                    })
+                    .ToListAsync())
+                    .ToDictionary(x => x.ProjectId);
+
                 foreach (var project in projects)
                 {
-                    var vouchers = await _context.Vouchers
-                        .Where(v => v.ProjectId == project.Id &&
-                                   v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1))
-                        .ToListAsync();
-
                     var itemSummary = await GetProjectItemSummaryAsync(project.Id, startDate, endDate);
                     var stockValue = itemSummary.Sum(i => i.StockValue);
 
-                    var totalSale = vouchers.Where(v => v.VoucherType == VoucherType.Sale || v.VoucherType == VoucherType.CashReceived).Sum(v => v.Amount);
+                    projectTotals.TryGetValue(project.Id, out var totals);
+
+                    var totalSale = totals?.TotalSale ?? 0m;
                     var revenue = totalSale + stockValue; // Revenue = Sale + CashReceived + Stock
 
-                    var purchases = vouchers.Where(v => v.VoucherType == VoucherType.Purchase).Sum(v => v.Amount);
-                    var expenses = vouchers.Where(v => v.VoucherType == VoucherType.Expense || v.VoucherType == VoucherType.Hazri).Sum(v => v.Amount);
+                    var purchases = totals?.Purchases ?? 0m;
+                    var expenses = totals?.Expenses ?? 0m;
                     var totalExpenses = purchases + expenses;
 
                     projectReports.Add(new ProjectReportItem
@@ -2032,7 +2022,7 @@ namespace VoucherManagementSystem.Controllers
                         Purchases = purchases,
                         Expenses = expenses,
                         ProfitLoss = revenue - totalExpenses,
-                        VoucherCount = vouchers.Count
+                        VoucherCount = totals?.VoucherCount ?? 0
                     });
                 }
 
@@ -2195,51 +2185,55 @@ namespace VoucherManagementSystem.Controllers
                 var customers = await _customerRepository.GetActiveCustomersAsync();
                 var customerReports = new List<CustomerReportItem>();
 
+                // Use the same DR/CR logic as CustomerLedger and GetCustomerOpeningBalanceAsync:
+                // Sale = DR (+), CashReceived/AdvancedPayment/CCR = CR (-)
+                // Purchase = CR (-), CashPaid/CCR = DR (+)
+                // Positive net = DR = customer owes us (ToReceive)
+                // Negative net = CR = we owe them (ToPay)
+                //
+                // Both sides are grouped per customer in the database. This replaces a
+                // per-customer query loop that re-downloaded the voucher history for every
+                // customer on the list — the dominant cost of this report.
+                var balances = new Dictionary<int, decimal>();
+
+                var purchasingNets = await _context.Vouchers
+                    .AsNoTracking()
+                    .Where(v => v.VoucherDate < date && v.PurchasingCustomerId.HasValue &&
+                                (v.VoucherType == VoucherType.Purchase ||
+                                 v.VoucherType == VoucherType.CashPaid ||
+                                 v.VoucherType == VoucherType.CCR))
+                    .GroupBy(v => v.PurchasingCustomerId!.Value)
+                    .Select(g => new
+                    {
+                        CustomerId = g.Key,
+                        Net = g.Sum(v => v.VoucherType == VoucherType.Purchase ? -v.Amount : v.Amount)
+                    })
+                    .ToListAsync();
+
+                foreach (var row in purchasingNets)
+                    balances[row.CustomerId] = balances.GetValueOrDefault(row.CustomerId) + row.Net;
+
+                var receivingNets = await _context.Vouchers
+                    .AsNoTracking()
+                    .Where(v => v.VoucherDate < date && v.ReceivingCustomerId.HasValue &&
+                                (v.VoucherType == VoucherType.Sale ||
+                                 v.VoucherType == VoucherType.CashReceived ||
+                                 v.VoucherType == VoucherType.CCR ||
+                                 v.VoucherType == VoucherType.AdvancedPayment))
+                    .GroupBy(v => v.ReceivingCustomerId!.Value)
+                    .Select(g => new
+                    {
+                        CustomerId = g.Key,
+                        Net = g.Sum(v => v.VoucherType == VoucherType.Sale ? v.Amount : -v.Amount)
+                    })
+                    .ToListAsync();
+
+                foreach (var row in receivingNets)
+                    balances[row.CustomerId] = balances.GetValueOrDefault(row.CustomerId) + row.Net;
+
                 foreach (var customer in customers)
                 {
-                    // Use the same DR/CR logic as CustomerLedger and GetCustomerOpeningBalanceAsync:
-                    // Sale = DR (+), CashReceived/AdvancedPayment/CCR = CR (-)
-                    // Purchase = CR (-), CashPaid/CCR = DR (+)
-                    // Positive net = DR = customer owes us (ToReceive)
-                    // Negative net = CR = we owe them (ToPay)
-                    var vouchers = await _context.Vouchers
-                        .Where(v => (v.PurchasingCustomerId == customer.Id || v.ReceivingCustomerId == customer.Id) &&
-                                   v.VoucherDate < date)
-                        .ToListAsync();
-
-                    decimal balance = 0;
-
-                    foreach (var v in vouchers)
-                    {
-                        if (v.PurchasingCustomerId == customer.Id)
-                        {
-                            switch (v.VoucherType)
-                            {
-                                case VoucherType.Purchase:
-                                    balance -= v.Amount; // CR — we owe them
-                                    break;
-                                case VoucherType.CashPaid:
-                                case VoucherType.CCR:
-                                    balance += v.Amount; // DR — we paid them
-                                    break;
-                            }
-                        }
-
-                        if (v.ReceivingCustomerId == customer.Id)
-                        {
-                            switch (v.VoucherType)
-                            {
-                                case VoucherType.Sale:
-                                    balance += v.Amount; // DR — they owe us
-                                    break;
-                                case VoucherType.CashReceived:
-                                case VoucherType.CCR:
-                                case VoucherType.AdvancedPayment:
-                                    balance -= v.Amount; // CR — they paid us
-                                    break;
-                            }
-                        }
-                    }
+                    decimal balance = balances.GetValueOrDefault(customer.Id);
 
                     if (balance != 0)
                     {

@@ -47,11 +47,16 @@
                     <option value="false" selected="@(ViewBag.StockInclude?.ToString() == "False")">No (0)</option>
                 </select>
             </div>
+            <div class="col-md-2">
+                <label class="form-label">Transaction No</label>
+                <input type="text" name="searchTransactionNo" value="@ViewBag.SearchTransactionNo"
+                       class="form-control" id="txnNoFilter" placeholder="e.g. PUR-45" />
+            </div>
             <div class="col-md-4">
                 <label class="form-label">&nbsp;</label>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-search"></i> Filter
+                        <i class="bi bi-search"></i> Search
                     </button>
                     <button type="button" class="btn btn-secondary" id="clearFilter">
                         <i class="bi bi-x-circle"></i> Clear Filter
@@ -183,6 +188,93 @@
                 }
             </tbody>
         </table>
+
+        @* Pagination. Only the current page is fetched from the database; the active
+           filters are carried on every link so paging never loses them. *@
+        <div class="border-top pt-2 mt-2">
+            @if (ViewBag.TotalPages > 1)
+            {
+                int currentPage = ViewBag.CurrentPage ?? 1;
+                int totalPages = ViewBag.TotalPages ?? 1;
+                int pageRange = 10;
+                int startPage = Math.Max(1, currentPage - pageRange);
+                int endPage = Math.Min(startPage + pageRange - 1, totalPages);
+
+                // Current filter state, repeated on each page link.
+                var routeValues = new Dictionary<string, string?>
+                {
+                    ["voucherType"] = ViewBag.VoucherType?.ToString(),
+                    ["customerId"] = ViewBag.CustomerId?.ToString(),
+                    ["projectId"] = ViewBag.ProjectId?.ToString(),
+                    ["itemId"] = ViewBag.ItemId?.ToString(),
+                    ["fromDate"] = ViewBag.FromDate?.ToString("yyyy-MM-dd"),
+                    ["toDate"] = ViewBag.ToDate?.ToString("yyyy-MM-dd"),
+                    ["stockInclude"] = ViewBag.StockInclude?.ToString(),
+                    ["searchTransactionNo"] = ViewBag.SearchTransactionNo as string
+                };
+
+                Func<int, string> pageUrl = p =>
+                {
+                    var rv = new Dictionary<string, string?>(routeValues) { ["page"] = p.ToString() };
+                    return Url.Action("Index", "Vouchers", rv) ?? "#";
+                };
+
+                <nav aria-label="Voucher pagination">
+                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                        <!-- Go to Start -->
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="@pageUrl(1)" title="Go to first page">
+                                <i class="bi bi-skip-start-fill"></i> Start
+                            </a>
+                        </li>
+
+                        <!-- Fast Previous (jump back 10 pages) -->
+                        <li class="page-item @(currentPage - pageRange < 1 ? "disabled" : "")">
+                            <a class="page-link" href="@pageUrl(Math.Max(1, currentPage - pageRange))" title="Previous 10 pages">
+                                <i class="bi bi-chevron-double-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- Previous -->
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="@pageUrl(currentPage - 1)" title="Previous page">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- Page numbers (10 at a time) -->
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(currentPage == i ? "active" : "")">
+                                <a class="page-link" href="@pageUrl(i)">@i</a>
+                            </li>
+                        }
+
+                        <!-- Next -->
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <a class="page-link" href="@pageUrl(currentPage + 1)" title="Next page">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+
+                        <!-- Fast Next (jump forward 10 pages) -->
+                        <li class="page-item @(currentPage + pageRange > totalPages ? "disabled" : "")">
+                            <a class="page-link" href="@pageUrl(Math.Min(totalPages, currentPage + pageRange))" title="Next 10 pages">
+                                <i class="bi bi-chevron-double-right"></i>
+                            </a>
+                        </li>
+
+                        <!-- Go to End -->
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <a class="page-link" href="@pageUrl(totalPages)" title="Go to last page">
+                                End <i class="bi bi-skip-end-fill"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+            <p class="text-muted text-center mb-0 small mt-2">Page @ViewBag.CurrentPage of @ViewBag.TotalPages &nbsp;|&nbsp; @ViewBag.TotalRecords total records</p>
+        </div>
     </div>
 </div>
 
@@ -203,6 +295,7 @@
                 $('#fromDateFilter').val('');
                 $('#toDateFilter').val('');
                 $('#stockIncludeFilter').val('');
+                $('#txnNoFilter').val('');
                 window.location.href = '@Url.Action("Index", "Vouchers")';
             });
 

@@ -36,52 +36,91 @@ namespace VoucherManagementSystem.Controllers
             _projectRepository = projectRepository;
         }
 
+        // Rows per page for the voucher lists. Only one page is ever fetched from the
+        // database, so egress stays flat no matter how large the Vouchers table gets.
+        private const int VoucherListPageSize = 25;   // Vouchers list
+        private const int GeneralCreateListRows = 10; // GeneralCreate recent-entries list
+
         // GET: Vouchers
-        public async Task<IActionResult> Index(VoucherType? voucherType, int? customerId, int? projectId, int? itemId, DateTime? fromDate, DateTime? toDate, bool? stockInclude)
+        public async Task<IActionResult> Index(VoucherType? voucherType, int? customerId, int? projectId, int? itemId, DateTime? fromDate, DateTime? toDate, bool? stockInclude, string? searchTransactionNo = null, int? page = null, int pageSize = VoucherListPageSize)
         {
-            // Start with all vouchers — include revoked so they appear in the list with a Restore button.
-            var vouchers = await _voucherRepository.GetVouchersWithDetailsIncludingRevokedAsync();
+            // Build the query — nothing is fetched until ToListAsync() below, so every
+            // filter and the row limit are applied by the database. Revoked vouchers are
+            // included so they appear in the list with a Restore button.
+            var query = _voucherRepository.QueryVouchersIncludingRevoked();
 
             // Apply filters progressively
             if (voucherType.HasValue)
             {
-                vouchers = vouchers.Where(v => v.VoucherType == voucherType.Value);
+                query = query.Where(v => v.VoucherType == voucherType.Value);
             }
 
             if (customerId.HasValue)
             {
-                vouchers = vouchers.Where(v =>
+                query = query.Where(v =>
                     v.PurchasingCustomerId == customerId.Value ||
                     v.ReceivingCustomerId == customerId.Value);
             }
 
             if (projectId.HasValue)
             {
-                vouchers = vouchers.Where(v => v.ProjectId == projectId.Value);
+                query = query.Where(v => v.ProjectId == projectId.Value);
             }
 
             if (itemId.HasValue)
             {
-                vouchers = vouchers.Where(v => v.ItemId == itemId.Value);
+                query = query.Where(v => v.ItemId == itemId.Value);
             }
 
             if (fromDate.HasValue && toDate.HasValue)
             {
-                vouchers = vouchers.Where(v => v.VoucherDate >= fromDate.Value && v.VoucherDate <= toDate.Value);
+                query = query.Where(v => v.VoucherDate >= fromDate.Value && v.VoucherDate <= toDate.Value);
             }
             else if (fromDate.HasValue)
             {
-                vouchers = vouchers.Where(v => v.VoucherDate >= fromDate.Value);
+                query = query.Where(v => v.VoucherDate >= fromDate.Value);
             }
             else if (toDate.HasValue)
             {
-                vouchers = vouchers.Where(v => v.VoucherDate <= toDate.Value);
+                query = query.Where(v => v.VoucherDate <= toDate.Value);
             }
 
             if (stockInclude.HasValue)
             {
-                vouchers = vouchers.Where(v => v.StockInclude == stockInclude.Value);
+                query = query.Where(v => v.StockInclude == stockInclude.Value);
             }
+
+            // Transaction No. search (partial match) — runs in the database.
+            var trimmedSearch = searchTransactionNo?.Trim();
+            var hasSearch = !string.IsNullOrEmpty(trimmedSearch);
+            if (hasSearch)
+            {
+                query = query.Where(v => v.TransactionNumber.Contains(trimmedSearch!));
+            }
+
+            // Paged in the database: a COUNT(*) for the pager plus Skip/Take for the rows.
+            // The full table is never downloaded, whether filtered or not.
+            if (pageSize < 1) pageSize = VoucherListPageSize;
+
+            var totalRecords = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
+            if (totalPages < 1) totalPages = 1;
+
+            var currentPage = page ?? 1;
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            var vouchers = await query
+                .OrderByDescending(v => v.VoucherDate)
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.CurrentPage = currentPage;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalRecords = totalRecords;
+            ViewBag.PageSize = pageSize;
+            ViewBag.SearchTransactionNo = trimmedSearch;
 
             ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
             ViewBag.Projects = new SelectList(await _projectRepository.GetActiveProjectsAsync(), "Id", "Name", projectId);
@@ -124,7 +163,7 @@ namespace VoucherManagementSystem.Controllers
         }
 
         // GET: Vouchers/GeneralCreate
-        public async Task<IActionResult> GeneralCreate(int? page = null, int pageSize = 10)
+        public async Task<IActionResult> GeneralCreate(int? page = null, int pageSize = GeneralCreateListRows, string? searchTransactionNo = null)
         {
             var voucher = new Voucher
             {
@@ -132,15 +171,24 @@ namespace VoucherManagementSystem.Controllers
                 VoucherDate = DateTimeHelper.PkNow
             };
 
-            // Get all recent vouchers (all types) — include revoked so they remain
-            // visible in this list with a Restore button.
-            var allVouchers = await _voucherRepository.GetVouchersWithDetailsIncludingRevokedAsync();
-            var filteredVouchers = allVouchers
-                .OrderBy(v => v.CreatedDate)
-                .ToList();
+            // Full pagination is preserved, but the whole table is no longer downloaded to
+            // produce it: the row count is a COUNT(*) and only the current page's rows are
+            // fetched via Skip/Take in the database.
+            // Revoked vouchers are included so they remain visible with a Restore button.
+            var query = _voucherRepository.QueryVouchersIncludingRevoked();
 
-            // Calculate pagination
-            var totalRecords = filteredVouchers.Count;
+            // Transaction No. search (partial match) — runs in the database against the
+            // full table, so older vouchers are reachable without loading everything.
+            var trimmedSearch = searchTransactionNo?.Trim();
+            var hasSearch = !string.IsNullOrEmpty(trimmedSearch);
+            if (hasSearch)
+            {
+                query = query.Where(v => v.TransactionNumber.Contains(trimmedSearch!));
+            }
+
+            if (pageSize < 1) pageSize = GeneralCreateListRows;
+
+            var totalRecords = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
 
             // Ensure at least 1 page
@@ -151,16 +199,19 @@ namespace VoucherManagementSystem.Controllers
             if (currentPage < 1) currentPage = 1;
             if (currentPage > totalPages) currentPage = totalPages;
 
-            var voucherList = filteredVouchers
+            // Ordered oldest-first, exactly as the list has always been displayed.
+            var voucherList = await query
+                .OrderBy(v => v.CreatedDate)
                 .Skip((currentPage - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .ToListAsync();
 
             ViewBag.VoucherList = voucherList;
             ViewBag.CurrentPage = currentPage;
             ViewBag.TotalPages = totalPages;
             ViewBag.TotalRecords = totalRecords;
             ViewBag.PageSize = pageSize;
+            ViewBag.SearchTransactionNo = trimmedSearch;
 
             await PrepareViewBags();
             return View(voucher);
@@ -175,21 +226,32 @@ namespace VoucherManagementSystem.Controllers
                 VoucherDate = DateTimeHelper.PkNow
             };
 
-            // Get recent vouchers filtered by type
+            // Recent vouchers of this type. Filtering, counting and paging all run in the
+            // database — only the current page's rows are transferred (this used to pull
+            // every voucher of every type and page it in memory).
             var voucherType = type ?? VoucherType.Purchase;
-            var allVouchers = await _voucherRepository.GetVouchersWithDetailsAsync();
-            var filteredVouchers = allVouchers
-                .Where(v => v.VoucherType == voucherType)
-                .OrderBy(v => v.CreatedDate)
-                .ToList();
+            var typeQuery = _context.Vouchers
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Include(v => v.PurchasingCustomer)
+                .Include(v => v.ReceivingCustomer)
+                .Include(v => v.BankCustomerPaid)
+                .Include(v => v.BankCustomerReceiver)
+                .Include(v => v.Item)
+                .Include(v => v.ExpenseHead)
+                .Include(v => v.Project)
+                .Where(v => v.VoucherType == voucherType);
 
-            // Calculate pagination
-            var totalRecords = filteredVouchers.Count;
+            var totalRecords = await typeQuery.CountAsync();
             var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
-            var voucherList = filteredVouchers
+
+            if (page < 1) page = 1;
+
+            var voucherList = await typeQuery
+                .OrderBy(v => v.CreatedDate)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .ToListAsync();
 
             ViewBag.VoucherList = voucherList;
             ViewBag.CurrentPage = page;
@@ -656,19 +718,23 @@ namespace VoucherManagementSystem.Controllers
                 CashType = CashType.Cash
             };
 
-            var allVouchers = await _context.Vouchers
+            // Count and page in the database — only the current page's rows are fetched.
+            var advPaidQuery = _context.Vouchers
+                .AsNoTracking()
                 .Include(v => v.AdvancedPurchasingCustomer)
                 .Include(v => v.BankCustomerPaid)
-                .Where(v => v.VoucherType == VoucherType.AdvancedCashPaid)
-                .OrderByDescending(v => v.VoucherDate).ThenByDescending(v => v.Id)
-                .ToListAsync();
+                .Where(v => v.VoucherType == VoucherType.AdvancedCashPaid);
 
-            var totalRecords = allVouchers.Count;
+            var totalRecords = await advPaidQuery.CountAsync();
             var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
             if (totalPages < 1) totalPages = 1;
             var currentPage = Math.Max(1, Math.Min(page, totalPages));
 
-            ViewBag.VoucherList = allVouchers.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
+            ViewBag.VoucherList = await advPaidQuery
+                .OrderByDescending(v => v.VoucherDate).ThenByDescending(v => v.Id)
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
             ViewBag.CurrentPage = currentPage;
             ViewBag.TotalPages = totalPages;
             ViewBag.TotalRecords = totalRecords;
@@ -735,19 +801,23 @@ namespace VoucherManagementSystem.Controllers
                 CashType = CashType.Cash
             };
 
-            var allVouchers = await _context.Vouchers
+            // Count and page in the database — only the current page's rows are fetched.
+            var advReceivedQuery = _context.Vouchers
+                .AsNoTracking()
                 .Include(v => v.AdvancedReceivingCustomer)
                 .Include(v => v.BankCustomerReceiver)
-                .Where(v => v.VoucherType == VoucherType.AdvancedCashReceived)
-                .OrderByDescending(v => v.VoucherDate).ThenByDescending(v => v.Id)
-                .ToListAsync();
+                .Where(v => v.VoucherType == VoucherType.AdvancedCashReceived);
 
-            var totalRecords = allVouchers.Count;
+            var totalRecords = await advReceivedQuery.CountAsync();
             var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
             if (totalPages < 1) totalPages = 1;
             var currentPage = Math.Max(1, Math.Min(page, totalPages));
 
-            ViewBag.VoucherList = allVouchers.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
+            ViewBag.VoucherList = await advReceivedQuery
+                .OrderByDescending(v => v.VoucherDate).ThenByDescending(v => v.Id)
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
             ViewBag.CurrentPage = currentPage;
             ViewBag.TotalPages = totalPages;
             ViewBag.TotalRecords = totalRecords;
