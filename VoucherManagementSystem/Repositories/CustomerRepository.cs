@@ -28,7 +28,14 @@ namespace VoucherManagementSystem.Repositories
 
         public async Task<CustomerItemRate> AddCustomerItemRateAsync(int customerId, int itemId, decimal rate)
         {
-            var existingRate = await GetCustomerItemRateAsync(customerId, itemId);
+            // The context runs with QueryTrackingBehavior.NoTracking (see Program.cs), so a row
+            // loaded here is NOT tracked — changing a property and calling SaveChangesAsync would
+            // save nothing and still report success. AsTracking() is required for the update to
+            // actually reach the database.
+            var existingRate = await _context.CustomerItemRates
+                .AsTracking()
+                .FirstOrDefaultAsync(cir => cir.CustomerId == customerId && cir.ItemId == itemId);
+
             if (existingRate != null)
             {
                 existingRate.Rate = rate;
@@ -50,7 +57,11 @@ namespace VoucherManagementSystem.Repositories
 
         public async Task UpdateCustomerItemRateAsync(int customerId, int itemId, decimal rate)
         {
-            var customerRate = await GetCustomerItemRateAsync(customerId, itemId);
+            // Same tracking requirement as AddCustomerItemRateAsync above.
+            var customerRate = await _context.CustomerItemRates
+                .AsTracking()
+                .FirstOrDefaultAsync(cir => cir.CustomerId == customerId && cir.ItemId == itemId);
+
             if (customerRate != null)
             {
                 customerRate.Rate = rate;

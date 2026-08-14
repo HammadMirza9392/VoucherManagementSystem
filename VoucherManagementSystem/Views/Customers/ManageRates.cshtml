@@ -54,8 +54,12 @@
     <script>
         $(document).ready(function() {
             $('.update-rate').on('click', function() {
-                var itemId = $(this).data('item-id');
-                var rate = $(`.rate-input[data-item-id="${itemId}"]`).val();
+                var $btn = $(this);
+                var itemId = $btn.data('item-id');
+                var $input = $(`.rate-input[data-item-id="${itemId}"]`);
+                var rate = $input.val();
+
+                $btn.prop('disabled', true);
 
                 $.post('/Customers/UpdateRate', {
                     customerId: @customer.Id,
@@ -63,8 +67,17 @@
                     rate: rate
                 }, function(response) {
                     if (response.success) {
-                        alert('Rate updated successfully!');
+                        // Show the value that was actually stored, so the field can never
+                        // keep displaying an old rate after a "success" message.
+                        $input.val(response.rate);
+                        alert('Rate updated successfully! Saved rate: ' + response.rate);
+                    } else {
+                        alert(response.message || 'Error updating rate.');
                     }
+                }).fail(function() {
+                    alert('Error updating rate. Please try again.');
+                }).always(function() {
+                    $btn.prop('disabled', false);
                 });
             });
         });

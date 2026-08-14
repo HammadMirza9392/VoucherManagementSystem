@@ -171,7 +171,7 @@
                         <th>Expense Head</th>
                         <th>Details</th>
                         <th>Project</th>
-                        <th class="text-end">Quantity</th>
+                        <th class="text-end">Weight</th>
                         <th class="text-end">Rate</th>
                         <th class="text-end">Amount</th>
                     </tr>
@@ -210,7 +210,7 @@
                                         <a asp-controller="Reports" asp-action="ProjectReport" asp-route-projectId="@e.ProjectId">@e.ProjectName</a>
                                     }
                                 </td>
-                                <td class="text-end">@(e.Quantity.HasValue ? e.Quantity.Value.ToString("N2") : "-")</td>
+                                <td class="text-end">@(e.Weight.HasValue ? e.Weight.Value.ToString("N2") : "-")</td>
                                 <td class="text-end">@(e.Rate.HasValue ? e.Rate.Value.ToString("N2") : "-")</td>
                                 <td class="text-end fw-bold @(e.Source == "Hazri" || e.Source == "Purchase" ? "text-warning" : "text-danger")">
                                     @if (e.Source == "Hazri" || e.Source == "Purchase")

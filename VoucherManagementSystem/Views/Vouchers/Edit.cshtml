@@ -84,6 +84,28 @@
                 </div>
             </div>
 
+            <div class="row" id="advancedPurchasingCustomerSection" style="display:none;">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="AdvancedPurchasingCustomerId" class="form-label">Purchasing Advanced Customer</label>
+                    @Html.DropDownListFor(m => m.AdvancedPurchasingCustomerId, ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select", id = "advancedPurchasingCustomer" })
+                </div>
+                <div class="col-md-8 mb-3">
+                    <label asp-for="AdvancedPurchasingCustomerDetails" class="form-label">Customer Advanced Details</label>
+                    <input asp-for="AdvancedPurchasingCustomerDetails" class="form-control" />
+                </div>
+            </div>
+
+            <div class="row" id="advancedReceivingCustomerSection" style="display:none;">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="AdvancedReceivingCustomerId" class="form-label">Receiving Advanced Customer</label>
+                    @Html.DropDownListFor(m => m.AdvancedReceivingCustomerId, ViewBag.Customers as SelectList, "Select Customer", new { @class = "form-select", id = "advancedReceivingCustomer" })
+                </div>
+                <div class="col-md-8 mb-3">
+                    <label asp-for="AdvancedReceivingCustomerDetails" class="form-label">Customer Advanced Details</label>
+                    <input asp-for="AdvancedReceivingCustomerDetails" class="form-control" />
+                </div>
+            </div>
+
             <div class="row" id="bankSection" style="display:none;">
                 <div class="col-md-3 mb-3" id="bankPaidSection">
                     <label asp-for="BankCustomerPaidId" class="form-label">Bank Customer Paid</label>
@@ -110,7 +132,7 @@
                 </div>
                 <div class="col-md-2 mb-3">
                     <label asp-for="Mon" class="form-label">
-                        Mon <small class="text-muted">(×40=Weight)</small>
+                        Mon <small class="text-muted" id="monMultiplierHint">(×40=Weight)</small>
                     </label>
                     <input asp-for="Mon" class="form-control" id="mon" type="number" step="0.001" />
                 </div>
@@ -124,7 +146,9 @@
                     <label asp-for="Kat" class="form-label">
                         Kat <small class="text-muted">(Deduction)</small>
                     </label>
-                    <input asp-for="Kat" type="number" step="0.001" class="form-control" id="kat" value="0" />
+                    @* No hard-coded value here: an explicit value attribute wins over the one
+                       asp-for generates, which is what made every edit show — and then save — Kat as 0. *@
+                    <input asp-for="Kat" type="number" step="0.001" class="form-control" id="kat" />
                 </div>
                 <div class="col-md-2 mb-3">
                     <label asp-for="Quantity" class="form-label">
@@ -222,7 +246,7 @@
         });
         $(document).ready(function() {
             // Initialize Select2 for customer dropdowns with search functionality
-            $('#purchasingCustomer, #receivingCustomer').select2({
+            $('#purchasingCustomer, #receivingCustomer, #advancedPurchasingCustomer, #advancedReceivingCustomer').select2({
                 theme: 'bootstrap-5',
                 placeholder: 'Select Customer',
                 allowClear: true,
@@ -362,33 +386,49 @@
             var voucherType = '@Model.VoucherType';
             configureFormForVoucherType(voucherType);
 
-            // Handle cash type change
-            $('#cashType').on('change', function() {
-                if ($(this).val() == 'Bank') {
-                    $('#bankSection').show();
-                    // For Purchase voucher, hide Bank Receiver fields
-                    if (voucherType === 'Purchase') {
-                        $('#bankReceiverSection, #bankReceiverDetailsSection').hide();
-                    } else {
-                        $('#bankReceiverSection, #bankReceiverDetailsSection').show();
-                    }
-                } else {
-                    $('#bankSection').hide();
-                }
+            // Mon multiplier is configurable per voucher type (Settings → Mon Multiplier).
+            // The edit form used to assume 40, which recalculated Weight wrongly for any
+            // type with a different multiplier.
+            var currentMonMultiplier = 40;
+            $.get('/MonMultiplier/GetMultiplier', { voucherType: voucherType }, function(data) {
+                currentMonMultiplier = data.multiplier || 40;
+                $('#monMultiplierHint').text('(×' + currentMonMultiplier + '=Weight)');
             });
 
-            // Show bank section on load if CashType is Bank
-            if ('@Model.CashType' === 'Bank') {
-                $('#bankSection').show();
-                if (voucherType === 'Purchase') {
-                    $('#bankReceiverSection, #bankReceiverDetailsSection').hide();
+            // Only the bank field that belongs to this voucher type is shown — the same
+            // pairing the create form uses.
+            function showBankFieldsFor(type) {
+                var paidOk = (type === 'Purchase' || type === 'CashPaid' || type === 'Expense' ||
+                              type === 'AdvancedCashPaid' || type === 'BCR' ||
+                              type === 'ATMCash' || type === 'ATMDailyCash');
+                var receiverOk = (type === 'Sale' || type === 'CashReceived' ||
+                                  type === 'AdvancedCashReceived' || type === 'AdvancedPayment' ||
+                                  type === 'BCR');
+                $('#bankPaidSection, #bankPaidDetailsSection').toggle(paidOk);
+                $('#bankReceiverSection, #bankReceiverDetailsSection').toggle(receiverOk);
+            }
+
+            // Advanced / ATM / BCR vouchers always carry a bank field; every other type shows
+            // it only when Cash Type is Bank.
+            function updateBankSectionVisibility() {
+                var alwaysBank = (voucherType === 'AdvancedCashPaid' || voucherType === 'AdvancedCashReceived' ||
+                                  voucherType === 'BCR' || voucherType === 'ATMCash' || voucherType === 'ATMDailyCash');
+                var show = alwaysBank || $('#cashType').val() === 'Bank';
+                $('#bankSection').toggle(show);
+                if (show) {
+                    showBankFieldsFor(voucherType);
                 }
             }
 
-            // MON calculation: Mon * 40 = Weight, Kat = 0
+            $('#cashType').on('change', updateBankSectionVisibility);
+            updateBankSectionVisibility();
+
+            // MON calculation: Mon × multiplier = Weight, Kat reset to 0.
+            // Runs only when the user actually types in Mon — never on page load, so an
+            // existing voucher's stored Kat / Quantity / Amount are left exactly as saved.
             $('#mon').on('input', function() {
                 var mon = parseFloat($(this).val()) || 0;
-                var weight = mon * 40;
+                var weight = mon * currentMonMultiplier;
                 $('#weight').val(weight.toFixed(3));
                 $('#kat').val(0);
                 calculateQuantity();
@@ -463,10 +503,10 @@
                 }
             });
 
-            // Initialize calculations on load
-            if ($('#mon').val()) {
-                $('#mon').trigger('input');
-            }
+            // NOTE: no recalculation on load. Re-triggering the Mon handler here used to wipe
+            // the saved Kat back to 0 and then rewrite Weight, Quantity and Amount from it, so
+            // simply opening a voucher and saving it changed the figures. The stored values are
+            // now shown as-is and only recalculated when a field is edited.
 
             // Copy customer name to clipboard
             $('#copyPurchasingCustomerName').on('click', function() {
@@ -503,6 +543,7 @@
         function configureFormForVoucherType(type) {
             // Reset all sections
             $('#purchasingCustomerSection, #receivingCustomerSection, #bankSection, #itemSection, #expenseSection').hide();
+            $('#advancedPurchasingCustomerSection, #advancedReceivingCustomerSection').hide();
             $('#rateSection, #stockIncludeSection, #projectSection, #cashTypeSection').show();
             $('.col-md-3.mb-3:has(label[for="GariNo"])').show();
 
@@ -549,6 +590,31 @@
                 case 'BCR':
                     $('#bankSection').show();
                     $('#rateSection, #stockIncludeSection, #cashTypeSection, #projectSection').hide();
+                    $('.col-md-3.mb-3:has(label[for="GariNo"])').hide();
+                    break;
+                case 'AdvancedCashPaid':
+                    $('#advancedPurchasingCustomerSection, #bankSection').show();
+                    $('#bankReceiverSection, #bankReceiverDetailsSection').hide();
+                    $('#rateSection, #stockIncludeSection, #projectSection').hide();
+                    $('.col-md-3.mb-3:has(label[for="GariNo"])').hide();
+                    break;
+                case 'AdvancedCashReceived':
+                    $('#advancedReceivingCustomerSection, #bankSection').show();
+                    $('#bankPaidSection, #bankPaidDetailsSection').hide();
+                    $('#rateSection, #stockIncludeSection, #projectSection').hide();
+                    $('.col-md-3.mb-3:has(label[for="GariNo"])').hide();
+                    break;
+                case 'AdvancedPayment':
+                    $('#receivingCustomerSection, #bankSection').show();
+                    $('#bankPaidSection, #bankPaidDetailsSection').hide();
+                    $('#rateSection, #stockIncludeSection, #projectSection').hide();
+                    $('.col-md-3.mb-3:has(label[for="GariNo"])').hide();
+                    break;
+                case 'ATMCash':
+                case 'ATMDailyCash':
+                    $('#bankSection').show();
+                    $('#bankReceiverSection, #bankReceiverDetailsSection').hide();
+                    $('#rateSection, #stockIncludeSection, #projectSection, #cashTypeSection').hide();
                     $('.col-md-3.mb-3:has(label[for="GariNo"])').hide();
                     break;
             }

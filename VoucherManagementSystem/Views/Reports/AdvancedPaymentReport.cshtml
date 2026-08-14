@@ -181,12 +181,10 @@ else
                             decimal runningBalance = openingBalance;
                             foreach (var v in vouchers)
                             {
-                                bool isReceived = (v.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedCashReceived
-                                                       && v.AdvancedReceivingCustomerId == customer.Id)
-                                                  || (v.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedPayment
-                                                       && v.ReceivingCustomerId == customer.Id);
-                                bool isPaid = v.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedCashPaid
-                                              && v.AdvancedPurchasingCustomerId == customer.Id;
+                                @* Direction comes from the voucher type — the controller has already
+                                   restricted these rows to this customer. *@
+                                bool isPaid = v.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedCashPaid;
+                                bool isReceived = !isPaid;
 
                                 if (isReceived) runningBalance -= v.Amount;
                                 else if (isPaid) runningBalance += v.Amount;

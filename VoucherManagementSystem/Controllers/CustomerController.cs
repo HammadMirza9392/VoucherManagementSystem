@@ -274,7 +274,16 @@ namespace VoucherManagementSystem.Controllers
             try
             {
                 await _customerRepository.AddCustomerItemRateAsync(customerId, itemId, rate);
-                return Json(new { success = true });
+
+                // Read the row back so the response reports what is actually stored, not what
+                // was posted. The page uses this value to refresh the input.
+                var saved = await _customerRepository.GetCustomerItemRateAsync(customerId, itemId);
+                if (saved == null || saved.Rate != rate)
+                {
+                    return Json(new { success = false, message = "Rate was not saved. Please try again." });
+                }
+
+                return Json(new { success = true, rate = saved.Rate });
             }
             catch (Exception ex)
             {

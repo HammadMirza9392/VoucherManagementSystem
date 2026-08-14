@@ -17,6 +17,7 @@
     var bankData = ViewBag.BankData as List<DashboardBankBalance> ?? new List<DashboardBankBalance>();
     var advancedCustomerData = ViewBag.AdvancedCustomerData as List<DashboardAdvancedCustomer> ?? new List<DashboardAdvancedCustomer>();
     var totalAdvancedBalance = (decimal)(ViewBag.TotalAdvancedBalance ?? 0);
+    var inactiveCustomers = ViewBag.InactiveCustomers as List<DashboardInactiveCustomer> ?? new List<DashboardInactiveCustomer>();
     var expenseData = ViewBag.ExpenseData as List<DashboardNameAmount> ?? new List<DashboardNameAmount>();
     var monthlyData = ViewBag.MonthlyData as List<DashboardMonthlyData> ?? new List<DashboardMonthlyData>();
     var voucherTypeData = ViewBag.VoucherTypeData as List<DashboardVoucherType> ?? new List<DashboardVoucherType>();
@@ -337,6 +338,79 @@
     </div>
 </div>
 
+<!-- Inactive Customers: no voucher of any kind in the selected number of days -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header py-1 bg-dark text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <small>
+                    <i class="bi bi-person-dash"></i>
+                    Inactive Customers (<span id="inactiveCount">0</span>)
+                    <span class="text-white-50">— no transaction in the last <span id="inactiveDaysLabel">7</span> days</span>
+                </small>
+                <div class="d-flex align-items-center gap-2">
+                    <small class="text-white-50">Balance:</small>
+                    <small class="fw-bold" id="inactiveTotal">0</small>
+                    <select id="inactiveDaysSelect" class="form-select form-select-sm" style="width: auto;">
+                        <option value="7" selected>7 days</option>
+                        <option value="10">10 days</option>
+                        <option value="15">15 days</option>
+                        <option value="30">30 days</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body p-0 dashboard-scroll-body">
+                <table class="table table-sm table-striped mb-0" style="font-size: 0.8rem;" id="inactiveCustomersTable">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Last Transaction</th>
+                            <th class="text-end">Days</th>
+                            <th class="text-end">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in inactiveCustomers)
+                        {
+                            <tr class="inactive-customer-row" data-days="@c.DaysInactive" data-balance="@c.Balance">
+                                <td class="text-truncate" style="max-width: 220px;">@c.Name</td>
+                                <td>
+                                    @if (c.HasEverTransacted)
+                                    {
+                                        @c.LastTransactionDate.ToPkDate()
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fst-italic">Never</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if (c.HasEverTransacted)
+                                    {
+                                        @c.DaysInactive
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="text-end fw-bold @(c.Balance >= 0 ? "text-success" : "text-danger")">
+                                    @(c.Balance < 0 ? "-" : "")@string.Format("{0:N0}", Math.Abs(c.Balance))
+                                </td>
+                            </tr>
+                        }
+                        <tr id="inactiveEmptyRow" style="display:none;">
+                            <td colspan="4" class="text-center text-muted fst-italic py-2">
+                                No inactive customers for this period
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 @* The Recent Transactions table was removed from the dashboard: it pulled voucher rows
    with all their related records on every page load, which is what drove the database
    egress overage. Today's totals are kept below, and the full list lives on the
@@ -422,6 +496,40 @@
                 cutout: '50%'
             }
         });
+
+        // Inactive Customers — every qualifying customer is already on the page (the server
+        // sends anyone idle for at least 7 days), so switching the window is a pure filter
+        // with no extra request.
+        (function () {
+            var $select = $('#inactiveDaysSelect');
+            if (!$select.length) return;
+
+            function applyInactiveFilter() {
+                var minDays = parseInt($select.val(), 10);
+                var shown = 0;
+                var total = 0;
+
+                $('.inactive-customer-row').each(function () {
+                    var $row = $(this);
+                    var days = parseInt($row.data('days'), 10);
+                    var visible = days >= minDays;
+                    $row.toggle(visible);
+                    if (visible) {
+                        shown++;
+                        total += parseFloat($row.data('balance')) || 0;
+                    }
+                });
+
+                $('#inactiveCount').text(shown);
+                $('#inactiveDaysLabel').text(minDays);
+                $('#inactiveTotal').text(
+                    (total < 0 ? '-' : '') + Math.abs(Math.round(total)).toLocaleString('en-US'));
+                $('#inactiveEmptyRow').toggle(shown === 0);
+            }
+
+            $select.on('change', applyInactiveFilter);
+            applyInactiveFilter();
+        })();
 
         // Monthly Trend Chart
         var monthlyDataJson = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(monthlyData));

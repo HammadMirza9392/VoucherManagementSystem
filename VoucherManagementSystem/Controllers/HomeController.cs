@@ -42,6 +42,9 @@ namespace VoucherManagementSystem.Controllers
             _logger = logger;
         }
 
+        // Shortest window offered by the dashboard's "Inactive Customers" dropdown (7/10/15/30).
+        private const int InactiveCustomerMinDays = 7;
+
         public async Task<IActionResult> Index()
         {
             var today = DateTimeHelper.PkToday;
@@ -339,6 +342,78 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.AdvancedCustomerData = advancedCustomerData.OrderByDescending(x => Math.Abs(x.Balance)).ToList();
             ViewBag.TotalAdvancedBalance = totalAdvancedBalance;
 
+            // 5b. Inactive Customers — customers with no voucher of ANY kind for a while.
+            // The last voucher date per customer is a MAX(...) GROUP BY in the database on each
+            // of the four customer links; only those four small result sets cross the wire.
+            // Revoked and deleted vouchers are excluded by the global query filter, so a revoked
+            // voucher correctly does not count as activity.
+            var lastActivity = new Dictionary<int, DateTime>();
+
+            void MergeLastDates(IEnumerable<(int CustomerId, DateTime Last)> rows)
+            {
+                foreach (var row in rows)
+                {
+                    if (!lastActivity.TryGetValue(row.CustomerId, out var current) || row.Last > current)
+                        lastActivity[row.CustomerId] = row.Last;
+                }
+            }
+
+            MergeLastDates((await vouchers
+                .Where(v => v.PurchasingCustomerId.HasValue)
+                .GroupBy(v => v.PurchasingCustomerId!.Value)
+                .Select(g => new { CustomerId = g.Key, Last = g.Max(v => v.VoucherDate) })
+                .ToListAsync()).Select(x => (x.CustomerId, x.Last)));
+
+            MergeLastDates((await vouchers
+                .Where(v => v.ReceivingCustomerId.HasValue)
+                .GroupBy(v => v.ReceivingCustomerId!.Value)
+                .Select(g => new { CustomerId = g.Key, Last = g.Max(v => v.VoucherDate) })
+                .ToListAsync()).Select(x => (x.CustomerId, x.Last)));
+
+            MergeLastDates((await vouchers
+                .Where(v => v.AdvancedPurchasingCustomerId.HasValue)
+                .GroupBy(v => v.AdvancedPurchasingCustomerId!.Value)
+                .Select(g => new { CustomerId = g.Key, Last = g.Max(v => v.VoucherDate) })
+                .ToListAsync()).Select(x => (x.CustomerId, x.Last)));
+
+            MergeLastDates((await vouchers
+                .Where(v => v.AdvancedReceivingCustomerId.HasValue)
+                .GroupBy(v => v.AdvancedReceivingCustomerId!.Value)
+                .Select(g => new { CustomerId = g.Key, Last = g.Max(v => v.VoucherDate) })
+                .ToListAsync()).Select(x => (x.CustomerId, x.Last)));
+
+            // Balance shown is the customer's single net position: the receivable/payable net
+            // plus their advanced balance. Positive = they owe us, negative = we owe them.
+            var inactiveCustomers = new List<DashboardInactiveCustomer>();
+
+            foreach (var cust in customers)
+            {
+                DateTime? lastDate = lastActivity.TryGetValue(cust.Id, out var d) ? d : null;
+
+                // Never-transacted customers qualify for every window, so they use a days value
+                // larger than any option in the dropdown.
+                int daysInactive = lastDate.HasValue
+                    ? Math.Max(0, (int)(today - lastDate.Value.Date).TotalDays)
+                    : int.MaxValue;
+
+                // 7 days is the shortest window the dashboard offers; anything more recent than
+                // that can never be shown, so it is not sent to the page at all.
+                if (daysInactive < InactiveCustomerMinDays) continue;
+
+                inactiveCustomers.Add(new DashboardInactiveCustomer
+                {
+                    Name = cust.Name,
+                    Balance = netByCustomer.GetValueOrDefault(cust.Id) + advBalances.GetValueOrDefault(cust.Id),
+                    LastTransactionDate = lastDate,
+                    DaysInactive = daysInactive
+                });
+            }
+
+            ViewBag.InactiveCustomers = inactiveCustomers
+                .OrderByDescending(x => Math.Abs(x.Balance))
+                .ThenByDescending(x => x.DaysInactive)
+                .ToList();
+
             // 6. Expense Summary (Last 30 days) - grouped in memory by expense head name
             // Grouped by expense-head id in the database; the id → name mapping (and the
             // "Other" fallback for unknown/missing heads) is applied afterwards in memory,
@@ -525,6 +600,17 @@ namespace VoucherManagementSystem.Controllers
     {
         public string Name { get; set; } = "";
         public decimal Balance { get; set; }
+    }
+
+    // A customer with no voucher activity for at least the dashboard's shortest window.
+    // DaysInactive is int.MaxValue when the customer has never had a voucher.
+    public class DashboardInactiveCustomer
+    {
+        public string Name { get; set; } = "";
+        public decimal Balance { get; set; }
+        public DateTime? LastTransactionDate { get; set; }
+        public int DaysInactive { get; set; }
+        public bool HasEverTransacted => LastTransactionDate.HasValue;
     }
 
 }

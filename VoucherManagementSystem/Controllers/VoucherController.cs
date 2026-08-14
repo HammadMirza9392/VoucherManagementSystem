@@ -404,34 +404,59 @@ namespace VoucherManagementSystem.Controllers
                 else if (voucher.VoucherType == VoucherType.ATMDailyCash)
                     voucher.CashType = CashType.DailyCashBook;
 
-                // Get original voucher for stock/balance reversal
+                // Load the stored row WITH tracking, so the edit can be applied field by field.
+                // The previous code called _dbSet.Update() on the form-bound object, which writes
+                // EVERY column — so anything the Edit form does not post (the advanced-customer
+                // links, the delete/revoke audit trail) was silently blanked out on every edit.
+                // That is what removed Advanced Cash Received vouchers from the advanced reports.
                 var originalVoucher = await _context.Vouchers
-                    .AsNoTracking()
+                    .IgnoreQueryFilters()
+                    .AsTracking()
                     .FirstOrDefaultAsync(v => v.Id == id);
 
-                if (originalVoucher != null)
+                if (originalVoucher == null)
+                {
+                    return NotFound();
+                }
+
+                // A revoked or deleted voucher currently has NO effect on stock or bank balances
+                // (they were reversed when it was revoked/deleted), so an edit must not reverse
+                // them again nor re-apply them. Restoring it re-applies the edited values.
+                var affectsBalances = !originalVoucher.IsRevoked && !originalVoucher.IsDeleted;
+
+                // Snapshot the stored values needed to reverse the original stock/bank effects,
+                // before any of them are overwritten below.
+                var origVoucherType = originalVoucher.VoucherType;
+                var origItemId = originalVoucher.ItemId;
+                var origQuantity = originalVoucher.Quantity;
+                var origStockInclude = originalVoucher.StockInclude;
+                var origBankPaidId = originalVoucher.BankCustomerPaidId;
+                var origBankReceiverId = originalVoucher.BankCustomerReceiverId;
+                var origAmount = originalVoucher.Amount;
+
+                if (affectsBalances)
                 {
                     // Reverse original stock changes - ONLY if StockInclude was true
-                    if (originalVoucher.ItemId.HasValue && originalVoucher.Quantity.HasValue && originalVoucher.StockInclude)
+                    if (origItemId.HasValue && origQuantity.HasValue && origStockInclude)
                     {
-                        if (originalVoucher.VoucherType == VoucherType.Purchase)
+                        if (origVoucherType == VoucherType.Purchase)
                         {
-                            await _itemRepository.UpdateStockAsync(originalVoucher.ItemId.Value, originalVoucher.Quantity.Value, false);
+                            await _itemRepository.UpdateStockAsync(origItemId.Value, origQuantity.Value, false);
                         }
-                        else if (originalVoucher.VoucherType == VoucherType.Sale)
+                        else if (origVoucherType == VoucherType.Sale)
                         {
-                            await _itemRepository.UpdateStockAsync(originalVoucher.ItemId.Value, originalVoucher.Quantity.Value, true);
+                            await _itemRepository.UpdateStockAsync(origItemId.Value, origQuantity.Value, true);
                         }
                     }
 
                     // Reverse original bank changes
-                    if (originalVoucher.BankCustomerPaidId.HasValue)
+                    if (origBankPaidId.HasValue)
                     {
-                        await _bankRepository.UpdateBalanceAsync(originalVoucher.BankCustomerPaidId.Value, originalVoucher.Amount, true);
+                        await _bankRepository.UpdateBalanceAsync(origBankPaidId.Value, origAmount, true);
                     }
-                    if (originalVoucher.BankCustomerReceiverId.HasValue)
+                    if (origBankReceiverId.HasValue)
                     {
-                        await _bankRepository.UpdateBalanceAsync(originalVoucher.BankCustomerReceiverId.Value, originalVoucher.Amount, false);
+                        await _bankRepository.UpdateBalanceAsync(origBankReceiverId.Value, origAmount, false);
                     }
                 }
 
@@ -441,34 +466,42 @@ namespace VoucherManagementSystem.Controllers
                     voucher.Amount = voucher.Quantity.Value * voucher.Rate.Value;
                 }
 
-                // Apply new stock changes - ONLY if StockInclude is true
-                if (voucher.ItemId.HasValue && voucher.Quantity.HasValue && voucher.StockInclude)
+                if (affectsBalances)
                 {
-                    if (voucher.VoucherType == VoucherType.Purchase)
+                    // Apply new stock changes - ONLY if StockInclude is true
+                    if (voucher.ItemId.HasValue && voucher.Quantity.HasValue && voucher.StockInclude)
                     {
-                        await _itemRepository.UpdateStockAsync(voucher.ItemId.Value, voucher.Quantity.Value, true);
+                        if (voucher.VoucherType == VoucherType.Purchase)
+                        {
+                            await _itemRepository.UpdateStockAsync(voucher.ItemId.Value, voucher.Quantity.Value, true);
+                        }
+                        else if (voucher.VoucherType == VoucherType.Sale)
+                        {
+                            await _itemRepository.UpdateStockAsync(voucher.ItemId.Value, voucher.Quantity.Value, false);
+                        }
                     }
-                    else if (voucher.VoucherType == VoucherType.Sale)
+
+                    // Apply new bank changes
+                    if (voucher.BankCustomerPaidId.HasValue)
                     {
-                        await _itemRepository.UpdateStockAsync(voucher.ItemId.Value, voucher.Quantity.Value, false);
+                        await _bankRepository.UpdateBalanceAsync(voucher.BankCustomerPaidId.Value, voucher.Amount, false);
+                    }
+                    if (voucher.BankCustomerReceiverId.HasValue)
+                    {
+                        await _bankRepository.UpdateBalanceAsync(voucher.BankCustomerReceiverId.Value, voucher.Amount, true);
                     }
                 }
 
-                // Apply new bank changes
-                if (voucher.BankCustomerPaidId.HasValue)
-                {
-                    await _bankRepository.UpdateBalanceAsync(voucher.BankCustomerPaidId.Value, voucher.Amount, false);
-                }
-                if (voucher.BankCustomerReceiverId.HasValue)
-                {
-                    await _bankRepository.UpdateBalanceAsync(voucher.BankCustomerReceiverId.Value, voucher.Amount, true);
-                }
+                // Copy ONLY the fields the Edit form posts onto the stored row. Everything else
+                // (IsDeleted / IsRevoked and their audit columns, plus any field this particular
+                // voucher type does not display) keeps its stored value.
+                ApplyEditableFields(originalVoucher, voucher);
 
                 // Set updated by and updated date
-                voucher.UpdatedBy = HttpContext.Session.GetString("Username") ?? "admin";
-                voucher.UpdatedDate = DateTimeHelper.PkNow;
+                originalVoucher.UpdatedBy = HttpContext.Session.GetString("Username") ?? "admin";
+                originalVoucher.UpdatedDate = DateTimeHelper.PkNow;
 
-                await _voucherRepository.UpdateAsync(voucher);
+                await _context.SaveChangesAsync();
                 TempData["Success"] = "Voucher updated successfully!";
 
                 // Check if came from GeneralCreate page
@@ -953,6 +986,47 @@ namespace VoucherManagementSystem.Controllers
             {
                 return Json(new { success = false, message = $"Error deleting vouchers: {ex.Message}" });
             }
+        }
+
+        // Copies the fields the Edit form is allowed to change from the posted voucher onto the
+        // stored one. Anything not listed here — TransactionNumber, CreatedDate/CreatedBy, and
+        // the IsDeleted / IsRevoked audit columns — deliberately keeps its stored value.
+        private static void ApplyEditableFields(Voucher target, Voucher posted)
+        {
+            target.VoucherType = posted.VoucherType;
+            target.CashType = posted.CashType;
+            target.VoucherDate = posted.VoucherDate;
+            target.Status = posted.Status;
+
+            target.ProjectId = posted.ProjectId;
+            target.ItemId = posted.ItemId;
+            target.ExpenseHeadId = posted.ExpenseHeadId;
+
+            target.PurchasingCustomerId = posted.PurchasingCustomerId;
+            target.ReceivingCustomerId = posted.ReceivingCustomerId;
+            target.AdvancedPurchasingCustomerId = posted.AdvancedPurchasingCustomerId;
+            target.AdvancedReceivingCustomerId = posted.AdvancedReceivingCustomerId;
+            target.BankCustomerPaidId = posted.BankCustomerPaidId;
+            target.BankCustomerReceiverId = posted.BankCustomerReceiverId;
+
+            target.PurchasingCustomerDetails = posted.PurchasingCustomerDetails;
+            target.ReceivingCustomerDetails = posted.ReceivingCustomerDetails;
+            target.AdvancedPurchasingCustomerDetails = posted.AdvancedPurchasingCustomerDetails;
+            target.AdvancedReceivingCustomerDetails = posted.AdvancedReceivingCustomerDetails;
+            target.BankCustomerPaidDetails = posted.BankCustomerPaidDetails;
+            target.BankCustomerReceiverDetails = posted.BankCustomerReceiverDetails;
+            target.ExpenseHeadDetails = posted.ExpenseHeadDetails;
+
+            target.Mon = posted.Mon;
+            target.Weight = posted.Weight;
+            target.Kat = posted.Kat;
+            target.Quantity = posted.Quantity;
+            target.Rate = posted.Rate;
+            target.Amount = posted.Amount;
+            target.ExpenseHeadRate = posted.ExpenseHeadRate;
+
+            target.GariNo = posted.GariNo;
+            target.StockInclude = posted.StockInclude;
         }
 
         private async Task PrepareViewBags()

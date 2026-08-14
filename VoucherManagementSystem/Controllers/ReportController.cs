@@ -1197,41 +1197,46 @@ namespace VoucherManagementSystem.Controllers
                 var endDate = toDate ?? DateTimeHelper.PkToday;
                 var startDate = fromDate ?? DateTimeHelper.PkToday.AddDays(-90);
 
-                // All advanced-type vouchers for this customer in range
-                var vouchers = await _context.Vouchers
+                var cid = customerId.Value;
+
+                // An advanced voucher belongs to this customer if ANY of its customer links
+                // points at them. Matching only the advanced columns hid rows whose link sits on
+                // the ordinary purchasing/receiving column, which is how Advanced Cash Received
+                // entries went missing from this report.
+                var advancedForCustomer = _context.Vouchers
+                    .AsNoTracking()
                     .Where(v => (v.VoucherType == VoucherType.AdvancedPayment ||
                                  v.VoucherType == VoucherType.AdvancedCashPaid ||
                                  v.VoucherType == VoucherType.AdvancedCashReceived) &&
-                               (v.AdvancedPurchasingCustomerId == customerId.Value ||
-                                v.AdvancedReceivingCustomerId == customerId.Value ||
-                                v.ReceivingCustomerId == customerId.Value) &&
-                               v.VoucherDate >= startDate &&
-                               v.VoucherDate <= endDate.AddDays(1))
+                               (v.AdvancedPurchasingCustomerId == cid ||
+                                v.AdvancedReceivingCustomerId == cid ||
+                                v.ReceivingCustomerId == cid ||
+                                v.PurchasingCustomerId == cid));
+
+                // All advanced-type vouchers for this customer in range
+                var vouchers = await advancedForCustomer
+                    .Where(v => v.VoucherDate >= startDate &&
+                                v.VoucherDate <= endDate.AddDays(1))
                     .OrderBy(v => v.VoucherDate)
                     .ThenBy(v => v.Id)
                     .ToListAsync();
 
                 // Opening balance: all advanced transactions before startDate
-                var prevVouchers = await _context.Vouchers
-                    .Where(v => (v.VoucherType == VoucherType.AdvancedPayment ||
-                                 v.VoucherType == VoucherType.AdvancedCashPaid ||
-                                 v.VoucherType == VoucherType.AdvancedCashReceived) &&
-                               (v.AdvancedPurchasingCustomerId == customerId.Value ||
-                                v.AdvancedReceivingCustomerId == customerId.Value ||
-                                v.ReceivingCustomerId == customerId.Value) &&
-                               v.VoucherDate < startDate)
+                var prevVouchers = await advancedForCustomer
+                    .Where(v => v.VoucherDate < startDate)
                     .ToListAsync();
 
+                // Direction comes from the voucher type alone — the row is already known to
+                // belong to this customer:
+                //   AdvancedCashReceived / AdvancedPayment = we received → we OWE customer → (-)
+                //   AdvancedCashPaid                       = we paid     → customer OWES us → (+)
                 decimal openingBalance = 0;
                 foreach (var v in prevVouchers)
                 {
-                    // AdvancedCashReceived = we received money → we OWE customer → negative (-)
-                    // AdvancedCashPaid = we paid to customer → customer OWES us → positive (+)
-                    if ((v.VoucherType == VoucherType.AdvancedCashReceived && v.AdvancedReceivingCustomerId == customerId.Value) ||
-                        (v.VoucherType == VoucherType.AdvancedPayment && v.ReceivingCustomerId == customerId.Value))
-                        openingBalance -= v.Amount;
-                    else if (v.VoucherType == VoucherType.AdvancedCashPaid && v.AdvancedPurchasingCustomerId == customerId.Value)
+                    if (v.VoucherType == VoucherType.AdvancedCashPaid)
                         openingBalance += v.Amount;
+                    else
+                        openingBalance -= v.Amount;
                 }
 
                 decimal totalReceived = 0;
@@ -1239,11 +1244,10 @@ namespace VoucherManagementSystem.Controllers
 
                 foreach (var v in vouchers)
                 {
-                    if ((v.VoucherType == VoucherType.AdvancedCashReceived && v.AdvancedReceivingCustomerId == customerId.Value) ||
-                        (v.VoucherType == VoucherType.AdvancedPayment && v.ReceivingCustomerId == customerId.Value))
-                        totalReceived += v.Amount;
-                    else if (v.VoucherType == VoucherType.AdvancedCashPaid && v.AdvancedPurchasingCustomerId == customerId.Value)
+                    if (v.VoucherType == VoucherType.AdvancedCashPaid)
                         totalPaid += v.Amount;
+                    else
+                        totalReceived += v.Amount;
                 }
 
                 // Received = negative (we owe), Paid = positive (customer owes us)
@@ -1710,6 +1714,7 @@ namespace VoucherManagementSystem.Controllers
                         Details           = v.ExpenseHeadDetails ?? "",
                         ProjectName       = v.Project?.Name,
                         ProjectId         = v.ProjectId,
+                        Weight            = v.Weight,
                         Quantity          = null,
                         Rate              = null,
                         Amount            = v.Amount,
@@ -1732,6 +1737,7 @@ namespace VoucherManagementSystem.Controllers
                         Details           = v.ExpenseHeadDetails ?? "",
                         ProjectName       = v.Project?.Name,
                         ProjectId         = v.ProjectId,
+                        Weight            = v.Weight,
                         Quantity          = v.Quantity,
                         Rate              = v.ExpenseHeadRate,
                         Amount            = amount,
@@ -1880,6 +1886,7 @@ namespace VoucherManagementSystem.Controllers
                         Details           = v.ExpenseHeadDetails ?? "",
                         ProjectName       = v.Project?.Name,
                         ProjectId         = v.ProjectId,
+                        Weight            = v.Weight,
                         Quantity          = v.Quantity,
                         Rate              = v.ExpenseHeadRate,
                         Amount            = amount,
@@ -2905,6 +2912,7 @@ public class ExpenseReportRow
     public string Details { get; set; }
     public string ProjectName { get; set; }
     public int? ProjectId { get; set; }
+    public decimal? Weight { get; set; }
     public decimal? Quantity { get; set; }
     public decimal? Rate { get; set; }
     public decimal Amount { get; set; }
