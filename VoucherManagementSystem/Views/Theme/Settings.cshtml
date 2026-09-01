@@ -130,12 +130,31 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-paint-bucket me-2"></i>Custom Color Configuration</h5>
+                    <h5 class="mb-0"><i class="bi bi-paint-bucket me-2"></i>Site Branding &amp; Color Configuration</h5>
                 </div>
                 <div class="card-body">
                     <form id="themeForm">
                         @Html.AntiForgeryToken()
                         <input type="hidden" id="ThemeMode" name="ThemeMode" value="@Model.ThemeMode" />
+
+                        <!-- Site Branding -->
+                        <h6 class="text-primary mb-3"><i class="bi bi-type me-2"></i>Site Branding</h6>
+                        <div class="row mb-4">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label" for="SiteName">Site Name</label>
+                                <input type="text" class="form-control" id="SiteName" name="SiteName"
+                                       maxlength="100" value="@Model.SiteName" placeholder="e.g. AL-Hafiz Voucher System" />
+                                <div class="form-text text-muted">
+                                    Shown in the navbar, the browser tab, the login page, the dashboard and the footer.
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label" for="SiteShortName">Short Name (mobile)</label>
+                                <input type="text" class="form-control" id="SiteShortName" name="SiteShortName"
+                                       maxlength="50" value="@Model.SiteShortName" placeholder="e.g. AL-Hafiz" />
+                                <div class="form-text text-muted">Optional. Leave empty to use the full name.</div>
+                            </div>
+                        </div>
 
                         <!-- Primary Colors -->
                         <h6 class="text-primary mb-3"><i class="bi bi-star-fill me-2"></i>Primary Colors</h6>

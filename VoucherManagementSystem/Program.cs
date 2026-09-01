@@ -3,6 +3,7 @@ using VoucherManagementSystem.Data;
 using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Repositories;
 using VoucherManagementSystem.Filters;
+using VoucherManagementSystem.Services;
 
 // Tell Npgsql to treat all DateTime as UTC globally — avoids errors across the whole app
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -59,6 +60,10 @@ builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 
 // Register PageLockFilter with DbContext dependency
 builder.Services.AddScoped<PageLockFilter>();
+
+// Site branding (site name shown across the frontend), cached in memory
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<ISiteSettingsService, SiteSettingsService>();
 
 // Add Session support for authentication
 builder.Services.AddDistributedMemoryCache();

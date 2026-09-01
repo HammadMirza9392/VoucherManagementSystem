@@ -6,6 +6,17 @@ namespace VoucherManagementSystem.Models
     {
         public int Id { get; set; }
 
+        // Site branding — the name shown in the navbar, page titles, login page and footer.
+        [Required]
+        [MaxLength(100)]
+        [Display(Name = "Site Name")]
+        public string SiteName { get; set; } = "AL-Hafiz Voucher System";
+
+        // Optional shorter name used where space is tight (mobile navbar). Falls back to SiteName.
+        [MaxLength(50)]
+        [Display(Name = "Short Name")]
+        public string? SiteShortName { get; set; } = "AL-Hafiz";
+
         [Required]
         [MaxLength(20)]
         public string ThemeMode { get; set; } = "Light"; // Light, Dark, SemiDark

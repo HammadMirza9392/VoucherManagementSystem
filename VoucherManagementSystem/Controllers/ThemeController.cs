@@ -2,16 +2,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VoucherManagementSystem.Data;
 using VoucherManagementSystem.Models;
+using VoucherManagementSystem.Services;
 
 namespace VoucherManagementSystem.Controllers
 {
     public class ThemeController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ISiteSettingsService _siteSettings;
 
-        public ThemeController(ApplicationDbContext context)
+        public ThemeController(ApplicationDbContext context, ISiteSettingsService siteSettings)
         {
             _context = context;
+            _siteSettings = siteSettings;
         }
 
         // GET: Theme/Settings
@@ -74,6 +77,12 @@ namespace VoucherManagementSystem.Controllers
                 if (existingTheme != null)
                 {
                     // Update existing theme
+                    existingTheme.SiteName = string.IsNullOrWhiteSpace(model.SiteName)
+                        ? SiteSettingsService.DefaultSiteName
+                        : model.SiteName.Trim();
+                    existingTheme.SiteShortName = string.IsNullOrWhiteSpace(model.SiteShortName)
+                        ? null
+                        : model.SiteShortName.Trim();
                     existingTheme.ThemeMode = model.ThemeMode;
                     existingTheme.PrimaryColor = model.PrimaryColor;
                     existingTheme.SecondaryColor = model.SecondaryColor;
@@ -95,6 +104,8 @@ namespace VoucherManagementSystem.Controllers
                 else
                 {
                     // Create new theme
+                    if (string.IsNullOrWhiteSpace(model.SiteName))
+                        model.SiteName = SiteSettingsService.DefaultSiteName;
                     model.IsActive = true;
                     model.LastUpdated = DateTimeHelper.PkNow;
                     model.UpdatedBy = HttpContext.Session.GetString("Username");
@@ -102,6 +113,7 @@ namespace VoucherManagementSystem.Controllers
                 }
 
                 await _context.SaveChangesAsync();
+                _siteSettings.Invalidate();
                 TempData["Success"] = "Theme settings saved successfully!";
                 return Json(new { success = true, message = "Theme settings saved successfully!" });
             }
