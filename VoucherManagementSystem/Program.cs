@@ -37,10 +37,49 @@ if (builder.Environment.IsDevelopment())
     mvcBuilder.AddRazorRuntimeCompilation();
 }
 
+// ---------------------------------------------------------------------------
+// Database connection
+//
+// appsettings.json ships with a DUMMY connection string on purpose, so the real
+// database credentials never live in the repository. Each deployment supplies its
+// own value, and the first source that has one wins:
+//
+//   1. Environment variable  ConnectionStrings__DefaultConnection   (Render, Docker, IIS)
+//   2. Environment variable  DATABASE_URL                           (postgres://user:pass@host:port/db)
+//   3. appsettings.Development.json                                 (local machine only, git-ignored)
+//   4. appsettings.json                                             (dummy placeholder)
+//
+// On Render: Settings > Environment > add ConnectionStrings__DefaultConnection.
+// ---------------------------------------------------------------------------
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Render's own Postgres injects DATABASE_URL in URL form, which Npgsql cannot read
+// directly, so translate it into a normal key/value connection string.
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+if (!string.IsNullOrWhiteSpace(databaseUrl) && databaseUrl.StartsWith("postgres", StringComparison.OrdinalIgnoreCase))
+{
+    var uri = new Uri(databaseUrl);
+    var credentials = uri.UserInfo.Split(':', 2);
+    connectionString =
+        $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};" +
+        $"Database={uri.AbsolutePath.TrimStart('/')};" +
+        $"Username={Uri.UnescapeDataString(credentials[0])};" +
+        $"Password={Uri.UnescapeDataString(credentials.Length > 1 ? credentials[1] : string.Empty)};" +
+        "SSL Mode=Require;Trust Server Certificate=true";
+}
+
+if (string.IsNullOrWhiteSpace(connectionString) || connectionString.Contains("CHANGE_ME"))
+{
+    throw new InvalidOperationException(
+        "No database connection string configured. appsettings.json only holds a placeholder. " +
+        "Set the environment variable ConnectionStrings__DefaultConnection (or DATABASE_URL) for this " +
+        "deployment, or put a real value in appsettings.Development.json when running locally.");
+}
+
 // Configure Entity Framework with performance optimizations
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
+    options.UseNpgsql(connectionString,
         npgsqlOptions =>
         {
             npgsqlOptions.CommandTimeout(30);
