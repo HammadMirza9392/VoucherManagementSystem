@@ -888,11 +888,22 @@ namespace VoucherManagementSystem.Controllers
                 var endDate = toDate ?? DateTimeHelper.PkToday;
                 var startDate = fromDate ?? DateTimeHelper.PkToday.AddDays(-30);
 
-                // Get all cash transactions
-                var vouchers = await _voucherRepository.GetVouchersByDateRangeAsync(startDate, endDate.AddDays(1));
-
-                // Filter only cash transactions where CashType = Cash (exclude bank and other cash types)
-                var cashVouchers = vouchers.Where(v => v.CashType == CashType.Cash).ToList();
+                // Only cash transactions (CashType = Cash) — bank and other cash types are excluded
+                // in the database so just this report's rows come back.
+                var cashVouchers = await _context.Vouchers
+                    .AsNoTracking()
+                    .AsSplitQuery()
+                    .Include(v => v.PurchasingCustomer)
+                    .Include(v => v.ReceivingCustomer)
+                    .Include(v => v.AdvancedPurchasingCustomer)
+                    .Include(v => v.AdvancedReceivingCustomer)
+                    .Include(v => v.Item)
+                    .Include(v => v.Project)
+                    .Include(v => v.ExpenseHead)
+                    .Include(v => v.BankCustomerPaid)
+                    .Where(v => v.CashType == CashType.Cash &&
+                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1))
+                    .ToListAsync();
 
                 // Calculate cash in and out
                 decimal cashIn = 0;
@@ -905,13 +916,15 @@ namespace VoucherManagementSystem.Controllers
                     {
                         case VoucherType.Sale:
                         case VoucherType.CashReceived:
-                        case VoucherType.ATMCash:   // ATM withdrawal → cash in
+                        case VoucherType.ATMCash:                 // ATM withdrawal → cash in
+                        case VoucherType.AdvancedCashReceived:    // advance received from customer → cash in
                             cashIn += voucher.Amount;
                             break;
                         case VoucherType.Purchase:
                         case VoucherType.Expense:
                         case VoucherType.CashPaid:
                         case VoucherType.Hazri:
+                        case VoucherType.AdvancedCashPaid:        // advance paid to customer → cash out
                             cashOut += voucher.Amount;
                             break;
                     }
@@ -1009,22 +1022,25 @@ namespace VoucherManagementSystem.Controllers
         private async Task<decimal> GetOpeningCashBalanceAsync(DateTime date)
         {
             // Netted in the database.
-            //   In:  Sale, CashReceived, ATMCash (withdrawal → cash in)
-            //   Out: Purchase, Expense, CashPaid, Hazri
+            //   In:  Sale, CashReceived, ATMCash (withdrawal → cash in), AdvancedCashReceived
+            //   Out: Purchase, Expense, CashPaid, Hazri, AdvancedCashPaid
             return await _context.Vouchers
                 .AsNoTracking()
                 .Where(v => v.VoucherDate < date && v.CashType == CashType.Cash &&
                             (v.VoucherType == VoucherType.Sale ||
                              v.VoucherType == VoucherType.CashReceived ||
                              v.VoucherType == VoucherType.ATMCash ||
+                             v.VoucherType == VoucherType.AdvancedCashReceived ||
                              v.VoucherType == VoucherType.Purchase ||
                              v.VoucherType == VoucherType.Expense ||
                              v.VoucherType == VoucherType.CashPaid ||
-                             v.VoucherType == VoucherType.Hazri))
+                             v.VoucherType == VoucherType.Hazri ||
+                             v.VoucherType == VoucherType.AdvancedCashPaid))
                 .SumAsync(v => (decimal?)(
                     v.VoucherType == VoucherType.Sale ||
                     v.VoucherType == VoucherType.CashReceived ||
-                    v.VoucherType == VoucherType.ATMCash
+                    v.VoucherType == VoucherType.ATMCash ||
+                    v.VoucherType == VoucherType.AdvancedCashReceived
                         ? v.Amount
                         : -v.Amount)) ?? 0m;
         }

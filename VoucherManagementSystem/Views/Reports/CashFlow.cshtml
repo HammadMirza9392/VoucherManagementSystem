@@ -129,12 +129,14 @@
                             {
                                 bool isCashIn = (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Sale ||
                                 voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.CashReceived ||
-                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.ATMCash) &&
+                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.ATMCash ||
+                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedCashReceived) &&
                                 voucher.CashType == VoucherManagementSystem.Models.CashType.Cash;
                                 bool isCashOut = (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Purchase ||
                                 voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Expense ||
                                 voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.CashPaid ||
-                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Hazri) &&
+                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.Hazri ||
+                                voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedCashPaid) &&
                                 voucher.CashType == VoucherManagementSystem.Models.CashType.Cash;
 
                                 if (isCashIn)
@@ -169,6 +171,22 @@
                                                 <br /><small class="text-muted">@voucher.BankCustomerPaidDetails</small>
                                             }
                                         }
+                                        else if (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedCashReceived)
+                                        {
+                                            <strong>Advanced Cash Received</strong>
+                                            @if (!string.IsNullOrEmpty(voucher.AdvancedReceivingCustomerDetails))
+                                            {
+                                                <br /><small class="text-muted">@voucher.AdvancedReceivingCustomerDetails</small>
+                                            }
+                                        }
+                                        else if (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedCashPaid)
+                                        {
+                                            <strong>Advanced Cash Paid</strong>
+                                            @if (!string.IsNullOrEmpty(voucher.AdvancedPurchasingCustomerDetails))
+                                            {
+                                                <br /><small class="text-muted">@voucher.AdvancedPurchasingCustomerDetails</small>
+                                            }
+                                        }
                                         else
                                         {
                                             @(voucher.Item?.Name ??
@@ -184,6 +202,11 @@
                                         else if (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.ATMCash)
                                         {
                                             @(voucher.BankCustomerPaid?.Name ?? "-")
+                                        }
+                                        else if (voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedCashReceived ||
+                                                 voucher.VoucherType == VoucherManagementSystem.Models.VoucherType.AdvancedCashPaid)
+                                        {
+                                            @(voucher.AdvancedReceivingCustomer?.Name ?? voucher.AdvancedPurchasingCustomer?.Name ?? "-")
                                         }
                                         else
                                         {
