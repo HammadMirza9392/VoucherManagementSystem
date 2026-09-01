@@ -1,4 +1,4 @@
-@* Views/Reports/Index.cshtml *@
+﻿@* Views/Reports/Index.cshtml *@
 @{
     ViewData["Title"] = "Reports";
     var globalFromDate = ViewBag.GlobalFromDate != null ? ((DateTime)ViewBag.GlobalFromDate).ToString("yyyy-MM-dd") : DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd");
@@ -333,12 +333,14 @@
     </div>
 </div>
 
-<!-- Database Backup Card -->
+@* Database Backup Card: temporarily disabled together with the backup actions
+   in ReportController (see the "#if false" block there). Un-comment both to restore. *@
+@*
 <div class="row g-3 mb-4">
     <div class="col-12">
         <div class="card bg-gradient">
             <div class="card-header bg-danger text-white">
-                <h5><i class="bi bi-cloud-download"></i> Database Backup & Export</h5>
+                <h5><i class="bi bi-cloud-download"></i> Database Backup and Export</h5>
             </div>
             <div class="card-body text-center">
                 <p class="text-muted mb-3">Access all database backup and export options</p>
@@ -350,6 +352,7 @@
         </div>
     </div>
 </div>
+*@
 
 <div class="row">
     <div class="col-md-12">

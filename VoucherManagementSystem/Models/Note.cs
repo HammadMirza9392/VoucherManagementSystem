@@ -3,7 +3,7 @@ using VoucherManagementSystem.Helpers;
 
 namespace VoucherManagementSystem.Models
 {
-    // Note Book entry — a free-form note (title + description) written by any logged-in user.
+    // Note Book entry: a free-form note (title + description) written by any logged-in user.
     // Notes are shared: everyone sees every note, but only the author or an Admin can edit or delete one.
     public class Note
     {

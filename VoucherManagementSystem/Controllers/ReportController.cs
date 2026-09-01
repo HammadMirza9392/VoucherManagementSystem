@@ -3358,6 +3358,17 @@ namespace VoucherManagementSystem.Controllers
             }
         }
 
+        // =========================================================================
+        // DATABASE BACKUP & EXPORT: TEMPORARILY DISABLED
+        // Turned off on request. Nobody, Admin included, can reach these pages.
+        // The actions below are excluded from the build, so /Reports/DatabaseBackup,
+        // /Reports/ExportAllData and /Reports/ExportTable have no route at all and
+        // return 404. Every export read whole tables (Vouchers included), which was
+        // the single largest source of Supabase egress.
+        // To re-enable: change "#if false" to "#if true" (or delete both directives)
+        // and un-comment the Backup card in Views/Reports/Index.cshtml.
+        // =========================================================================
+#if false
         // GET: Reports/DatabaseBackup - Show backup page with all export options
     public IActionResult DatabaseBackup()
     {
@@ -3681,6 +3692,7 @@ namespace VoucherManagementSystem.Controllers
                 return $"'{value.ToString()?.Replace("'", "''")}'";
         }
     }
+#endif
 }
 
 // Helper class for stock movement

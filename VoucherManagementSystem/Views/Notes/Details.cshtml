@@ -1,56 +1,175 @@
-@model VoucherManagementSystem.Models.Note
+﻿@model VoucherManagementSystem.Models.Note
 @{
     ViewData["Title"] = Model.Title;
     var canModify = ViewBag.CanModify != null && (bool)ViewBag.CanModify;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
-    <h4><i class="bi bi-journal-text"></i> Note Details</h4>
-    <a asp-action="Index" class="btn btn-secondary btn-sm">
-        <i class="bi bi-arrow-left"></i> Back to Note Book
-    </a>
-</div>
+@section Styles {
+    <style>
+        .nb-read-wrap {
+            max-width: 900px;
+            margin: 0 auto;
+            padding-top: 1.75rem;
+        }
 
-<div class="card shadow-sm" style="max-width: 900px;">
-    <div class="card-header @(Model.IsPinned ? "bg-warning-subtle" : "bg-dark text-white")">
-        <h5 class="mb-0 text-break">
+        .nb-read-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
+            margin-bottom: 1rem;
+        }
+
+        .nb-read-card {
+            background: var(--card-background);
+            color: var(--text-color);
+            border: 1px solid rgba(128, 128, 128, .18);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .nb-read-card.is-pinned {
+            border-color: color-mix(in srgb, var(--warning-color) 55%, transparent);
+        }
+
+        .nb-read-card.is-pinned::before {
+            content: "";
+            display: block;
+            height: 4px;
+            background: var(--warning-color);
+        }
+
+        .nb-read-title {
+            display: flex;
+            align-items: flex-start;
+            gap: .5rem;
+            margin: 0;
+            padding: 1.15rem 1.25rem .5rem;
+            font-size: clamp(1.15rem, 1rem + 1vw, 1.6rem);
+            font-weight: 600;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
+
+        .nb-read-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .3rem 1rem;
+            padding: 0 1.25rem 1rem;
+            font-size: .78rem;
+            opacity: .7;
+        }
+
+        .nb-read-body {
+            padding: 1.25rem;
+            border-top: 1px solid rgba(128, 128, 128, .15);
+            font-size: .95rem;
+            line-height: 1.75;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .nb-read-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            margin-top: 1.25rem;
+        }
+
+        .nb-read-actions .btn {
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        @@media (max-width: 575.98px) {
+            .nb-read-wrap {
+                padding-top: 1rem;
+            }
+
+            .nb-read-title {
+                padding: 1rem 1rem .5rem;
+            }
+
+            .nb-read-meta {
+                padding: 0 1rem 1rem;
+            }
+
+            .nb-read-body {
+                padding: 1rem;
+            }
+
+            .nb-read-head .btn-back {
+                width: 100%;
+            }
+
+            .nb-read-actions .btn {
+                flex: 1 1 100%;
+                justify-content: center;
+            }
+        }
+
+        @@media print {
+            .nb-read-card {
+                border: none;
+            }
+
+            .nb-read-body {
+                font-size: 12pt;
+            }
+        }
+    </style>
+}
+
+<div class="nb-read-wrap">
+    <div class="nb-read-head d-print-none">
+        <h4 class="mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-journal-text" style="color: var(--primary-color);"></i> Note
+        </h4>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm btn-back">
+            <i class="bi bi-arrow-left"></i> Back to Note Book
+        </a>
+    </div>
+
+    <article class="nb-read-card @(Model.IsPinned ? "is-pinned" : "")">
+        <h1 class="nb-read-title">
             @if (Model.IsPinned)
             {
-                <i class="bi bi-pin-angle-fill text-warning me-1"></i>
+                <i class="bi bi-pin-angle-fill text-warning" title="Pinned"></i>
             }
             @Model.Title
-        </h5>
-    </div>
-    <div class="card-body">
-        <p class="text-break mb-0" style="white-space: pre-wrap;">@Model.Description</p>
-    </div>
-    <div class="card-footer bg-white small text-muted">
-        <i class="bi bi-person"></i> Written by <strong>@(Model.CreatedBy ?? "-")</strong>
-        on @Model.CreatedDate.ToPkDateTime()
-        @if (Model.LastUpdated.HasValue)
-        {
-            <br />
-            <i class="bi bi-pencil"></i>
-            <span>Last edited by <strong>@(Model.UpdatedBy ?? "-")</strong> on @Model.LastUpdated.ToPkDateTime()</span>
-        }
-    </div>
-</div>
+        </h1>
 
-<div class="mt-3 d-print-none">
-    @if (canModify)
-    {
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
-            <i class="bi bi-pencil"></i> Edit
-        </a>
-        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
-              onsubmit="return confirm('Delete this note?')">
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-danger">
-                <i class="bi bi-trash"></i> Delete
-            </button>
-        </form>
-    }
-    <button onclick="window.print()" class="btn btn-primary">
-        <i class="bi bi-printer"></i> Print
-    </button>
+        <div class="nb-read-meta">
+            <span><i class="bi bi-person"></i> @(Model.CreatedBy ?? "Unknown")</span>
+            <span><i class="bi bi-calendar3"></i> @Model.CreatedDate.ToPkDateTime()</span>
+            @if (Model.LastUpdated.HasValue)
+            {
+                <span><i class="bi bi-pencil"></i> edited by @(Model.UpdatedBy ?? "Unknown") on @Model.LastUpdated.ToPkDateTime()</span>
+            }
+        </div>
+
+        <div class="nb-read-body">@Model.Description</div>
+    </article>
+
+    <div class="nb-read-actions d-print-none">
+        @if (canModify)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline-flex"
+                  onsubmit="return confirm('Delete this note? This cannot be undone.')">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+            </form>
+        }
+        <button onclick="window.print()" class="btn btn-outline-secondary">
+            <i class="bi bi-printer"></i> Print
+        </button>
+    </div>
 </div>

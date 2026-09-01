@@ -5,7 +5,7 @@ using VoucherManagementSystem.Models;
 
 namespace VoucherManagementSystem.Controllers
 {
-    // Note Book — shared notes (title + description) that any logged-in user can add.
+    // Note Book: shared notes (title + description) that any logged-in user can add.
     // Everyone can read every note; only the author or an Admin can edit or delete one.
     public class NotesController : Controller
     {
