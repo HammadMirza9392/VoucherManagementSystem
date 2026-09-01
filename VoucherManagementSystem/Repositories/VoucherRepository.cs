@@ -2,12 +2,13 @@
 using VoucherManagementSystem.Data;
 using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Models;
+using VoucherManagementSystem.Services.Caching;
 
 namespace VoucherManagementSystem.Repositories
 {
     public class VoucherRepository : GenericRepository<Voucher>, IVoucherRepository
     {
-        public VoucherRepository(ApplicationDbContext context) : base(context)
+        public VoucherRepository(ApplicationDbContext context, IMasterDataCache cache) : base(context, cache)
         {
         }
 
@@ -220,6 +221,7 @@ namespace VoucherManagementSystem.Repositories
                     item.CurrentStock -= quantity;
 
                 await _context.SaveChangesAsync();
+                _cache.InvalidateItems();
             }
         }
     }

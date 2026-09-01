@@ -2,21 +2,25 @@
 using VoucherManagementSystem.Data;
 using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Models;
+using VoucherManagementSystem.Services.Caching;
 
 namespace VoucherManagementSystem.Repositories
 {
     public class ProjectRepository : GenericRepository<Project>, IProjectRepository
     {
-        public ProjectRepository(ApplicationDbContext context) : base(context)
+        public ProjectRepository(ApplicationDbContext context, IMasterDataCache cache)
+            : base(context, cache)
         {
         }
 
         public async Task<IEnumerable<Project>> GetActiveProjectsAsync()
         {
-            return await _context.Projects
-                .Where(p => p.IsActive)
-                .OrderBy(p => p.Name)
-                .ToListAsync();
+            return await _cache.GetOrCreateAsync(CacheKeys.ActiveProjects, async () =>
+                await _context.Projects
+                    .AsNoTracking()
+                    .Where(p => p.IsActive)
+                    .OrderBy(p => p.Name)
+                    .ToListAsync());
         }
 
         public async Task<decimal> GetProjectRevenueAsync(int projectId, DateTime fromDate, DateTime toDate)
