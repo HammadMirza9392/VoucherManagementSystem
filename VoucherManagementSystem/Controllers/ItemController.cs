@@ -157,8 +157,8 @@ namespace VoucherManagementSystem.Controllers
                 {
                     item.UpdatedBy = HttpContext.Session.GetString("Username") ?? "admin";
                     item.UpdatedDate = DateTimeHelper.PkNow;
-                    _context.Update(item);
-                    await _context.SaveChangesAsync();
+                    // Through the repository so cached item lists and rates are invalidated
+                    await _itemRepository.UpdateAsync(item);
                     TempData["Success"] = "Item updated successfully!";
                     return RedirectToAction(nameof(Index));
                 }
