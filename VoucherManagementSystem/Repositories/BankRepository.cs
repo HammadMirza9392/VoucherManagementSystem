@@ -48,11 +48,9 @@ namespace VoucherManagementSystem.Repositories
 
         public async Task<IEnumerable<Voucher>> GetBankTransactionsAsync(int bankId, DateTime fromDate, DateTime toDate)
         {
-            return await _context.Vouchers
-                .Include(v => v.BankCustomerPaid)
-                .Include(v => v.BankCustomerReceiver)
-                .Include(v => v.PurchasingCustomer)
-                .Include(v => v.ReceivingCustomer)
+            // Projected instead of Include()d: the Bank Statement view renders ~15 values, while a
+            // Voucher row carries 52 columns and each Include pulled a whole related row as well.
+            return (await _context.Vouchers
                 .Where(v => (v.BankCustomerPaidId == bankId || v.BankCustomerReceiverId == bankId) &&
                            v.VoucherDate >= fromDate && v.VoucherDate <= toDate &&
                            // Bank-affecting cash vouchers (CashType = Bank)
@@ -66,7 +64,48 @@ namespace VoucherManagementSystem.Repositories
                             || v.VoucherType == VoucherType.ATMCash
                             || v.VoucherType == VoucherType.ATMDailyCash))
                 .OrderByDescending(v => v.VoucherDate)
-                .ToListAsync();
+                .Select(v => new
+                {
+                    v.Id,
+                    v.TransactionNumber,
+                    v.VoucherDate,
+                    v.VoucherType,
+                    v.Amount,
+                    v.BankCustomerPaidId,
+                    v.BankCustomerReceiverId,
+                    v.BankCustomerPaidDetails,
+                    v.BankCustomerReceiverDetails,
+                    v.PurchasingCustomerId,
+                    v.ReceivingCustomerId,
+                    v.PurchasingCustomerDetails,
+                    v.ReceivingCustomerDetails,
+                    BankCustomerPaidName = v.BankCustomerPaid!.Name,
+                    BankCustomerReceiverName = v.BankCustomerReceiver!.Name,
+                    PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                    ReceivingCustomerName = v.ReceivingCustomer!.Name
+                })
+                .ToListAsync())
+                .Select(r => new Voucher
+                {
+                    Id = r.Id,
+                    TransactionNumber = r.TransactionNumber,
+                    VoucherDate = r.VoucherDate,
+                    VoucherType = r.VoucherType,
+                    Amount = r.Amount,
+                    BankCustomerPaidId = r.BankCustomerPaidId,
+                    BankCustomerReceiverId = r.BankCustomerReceiverId,
+                    BankCustomerPaidDetails = r.BankCustomerPaidDetails,
+                    BankCustomerReceiverDetails = r.BankCustomerReceiverDetails,
+                    PurchasingCustomerId = r.PurchasingCustomerId,
+                    ReceivingCustomerId = r.ReceivingCustomerId,
+                    PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                    ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                    BankCustomerPaid = r.BankCustomerPaidName == null ? null : new Bank { Name = r.BankCustomerPaidName },
+                    BankCustomerReceiver = r.BankCustomerReceiverName == null ? null : new Bank { Name = r.BankCustomerReceiverName },
+                    PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                    ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                })
+                .ToList();
         }
     }
 }

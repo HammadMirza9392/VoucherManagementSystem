@@ -86,13 +86,8 @@ namespace VoucherManagementSystem.Controllers
                 var startDate = fromDate ?? new DateTime(DateTimeHelper.PkToday.Year, 1, 1);
                 var endDate = toDate ?? DateTimeHelper.PkToday;
 
-                // Get base vouchers with all related data
+                // Related names come from the projection below instead of Include()
                 var query = _context.Vouchers
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
-                    .Include(v => v.Item)
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
                     .Where(v => v.ProjectId == projectId &&
                                v.VoucherDate >= startDate &&
                                v.VoucherDate <= endDate)
@@ -123,7 +118,49 @@ namespace VoucherManagementSystem.Controllers
                     query = query.Where(v => v.GariNo != null && v.GariNo.Contains(gariNo));
                 }
 
-                var vouchers = await query.OrderBy(v => v.VoucherDate).ToListAsync();
+                // Only the columns the Transaction Details table renders and the totals use
+                var vouchers = (await query
+                    .OrderBy(v => v.VoucherDate)
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.ExpenseHeadRate,
+                        v.GariNo,
+                        v.ExpenseHeadDetails,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        ItemName = v.Item!.Name,
+                        ExpenseHeadName = v.ExpenseHead!.Name,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        ExpenseHeadRate = r.ExpenseHeadRate,
+                        GariNo = r.GariNo,
+                        ExpenseHeadDetails = r.ExpenseHeadDetails,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        ExpenseHead = r.ExpenseHeadName == null ? null : new ExpenseHead { Name = r.ExpenseHeadName },
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                    })
+                    .ToList();
 
                 // Get item-wise purchase and sale summary with filters
                 var itemSummary = await GetProjectItemSummaryAsync(projectId, startDate, endDate, voucherType, itemId, customerId);
@@ -284,14 +321,10 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.VoucherTypes = new SelectList(voucherTypes, "Value", "Text", voucherType);
                 ViewBag.SelectedVoucherType = voucherType;
 
-                // Build query for cash vouchers
+                // Build query for cash vouchers.
+                // No Include(): the related tables are read through a projection below, which
+                // fetches only the handful of columns this report actually shows.
                 var query = _context.Vouchers
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
-                    .Include(v => v.Item)
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
-                    .Include(v => v.BankCustomerPaid)
                     .Where(v => v.CashType == CashType.Cash &&
                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
@@ -309,7 +342,47 @@ namespace VoucherManagementSystem.Controllers
                     query = query.Where(v => v.VoucherType == vType);
                 }
 
-                var vouchers = await query.OrderBy(v => v.VoucherDate).ThenBy(v => v.Id).ToListAsync();
+                // Only the columns the view renders leave the database — a Voucher row has 52
+                // columns (several 500-char text fields) and each Include pulled whole related
+                // rows; this report displays a dozen values.
+                var vouchers = (await query
+                    .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.ExpenseHeadDetails,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name,
+                        ItemName = v.Item!.Name,
+                        ExpenseHeadName = v.ExpenseHead!.Name,
+                        ProjectName = v.Project!.Name,
+                        BankCustomerPaidName = v.BankCustomerPaid!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        ExpenseHeadDetails = r.ExpenseHeadDetails,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName },
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        ExpenseHead = r.ExpenseHeadName == null ? null : new ExpenseHead { Name = r.ExpenseHeadName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName },
+                        BankCustomerPaid = r.BankCustomerPaidName == null ? null : new Bank { Name = r.BankCustomerPaidName }
+                    })
+                    .ToList();
 
                 // Get cash adjustments for the period (handle if table doesn't exist yet)
                 var cashAdjustments = new List<CashAdjustment>();
@@ -433,66 +506,306 @@ namespace VoucherManagementSystem.Controllers
 
                 // Find all vouchers created on this date (exclude deleted, but include revoked
                 // so the audit log still shows them; bypass global filter then re-filter).
-                var createdVouchers = await _context.Vouchers
+                var createdVouchers = (await _context.Vouchers
                     .IgnoreQueryFilters()
                     .Where(v => !v.IsDeleted)
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
-                    .Include(v => v.Item)
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
                     .Where(v => v.CreatedDate >= logDate && v.CreatedDate < nextDay)
                     .OrderBy(v => v.CreatedDate)
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        v.CreatedBy,
+                        v.CreatedDate,
+                        v.UpdatedBy,
+                        v.UpdatedDate,
+                        v.DeletedBy,
+                        v.DeletedDate,
+                        v.RevokedBy,
+                        v.RevokedDate,
+                        v.RestoredBy,
+                        v.RestoredDate,
+                        ItemName = v.Item!.Name,
+                        ProjectName = v.Project!.Name,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        CreatedBy = r.CreatedBy,
+                        CreatedDate = r.CreatedDate,
+                        UpdatedBy = r.UpdatedBy,
+                        UpdatedDate = r.UpdatedDate,
+                        DeletedBy = r.DeletedBy,
+                        DeletedDate = r.DeletedDate,
+                        RevokedBy = r.RevokedBy,
+                        RevokedDate = r.RevokedDate,
+                        RestoredBy = r.RestoredBy,
+                        RestoredDate = r.RestoredDate,
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName },
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                    })
+                    .ToList();
 
                 // Find all vouchers updated on this date
-                var updatedVouchers = await _context.Vouchers
+                var updatedVouchers = (await _context.Vouchers
                     .IgnoreQueryFilters()
                     .Where(v => !v.IsDeleted)
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
-                    .Include(v => v.Item)
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
                     .Where(v => v.UpdatedDate.HasValue && v.UpdatedDate >= logDate && v.UpdatedDate < nextDay)
                     .OrderBy(v => v.UpdatedDate)
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        v.CreatedBy,
+                        v.CreatedDate,
+                        v.UpdatedBy,
+                        v.UpdatedDate,
+                        v.DeletedBy,
+                        v.DeletedDate,
+                        v.RevokedBy,
+                        v.RevokedDate,
+                        v.RestoredBy,
+                        v.RestoredDate,
+                        ItemName = v.Item!.Name,
+                        ProjectName = v.Project!.Name,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        CreatedBy = r.CreatedBy,
+                        CreatedDate = r.CreatedDate,
+                        UpdatedBy = r.UpdatedBy,
+                        UpdatedDate = r.UpdatedDate,
+                        DeletedBy = r.DeletedBy,
+                        DeletedDate = r.DeletedDate,
+                        RevokedBy = r.RevokedBy,
+                        RevokedDate = r.RevokedDate,
+                        RestoredBy = r.RestoredBy,
+                        RestoredDate = r.RestoredDate,
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName },
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                    })
+                    .ToList();
 
                 // Find all vouchers deleted on this date — must bypass the global query filter
-                var deletedVouchers = await _context.Vouchers
+                var deletedVouchers = (await _context.Vouchers
                     .IgnoreQueryFilters()
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
-                    .Include(v => v.Item)
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
                     .Where(v => v.IsDeleted && v.DeletedDate >= logDate && v.DeletedDate < nextDay)
                     .OrderBy(v => v.DeletedDate)
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        v.CreatedBy,
+                        v.CreatedDate,
+                        v.UpdatedBy,
+                        v.UpdatedDate,
+                        v.DeletedBy,
+                        v.DeletedDate,
+                        v.RevokedBy,
+                        v.RevokedDate,
+                        v.RestoredBy,
+                        v.RestoredDate,
+                        ItemName = v.Item!.Name,
+                        ProjectName = v.Project!.Name,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        CreatedBy = r.CreatedBy,
+                        CreatedDate = r.CreatedDate,
+                        UpdatedBy = r.UpdatedBy,
+                        UpdatedDate = r.UpdatedDate,
+                        DeletedBy = r.DeletedBy,
+                        DeletedDate = r.DeletedDate,
+                        RevokedBy = r.RevokedBy,
+                        RevokedDate = r.RevokedDate,
+                        RestoredBy = r.RestoredBy,
+                        RestoredDate = r.RestoredDate,
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName },
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                    })
+                    .ToList();
 
                 // Find all vouchers revoked on this date — bypass the global filter
-                var revokedVouchers = await _context.Vouchers
+                var revokedVouchers = (await _context.Vouchers
                     .IgnoreQueryFilters()
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
-                    .Include(v => v.Item)
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
                     .Where(v => v.RevokedDate.HasValue && v.RevokedDate >= logDate && v.RevokedDate < nextDay)
                     .OrderBy(v => v.RevokedDate)
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        v.CreatedBy,
+                        v.CreatedDate,
+                        v.UpdatedBy,
+                        v.UpdatedDate,
+                        v.DeletedBy,
+                        v.DeletedDate,
+                        v.RevokedBy,
+                        v.RevokedDate,
+                        v.RestoredBy,
+                        v.RestoredDate,
+                        ItemName = v.Item!.Name,
+                        ProjectName = v.Project!.Name,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        CreatedBy = r.CreatedBy,
+                        CreatedDate = r.CreatedDate,
+                        UpdatedBy = r.UpdatedBy,
+                        UpdatedDate = r.UpdatedDate,
+                        DeletedBy = r.DeletedBy,
+                        DeletedDate = r.DeletedDate,
+                        RevokedBy = r.RevokedBy,
+                        RevokedDate = r.RevokedDate,
+                        RestoredBy = r.RestoredBy,
+                        RestoredDate = r.RestoredDate,
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName },
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                    })
+                    .ToList();
 
                 // Find all vouchers restored on this date — bypass the global filter
-                var restoredVouchers = await _context.Vouchers
+                var restoredVouchers = (await _context.Vouchers
                     .IgnoreQueryFilters()
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
-                    .Include(v => v.Item)
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
                     .Where(v => v.RestoredDate.HasValue && v.RestoredDate >= logDate && v.RestoredDate < nextDay)
                     .OrderBy(v => v.RestoredDate)
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        v.CreatedBy,
+                        v.CreatedDate,
+                        v.UpdatedBy,
+                        v.UpdatedDate,
+                        v.DeletedBy,
+                        v.DeletedDate,
+                        v.RevokedBy,
+                        v.RevokedDate,
+                        v.RestoredBy,
+                        v.RestoredDate,
+                        ItemName = v.Item!.Name,
+                        ProjectName = v.Project!.Name,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        CreatedBy = r.CreatedBy,
+                        CreatedDate = r.CreatedDate,
+                        UpdatedBy = r.UpdatedBy,
+                        UpdatedDate = r.UpdatedDate,
+                        DeletedBy = r.DeletedBy,
+                        DeletedDate = r.DeletedDate,
+                        RevokedBy = r.RevokedBy,
+                        RevokedDate = r.RevokedDate,
+                        RestoredBy = r.RestoredBy,
+                        RestoredDate = r.RestoredDate,
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName },
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                    })
+                    .ToList();
 
                 ViewBag.ActivityDate = logDate;
                 ViewBag.CreatedVouchers = createdVouchers;
@@ -889,21 +1202,62 @@ namespace VoucherManagementSystem.Controllers
                 var startDate = fromDate ?? DateTimeHelper.PkToday.AddDays(-30);
 
                 // Only cash transactions (CashType = Cash) — bank and other cash types are excluded
-                // in the database so just this report's rows come back.
-                var cashVouchers = await _context.Vouchers
+                // in the database so just this report's rows come back. Related names are read
+                // through the projection rather than Include(), so only displayed columns travel.
+                var cashVouchers = (await _context.Vouchers
                     .AsNoTracking()
-                    .AsSplitQuery()
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
-                    .Include(v => v.AdvancedPurchasingCustomer)
-                    .Include(v => v.AdvancedReceivingCustomer)
-                    .Include(v => v.Item)
-                    .Include(v => v.Project)
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.BankCustomerPaid)
                     .Where(v => v.CashType == CashType.Cash &&
                                 v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1))
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.CashType,
+                        v.Amount,
+                        v.ProjectId,
+                        v.ExpenseHeadDetails,
+                        v.BankCustomerPaidDetails,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        v.AdvancedPurchasingCustomerDetails,
+                        v.AdvancedReceivingCustomerDetails,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name,
+                        AdvancedPurchasingCustomerName = v.AdvancedPurchasingCustomer!.Name,
+                        AdvancedReceivingCustomerName = v.AdvancedReceivingCustomer!.Name,
+                        ItemName = v.Item!.Name,
+                        ProjectName = v.Project!.Name,
+                        ExpenseHeadName = v.ExpenseHead!.Name,
+                        BankCustomerPaidName = v.BankCustomerPaid!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        CashType = r.CashType,
+                        Amount = r.Amount,
+                        ProjectId = r.ProjectId,
+                        ExpenseHeadDetails = r.ExpenseHeadDetails,
+                        BankCustomerPaidDetails = r.BankCustomerPaidDetails,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        AdvancedPurchasingCustomerDetails = r.AdvancedPurchasingCustomerDetails,
+                        AdvancedReceivingCustomerDetails = r.AdvancedReceivingCustomerDetails,
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName },
+                        AdvancedPurchasingCustomer = r.AdvancedPurchasingCustomerName == null ? null : new Customer { Name = r.AdvancedPurchasingCustomerName },
+                        AdvancedReceivingCustomer = r.AdvancedReceivingCustomerName == null ? null : new Customer { Name = r.AdvancedReceivingCustomerName },
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName },
+                        ExpenseHead = r.ExpenseHeadName == null ? null : new ExpenseHead { Name = r.ExpenseHeadName },
+                        BankCustomerPaid = r.BankCustomerPaidName == null ? null : new Bank { Name = r.BankCustomerPaidName }
+                    })
+                    .ToList();
 
                 // Calculate cash in and out
                 decimal cashIn = 0;
@@ -1091,14 +1445,10 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.VoucherTypes = new SelectList(voucherTypes, "Value", "Text", voucherType);
                 ViewBag.SelectedVoucherType = voucherType;
 
-                // Build query for Daily Cash Book vouchers
+                // Build query for Daily Cash Book vouchers.
+                // Related tables are read through the projection below instead of Include(),
+                // so only the columns this report shows travel over the wire.
                 var query = _context.Vouchers
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
-                    .Include(v => v.Item)
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
-                    .Include(v => v.BankCustomerPaid)
                     .Where(v => v.CashType == CashType.DailyCashBook &&
                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
@@ -1116,7 +1466,46 @@ namespace VoucherManagementSystem.Controllers
                     query = query.Where(v => v.VoucherType == vType);
                 }
 
-                var vouchers = await query.OrderBy(v => v.VoucherDate).ThenBy(v => v.Id).ToListAsync();
+                var vouchers = (await query
+                    .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.ExpenseHeadDetails,
+                        v.BankCustomerPaidDetails,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name,
+                        ItemName = v.Item!.Name,
+                        ExpenseHeadName = v.ExpenseHead!.Name,
+                        ProjectName = v.Project!.Name,
+                        BankCustomerPaidName = v.BankCustomerPaid!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        ExpenseHeadDetails = r.ExpenseHeadDetails,
+                        BankCustomerPaidDetails = r.BankCustomerPaidDetails,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName },
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        ExpenseHead = r.ExpenseHeadName == null ? null : new ExpenseHead { Name = r.ExpenseHeadName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName },
+                        BankCustomerPaid = r.BankCustomerPaidName == null ? null : new Bank { Name = r.BankCustomerPaidName }
+                    })
+                    .ToList();
 
                 // Calculate opening balance (all Daily Cash Book transactions before start date)
                 var openingBalance = await GetDailyCashBookOpeningBalanceAsync(startDate, customerId);
@@ -1230,16 +1619,42 @@ namespace VoucherManagementSystem.Controllers
                                 v.PurchasingCustomerId == cid));
 
                 // All advanced-type vouchers for this customer in range
-                var vouchers = await advancedForCustomer
+                // Only the columns the table renders and the totals below use
+                var vouchers = (await advancedForCustomer
                     .Where(v => v.VoucherDate >= startDate &&
                                 v.VoucherDate <= endDate.AddDays(1))
                     .OrderBy(v => v.VoucherDate)
                     .ThenBy(v => v.Id)
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.ReceivingCustomerDetails,
+                        v.AdvancedPurchasingCustomerDetails,
+                        v.AdvancedReceivingCustomerDetails
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        AdvancedPurchasingCustomerDetails = r.AdvancedPurchasingCustomerDetails,
+                        AdvancedReceivingCustomerDetails = r.AdvancedReceivingCustomerDetails
+                    })
+                    .ToList();
 
                 // Opening balance: all advanced transactions before startDate
+                // Opening balance only reads type and amount
                 var prevVouchers = await advancedForCustomer
                     .Where(v => v.VoucherDate < startDate)
+                    .Select(v => new { v.VoucherType, v.Amount })
                     .ToListAsync();
 
                 // Direction comes from the voucher type alone — the row is already known to
@@ -1316,13 +1731,9 @@ namespace VoucherManagementSystem.Controllers
                 // Get opening balance (transactions before start date)
                 var openingBalance = await GetCustomerOpeningBalanceAsync(customerId.Value, startDate);
 
-                // Get all transactions for the customer in the date range
+                // Get all transactions for the customer in the date range.
+                // Related names come from the projection below instead of Include().
                 var query = _context.Vouchers
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
-                    .Include(v => v.Item)
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
                     .Where(v => (v.PurchasingCustomerId == customerId.Value ||
                                 v.ReceivingCustomerId == customerId.Value) &&
                                v.VoucherDate >= startDate &&
@@ -1341,10 +1752,52 @@ namespace VoucherManagementSystem.Controllers
                     query = query.Where(v => v.VoucherType == vType);
                 }
 
-                var vouchers = await query
+                // Only the columns the ledger table renders and the DR/CR maths below needs.
+                var vouchers = (await query
                     .OrderBy(v => v.VoucherDate)
                     .ThenBy(v => v.Id)
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.Weight,
+                        v.Kat,
+                        v.GariNo,
+                        v.PurchasingCustomerId,
+                        v.ReceivingCustomerId,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name,
+                        ItemName = v.Item!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        Weight = r.Weight,
+                        Kat = r.Kat,
+                        GariNo = r.GariNo,
+                        PurchasingCustomerId = r.PurchasingCustomerId,
+                        ReceivingCustomerId = r.ReceivingCustomerId,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName },
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName }
+                    })
+                    .ToList();
 
                 // Calculate totals
                 // NEW DR/CR Logic: Purchase=CR, Sale=DR
@@ -1388,6 +1841,8 @@ namespace VoucherManagementSystem.Controllers
                 }
 
                 // Calculate advanced payment net balance for this customer (all time, not date-filtered)
+                // Only the four fields the loop below reads — this query is not date-limited,
+                // so it grows forever; fetching whole rows was the most expensive part of the page.
                 var allAdvancedVouchers = await _context.Vouchers
                     .Where(v => (v.VoucherType == VoucherType.AdvancedPayment ||
                                  v.VoucherType == VoucherType.AdvancedCashPaid ||
@@ -1395,6 +1850,14 @@ namespace VoucherManagementSystem.Controllers
                                (v.AdvancedPurchasingCustomerId == customerId.Value ||
                                 v.AdvancedReceivingCustomerId == customerId.Value ||
                                 v.ReceivingCustomerId == customerId.Value))
+                    .Select(v => new
+                    {
+                        v.VoucherType,
+                        v.Amount,
+                        v.AdvancedPurchasingCustomerId,
+                        v.AdvancedReceivingCustomerId,
+                        v.ReceivingCustomerId
+                    })
                     .ToListAsync();
 
                 decimal advancedBalance = 0;
@@ -1491,7 +1954,27 @@ namespace VoucherManagementSystem.Controllers
                                         v.ReceivingCustomerId == customerId.Value);
             }
 
-            var vouchers = await query.ToListAsync();
+            var vouchers = (await query
+                .Select(v => new
+                {
+                    v.ItemId,
+                    v.VoucherType,
+                    v.Quantity,
+                    v.Amount,
+                    ItemId2 = v.Item!.Id,
+                    ItemName = v.Item!.Name,
+                    ItemUnit = v.Item!.Unit
+                })
+                .ToListAsync())
+                .Select(r => new Voucher
+                {
+                    ItemId = r.ItemId,
+                    VoucherType = r.VoucherType,
+                    Quantity = r.Quantity,
+                    Amount = r.Amount,
+                    Item = new Item { Id = r.ItemId2, Name = r.ItemName, Unit = r.ItemUnit }
+                })
+                .ToList();
 
             var itemGroups = vouchers.GroupBy(v => v.ItemId.Value);
             var summary = new List<ProjectItemSummary>();
@@ -1600,6 +2083,7 @@ namespace VoucherManagementSystem.Controllers
                             // ATM withdrawals — money out of bank into cash / daily cash
                             || v.VoucherType == VoucherType.ATMCash
                             || v.VoucherType == VoucherType.ATMDailyCash))
+                .Select(v => new { v.Amount, v.BankCustomerPaidId, v.BankCustomerReceiverId })
                 .ToListAsync();
 
             foreach (var voucher in previousVouchers)
@@ -1624,11 +2108,8 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.Items = new SelectList(await _itemRepository.GetActiveItemsAsync(), "Id", "Name", itemId);
                 ViewBag.Customers = new SelectList(await _customerRepository.GetActiveCustomersAsync(), "Id", "Name", customerId);
 
+                // Related names come from the projection below, not Include().
                 var query = _context.Vouchers
-                    .Include(v => v.Item)
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
-                    .Include(v => v.Project)
                     .Where(v => (v.VoucherType == VoucherType.Purchase || v.VoucherType == VoucherType.Sale) &&
                                v.ItemId != null &&
                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
@@ -1643,7 +2124,46 @@ namespace VoucherManagementSystem.Controllers
                     query = query.Where(v => v.PurchasingCustomerId == customerId || v.ReceivingCustomerId == customerId);
                 }
 
-                var transactions = await query.OrderByDescending(v => v.VoucherDate).ThenByDescending(v => v.Id).ToListAsync();
+                var transactions = (await query
+                    .OrderByDescending(v => v.VoucherDate).ThenByDescending(v => v.Id)
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.PurchasingCustomerId,
+                        v.ReceivingCustomerId,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        ItemName = v.Item!.Name,
+                        ProjectName = v.Project!.Name,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        PurchasingCustomerId = r.PurchasingCustomerId,
+                        ReceivingCustomerId = r.ReceivingCustomerId,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName },
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                    })
+                    .ToList();
 
                 ViewBag.FromDate = startDate;
                 ViewBag.ToDate = endDate;
@@ -1681,9 +2201,8 @@ namespace VoucherManagementSystem.Controllers
                 var expHazVouchers = new List<Voucher>();
                 if (!hasTypeFilter || selectedType == VoucherType.Expense || selectedType == VoucherType.Hazri)
                 {
+                    // Related names via projection instead of Include()
                     var expHazQuery = _context.Vouchers
-                        .Include(v => v.ExpenseHead)
-                        .Include(v => v.Project)
                         .Where(v => (v.VoucherType == VoucherType.Expense || v.VoucherType == VoucherType.Hazri) &&
                                    v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
@@ -1694,7 +2213,40 @@ namespace VoucherManagementSystem.Controllers
                     if (projectId.HasValue)
                         expHazQuery = expHazQuery.Where(v => v.ProjectId == projectId);
 
-                    expHazVouchers = await expHazQuery.ToListAsync();
+                    // Only the columns that build ExpenseReportRow below
+                    expHazVouchers = (await expHazQuery
+                        .Select(v => new
+                        {
+                            v.Id,
+                            v.VoucherDate,
+                            v.TransactionNumber,
+                            v.VoucherType,
+                            v.Amount,
+                            v.Weight,
+                            v.Quantity,
+                            v.ExpenseHeadRate,
+                            v.ExpenseHeadDetails,
+                            v.ProjectId,
+                            ExpenseHeadName = v.ExpenseHead!.Name,
+                            ProjectName = v.Project!.Name
+                        })
+                        .ToListAsync())
+                        .Select(r => new Voucher
+                        {
+                            Id = r.Id,
+                            VoucherDate = r.VoucherDate,
+                            TransactionNumber = r.TransactionNumber,
+                            VoucherType = r.VoucherType,
+                            Amount = r.Amount,
+                            Weight = r.Weight,
+                            Quantity = r.Quantity,
+                            ExpenseHeadRate = r.ExpenseHeadRate,
+                            ExpenseHeadDetails = r.ExpenseHeadDetails,
+                            ProjectId = r.ProjectId,
+                            ExpenseHead = r.ExpenseHeadName == null ? null : new ExpenseHead { Name = r.ExpenseHeadName },
+                            Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName }
+                        })
+                        .ToList();
                 }
 
                 // 2. Purchase vouchers with an expense head (skipped if the filter is Expense/Hazri)
@@ -1702,8 +2254,6 @@ namespace VoucherManagementSystem.Controllers
                 if (!hasTypeFilter || selectedType == VoucherType.Purchase)
                 {
                     var purchaseQuery = _context.Vouchers
-                        .Include(v => v.ExpenseHead)
-                        .Include(v => v.Project)
                         .Where(v => v.VoucherType == VoucherType.Purchase &&
                                    v.ExpenseHeadId != null &&
                                    v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
@@ -1713,7 +2263,39 @@ namespace VoucherManagementSystem.Controllers
                     if (projectId.HasValue)
                         purchaseQuery = purchaseQuery.Where(v => v.ProjectId == projectId);
 
-                    purchaseVouchers = await purchaseQuery.ToListAsync();
+                    purchaseVouchers = (await purchaseQuery
+                        .Select(v => new
+                        {
+                            v.Id,
+                            v.VoucherDate,
+                            v.TransactionNumber,
+                            v.VoucherType,
+                            v.Amount,
+                            v.Weight,
+                            v.Quantity,
+                            v.ExpenseHeadRate,
+                            v.ExpenseHeadDetails,
+                            v.ProjectId,
+                            ExpenseHeadName = v.ExpenseHead!.Name,
+                            ProjectName = v.Project!.Name
+                        })
+                        .ToListAsync())
+                        .Select(r => new Voucher
+                        {
+                            Id = r.Id,
+                            VoucherDate = r.VoucherDate,
+                            TransactionNumber = r.TransactionNumber,
+                            VoucherType = r.VoucherType,
+                            Amount = r.Amount,
+                            Weight = r.Weight,
+                            Quantity = r.Quantity,
+                            ExpenseHeadRate = r.ExpenseHeadRate,
+                            ExpenseHeadDetails = r.ExpenseHeadDetails,
+                            ProjectId = r.ProjectId,
+                            ExpenseHead = r.ExpenseHeadName == null ? null : new ExpenseHead { Name = r.ExpenseHeadName },
+                            Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName }
+                        })
+                        .ToList();
                 }
 
                 // 3. Build unified rows
@@ -1780,7 +2362,9 @@ namespace VoucherManagementSystem.Controllers
                 if (projectId.HasValue)
                     openingBalanceQuery = openingBalanceQuery.Where(v => v.ProjectId == projectId);
 
-                var openingVouchers = await openingBalanceQuery.ToListAsync();
+                var openingVouchers = await openingBalanceQuery
+                    .Select(v => new { v.VoucherType, v.Amount, v.ExpenseHeadRate, v.Weight })
+                    .ToListAsync();
                 var openingBalance = openingVouchers.Sum(v =>
                     v.VoucherType == VoucherType.Purchase
                         ? -((v.ExpenseHeadRate ?? 0) * (v.Weight ?? 0))
@@ -1841,8 +2425,6 @@ namespace VoucherManagementSystem.Controllers
 
                 // 1. Dedicated Expense vouchers
                 var expenseQuery = _context.Vouchers
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
                     .Where(v => v.VoucherType == VoucherType.Expense &&
                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
@@ -1851,12 +2433,43 @@ namespace VoucherManagementSystem.Controllers
                 if (projectId.HasValue)
                     expenseQuery = expenseQuery.Where(v => v.ProjectId == projectId);
 
-                var expenseVouchers = await expenseQuery.ToListAsync();
+                // Only the columns that feed ExpenseReportRow below
+                var expenseVouchers = (await expenseQuery
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.VoucherDate,
+                        v.TransactionNumber,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Weight,
+                        v.Quantity,
+                        v.ExpenseHeadRate,
+                        v.ExpenseHeadDetails,
+                        v.ProjectId,
+                        ExpenseHeadName = v.ExpenseHead!.Name,
+                        ProjectName = v.Project!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        VoucherDate = r.VoucherDate,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Weight = r.Weight,
+                        Quantity = r.Quantity,
+                        ExpenseHeadRate = r.ExpenseHeadRate,
+                        ExpenseHeadDetails = r.ExpenseHeadDetails,
+                        ProjectId = r.ProjectId,
+                        ExpenseHead = r.ExpenseHeadName == null ? null : new ExpenseHead { Name = r.ExpenseHeadName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName }
+                    })
+                    .ToList();
 
                 // 2. Purchase vouchers that have an Expense Head filled
                 var purchaseQuery = _context.Vouchers
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
                     .Where(v => v.VoucherType == VoucherType.Purchase &&
                                v.ExpenseHeadId != null &&
                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
@@ -1866,7 +2479,39 @@ namespace VoucherManagementSystem.Controllers
                 if (projectId.HasValue)
                     purchaseQuery = purchaseQuery.Where(v => v.ProjectId == projectId);
 
-                var purchaseVouchers = await purchaseQuery.ToListAsync();
+                var purchaseVouchers = (await purchaseQuery
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.VoucherDate,
+                        v.TransactionNumber,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Weight,
+                        v.Quantity,
+                        v.ExpenseHeadRate,
+                        v.ExpenseHeadDetails,
+                        v.ProjectId,
+                        ExpenseHeadName = v.ExpenseHead!.Name,
+                        ProjectName = v.Project!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        VoucherDate = r.VoucherDate,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Weight = r.Weight,
+                        Quantity = r.Quantity,
+                        ExpenseHeadRate = r.ExpenseHeadRate,
+                        ExpenseHeadDetails = r.ExpenseHeadDetails,
+                        ProjectId = r.ProjectId,
+                        ExpenseHead = r.ExpenseHeadName == null ? null : new ExpenseHead { Name = r.ExpenseHeadName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName }
+                    })
+                    .ToList();
 
                 // 3. Build unified rows
                 var rows = new List<ExpenseReportRow>();
@@ -1949,9 +2594,6 @@ namespace VoucherManagementSystem.Controllers
                 ViewBag.Projects = new SelectList(await _projectRepository.GetActiveProjectsAsync(), "Id", "Name", projectId);
 
                 var query = _context.Vouchers
-                    .Include(v => v.ExpenseHead)
-                    .Include(v => v.Project)
-                    .Include(v => v.PurchasingCustomer)
                     .Where(v => v.VoucherType == VoucherType.Hazri &&
                                v.VoucherDate >= startDate && v.VoucherDate <= endDate.AddDays(1));
 
@@ -1965,7 +2607,33 @@ namespace VoucherManagementSystem.Controllers
                     query = query.Where(v => v.ProjectId == projectId);
                 }
 
-                var hazriRecords = await query.OrderByDescending(v => v.VoucherDate).ThenByDescending(v => v.Id).ToListAsync();
+                // Only the columns the Hazri table and its summary use
+                var hazriRecords = (await query
+                    .OrderByDescending(v => v.VoucherDate).ThenByDescending(v => v.Id)
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.Amount,
+                        v.ExpenseHeadDetails,
+                        v.ProjectId,
+                        ExpenseHeadName = v.ExpenseHead!.Name,
+                        ProjectName = v.Project!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        Amount = r.Amount,
+                        ExpenseHeadDetails = r.ExpenseHeadDetails,
+                        ProjectId = r.ProjectId,
+                        ExpenseHead = r.ExpenseHeadName == null ? null : new ExpenseHead { Name = r.ExpenseHeadName },
+                        Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName }
+                    })
+                    .ToList();
 
                 // Group by expense head for summary
                 var hazriSummary = hazriRecords
@@ -2316,11 +2984,7 @@ namespace VoucherManagementSystem.Controllers
                 //  - CashReceived vouchers (customer is ReceivingCustomer) — shown as positive, added to the bill side
                 //  - CCR vouchers where customer is the ReceivingCustomer (money received from another customer) —
                 //    treated like CashReceived and added to the bill side
-                var purchaseVouchers = await _context.Vouchers
-                    .Include(v => v.Item)
-                    .Include(v => v.Project)
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
+                var purchaseVouchers = (await _context.Vouchers
                     .Where(v =>
                         ((v.PurchasingCustomerId == customerId.Value && v.VoucherType == VoucherType.Purchase) ||
                          (v.ReceivingCustomerId == customerId.Value && v.VoucherType == VoucherType.CashReceived) ||
@@ -2328,21 +2992,105 @@ namespace VoucherManagementSystem.Controllers
                         v.VoucherDate >= startDate &&
                         v.VoucherDate <= endDate.AddDays(1))
                     .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.Weight,
+                        v.Kat,
+                        v.Mon,
+                        v.GariNo,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        v.BankCustomerPaidDetails,
+                        v.BankCustomerReceiverDetails,
+                        ItemName = v.Item!.Name,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        Weight = r.Weight,
+                        Kat = r.Kat,
+                        Mon = r.Mon,
+                        GariNo = r.GariNo,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        BankCustomerPaidDetails = r.BankCustomerPaidDetails,
+                        BankCustomerReceiverDetails = r.BankCustomerReceiverDetails,
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                    })
+                    .ToList();
 
                 // Payment table (رقم ادائیگی): money we PAID to this customer:
                 //  - CashPaid (CPD) where customer is the PurchasingCustomer
                 //  - CCR where customer is the PurchasingCustomer (money paid to another customer)
-                var paymentVouchers = await _context.Vouchers
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
+                var paymentVouchers = (await _context.Vouchers
                     .Where(v =>
                         v.PurchasingCustomerId == customerId.Value &&
                         (v.VoucherType == VoucherType.CashPaid || v.VoucherType == VoucherType.CCR) &&
                         v.VoucherDate >= startDate &&
                         v.VoucherDate <= endDate.AddDays(1))
                     .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.Weight,
+                        v.Kat,
+                        v.Mon,
+                        v.GariNo,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        v.BankCustomerPaidDetails,
+                        v.BankCustomerReceiverDetails,
+                        ItemName = v.Item!.Name,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        Weight = r.Weight,
+                        Kat = r.Kat,
+                        Mon = r.Mon,
+                        GariNo = r.GariNo,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        BankCustomerPaidDetails = r.BankCustomerPaidDetails,
+                        BankCustomerReceiverDetails = r.BankCustomerReceiverDetails,
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                    })
+                    .ToList();
 
                 // Totals
                 decimal totalBillWeight = purchaseVouchers.Sum(v => v.Weight ?? 0);
@@ -2362,6 +3110,14 @@ namespace VoucherManagementSystem.Controllers
                                (v.AdvancedPurchasingCustomerId == customerId.Value ||
                                 v.AdvancedReceivingCustomerId == customerId.Value ||
                                 v.ReceivingCustomerId == customerId.Value))
+                    .Select(v => new
+                    {
+                        v.VoucherType,
+                        v.Amount,
+                        v.AdvancedPurchasingCustomerId,
+                        v.AdvancedReceivingCustomerId,
+                        v.ReceivingCustomerId
+                    })
                     .ToListAsync();
 
                 decimal advancedBalance = 0;
@@ -2431,33 +3187,113 @@ namespace VoucherManagementSystem.Controllers
                 //  - Sale vouchers (customer is ReceivingCustomer) — items the customer bought from us
                 //  - CCR vouchers where customer is the PurchasingCustomer (opposite of the regular
                 //    Khata report: here CCR-as-purchasing goes in the TOP table)
-                var saleVouchers = await _context.Vouchers
-                    .Include(v => v.Item)
-                    .Include(v => v.Project)
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
+                var saleVouchers = (await _context.Vouchers
                     .Where(v =>
                         ((v.ReceivingCustomerId == customerId.Value && v.VoucherType == VoucherType.Sale) ||
                          (v.PurchasingCustomerId == customerId.Value && v.VoucherType == VoucherType.CCR)) &&
                         v.VoucherDate >= startDate &&
                         v.VoucherDate <= endDate.AddDays(1))
                     .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.Weight,
+                        v.Kat,
+                        v.Mon,
+                        v.GariNo,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        v.BankCustomerPaidDetails,
+                        v.BankCustomerReceiverDetails,
+                        ItemName = v.Item!.Name,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        Weight = r.Weight,
+                        Kat = r.Kat,
+                        Mon = r.Mon,
+                        GariNo = r.GariNo,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        BankCustomerPaidDetails = r.BankCustomerPaidDetails,
+                        BankCustomerReceiverDetails = r.BankCustomerReceiverDetails,
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                    })
+                    .ToList();
 
                 // Receipt table (رقم وصولی): money RECEIVED from this customer:
                 //  - CashReceived (CRC) where customer is the ReceivingCustomer
                 //  - CCR where customer is the ReceivingCustomer (opposite of the regular Khata
                 //    report: here CCR-as-receiving goes in the receipt/ادائیگی table)
-                var receiptVouchers = await _context.Vouchers
-                    .Include(v => v.PurchasingCustomer)
-                    .Include(v => v.ReceivingCustomer)
+                var receiptVouchers = (await _context.Vouchers
                     .Where(v =>
                         ((v.ReceivingCustomerId == customerId.Value && v.VoucherType == VoucherType.CashReceived) ||
                          (v.ReceivingCustomerId == customerId.Value && v.VoucherType == VoucherType.CCR)) &&
                         v.VoucherDate >= startDate &&
                         v.VoucherDate <= endDate.AddDays(1))
                     .OrderBy(v => v.VoucherDate).ThenBy(v => v.Id)
-                    .ToListAsync();
+                    .Select(v => new
+                    {
+                        v.Id,
+                        v.TransactionNumber,
+                        v.VoucherDate,
+                        v.VoucherType,
+                        v.Amount,
+                        v.Quantity,
+                        v.Rate,
+                        v.Weight,
+                        v.Kat,
+                        v.Mon,
+                        v.GariNo,
+                        v.PurchasingCustomerDetails,
+                        v.ReceivingCustomerDetails,
+                        v.BankCustomerPaidDetails,
+                        v.BankCustomerReceiverDetails,
+                        ItemName = v.Item!.Name,
+                        PurchasingCustomerName = v.PurchasingCustomer!.Name,
+                        ReceivingCustomerName = v.ReceivingCustomer!.Name
+                    })
+                    .ToListAsync())
+                    .Select(r => new Voucher
+                    {
+                        Id = r.Id,
+                        TransactionNumber = r.TransactionNumber,
+                        VoucherDate = r.VoucherDate,
+                        VoucherType = r.VoucherType,
+                        Amount = r.Amount,
+                        Quantity = r.Quantity,
+                        Rate = r.Rate,
+                        Weight = r.Weight,
+                        Kat = r.Kat,
+                        Mon = r.Mon,
+                        GariNo = r.GariNo,
+                        PurchasingCustomerDetails = r.PurchasingCustomerDetails,
+                        ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        BankCustomerPaidDetails = r.BankCustomerPaidDetails,
+                        BankCustomerReceiverDetails = r.BankCustomerReceiverDetails,
+                        Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
+                        PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
+                        ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName }
+                    })
+                    .ToList();
 
                 // Totals
                 decimal totalBillWeight = saleVouchers.Sum(v => v.Weight ?? 0);
@@ -2478,6 +3314,14 @@ namespace VoucherManagementSystem.Controllers
                                (v.AdvancedPurchasingCustomerId == customerId.Value ||
                                 v.AdvancedReceivingCustomerId == customerId.Value ||
                                 v.ReceivingCustomerId == customerId.Value))
+                    .Select(v => new
+                    {
+                        v.VoucherType,
+                        v.Amount,
+                        v.AdvancedPurchasingCustomerId,
+                        v.AdvancedReceivingCustomerId,
+                        v.ReceivingCustomerId
+                    })
                     .ToListAsync();
 
                 decimal advancedBalance = 0;
