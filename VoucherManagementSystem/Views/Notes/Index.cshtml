@@ -1,0 +1,123 @@
+@model IEnumerable<VoucherManagementSystem.Models.Note>
+@{
+    ViewData["Title"] = "Note Book";
+    var search = ViewBag.Search as string;
+    var currentUser = ViewBag.CurrentUser as string ?? "";
+    var isAdmin = ViewBag.IsAdmin != null && (bool)ViewBag.IsAdmin;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h4><i class="bi bi-journal-text"></i> Note Book</h4>
+        <small class="text-muted">Shared notes for everyone. You can edit or delete the notes you wrote@(isAdmin ? " — as an Admin you can manage all of them." : ".")</small>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Add Note
+    </a>
+</div>
+
+<div class="card shadow-sm mb-3 d-print-none">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-9">
+                <input type="text" name="search" value="@search" class="form-control"
+                       placeholder="Search by title or description..." />
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="bi bi-search"></i> Search
+                </button>
+                @if (!string.IsNullOrWhiteSpace(search))
+                {
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center text-muted py-5">
+            <i class="bi bi-journal-x fs-1"></i>
+            <p class="mt-2 mb-0">
+                @if (string.IsNullOrWhiteSpace(search))
+                {
+                    <span>No notes yet. Click <strong>Add Note</strong> to write the first one.</span>
+                }
+                else
+                {
+                    <span>No note matches "<strong>@search</strong>".</span>
+                }
+            </p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var note in Model)
+        {
+            var canModify = isAdmin || string.Equals(note.CreatedBy, currentUser, StringComparison.OrdinalIgnoreCase);
+            <div class="col-md-6 col-xl-4">
+                <div class="card shadow-sm h-100 @(note.IsPinned ? "border-warning" : "")">
+                    <div class="card-header d-flex justify-content-between align-items-start gap-2 @(note.IsPinned ? "bg-warning-subtle" : "bg-light")">
+                        <h6 class="mb-0 fw-bold text-break">
+                            @if (note.IsPinned)
+                            {
+                                <i class="bi bi-pin-angle-fill text-warning me-1" title="Pinned"></i>
+                            }
+                            @note.Title
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text text-break" style="white-space: pre-wrap;">@note.Description</p>
+                    </div>
+                    <div class="card-footer bg-white">
+                        <div class="small text-muted mb-2">
+                            <i class="bi bi-person"></i> @(note.CreatedBy ?? "-")
+                            &middot; <i class="bi bi-calendar3"></i> @note.CreatedDate.ToPkDateTime()
+                            @if (note.LastUpdated.HasValue)
+                            {
+                                <br />
+                                <i class="bi bi-pencil"></i>
+                                <span>Edited by @(note.UpdatedBy ?? "-") on @note.LastUpdated.ToPkDateTime()</span>
+                            }
+                        </div>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <a asp-action="Details" asp-route-id="@note.Id" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            @if (canModify)
+                            {
+                                <a asp-action="Edit" asp-route-id="@note.Id" class="btn btn-sm btn-warning">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <form asp-action="TogglePin" asp-route-id="@note.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-pin-angle"></i> @(note.IsPinned ? "Unpin" : "Pin")
+                                    </button>
+                                </form>
+                                <form asp-action="Delete" asp-route-id="@note.Id" method="post" class="d-inline"
+                                      onsubmit="return confirm('Delete this note?')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="mt-3 text-muted small">
+        Total notes: <strong>@Model.Count()</strong>
+    </div>
+}

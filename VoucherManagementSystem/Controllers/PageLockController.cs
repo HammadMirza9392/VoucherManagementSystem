@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VoucherManagementSystem.Data;
 using VoucherManagementSystem.Models;
@@ -189,6 +189,7 @@ namespace VoucherManagementSystem.Controllers
                 ("All Projects Report", "/Reports/AllProjectsReport"),
                 ("All Customers Report", "/Reports/AllCustomersReport"),
                 ("All Expenses Report", "/Reports/AllExpensesReport"),
+                ("Note Book", "/Notes/Index"),
                 ("Master Lock", "/PageLock/MasterLock")
             };
 

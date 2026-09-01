@@ -24,6 +24,7 @@ namespace VoucherManagementSystem.Data
         public DbSet<User> Users { get; set; }
         public DbSet<ThemeSettings> ThemeSettings { get; set; }
         public DbSet<MonMultiplier> MonMultipliers { get; set; }
+        public DbSet<Note> Notes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
