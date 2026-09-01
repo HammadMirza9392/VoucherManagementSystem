@@ -1,4 +1,4 @@
-@* Views/Reports/KhataReportSale.cshtml - Urdu Khata Detail Report (SALE side) *@
+﻿@* Views/Reports/KhataReportSale.cshtml - Urdu Khata Detail Report (SALE side) *@
 @{
     ViewData["Title"] = "کھاتا فروخت";
     var defaultFromDate = ViewBag.FromDate != null ? ((DateTime)ViewBag.FromDate).ToString("yyyy-MM-dd") : DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd");
@@ -165,6 +165,118 @@
     .khata-section-header {
         page-break-after: avoid;
     }
+    /* ---------------------------------------------------------------
+       PHONES ONLY (max-width 576px). Tablets, desktops and the generated
+       PDF keep the original fixed-width khata layout untouched: every rule
+       below is scoped to .khata-page:not(.pdf-mode) inside this query.
+       --------------------------------------------------------------- */
+    @@media (max-width: 576px) {
+        .khata-page:not(.pdf-mode) {
+            padding: 6px;
+            font-size: 12px;
+        }
+
+        .khata-page:not(.pdf-mode) .khata-header-bar {
+            flex-wrap: wrap;
+            gap: 2px 10px;
+            font-size: 10px;
+            padding: 5px 8px;
+        }
+
+        /* Title block: stack the three columns instead of squeezing them */
+        .khata-page:not(.pdf-mode) .khata-title-block {
+            flex-direction: column !important;
+            gap: 6px;
+            padding: 10px 8px !important;
+        }
+
+        .khata-page:not(.pdf-mode) .khata-title-spacer {
+            display: none !important;
+        }
+
+        .khata-page:not(.pdf-mode) .khata-contact {
+            min-width: 0 !important;
+        }
+
+        .khata-page:not(.pdf-mode) .khata-title-block h2 {
+            font-size: 18px !important;
+        }
+
+        /* Customer info and the advance card sit one above the other */
+        .khata-page:not(.pdf-mode) .khata-info-row {
+            flex-direction: column !important;
+        }
+
+        .khata-page:not(.pdf-mode) .khata-adv-card {
+            min-width: 0 !important;
+            width: 100%;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 6px 10px !important;
+        }
+
+        .khata-page:not(.pdf-mode) .khata-adv-card > div {
+            margin: 0 !important;
+        }
+
+        /* The two-column info table becomes one column */
+        .khata-page:not(.pdf-mode) .khata-info-table td {
+            display: block;
+            width: 100% !important;
+            padding: 2px 4px;
+        }
+
+        /* Wide tables scroll inside themselves instead of stretching the page,
+           so the report never scrolls sideways as a whole */
+        .khata-page:not(.pdf-mode) .khata-table {
+            display: block;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .khata-page:not(.pdf-mode) .khata-table th,
+        .khata-page:not(.pdf-mode) .khata-table td {
+            padding: 5px 6px;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .khata-page:not(.pdf-mode) .khata-table th.detail-col,
+        .khata-page:not(.pdf-mode) .khata-table td.detail-col {
+            max-width: 130px;
+            min-width: 90px;
+        }
+
+        .khata-page:not(.pdf-mode) .khata-section-header {
+            font-size: 12px;
+            padding: 6px 4px;
+        }
+
+        .khata-page:not(.pdf-mode) .date-range-header {
+            font-size: 11px;
+        }
+
+        .khata-page:not(.pdf-mode) .balance-box table {
+            font-size: 11px;
+        }
+
+        .khata-page:not(.pdf-mode) .balance-final,
+        .khata-page:not(.pdf-mode) .net-balance-box {
+            flex-wrap: wrap;
+            gap: 2px 8px;
+            font-size: 11px;
+            padding: 5px 8px;
+        }
+    }
+
+    /* Held only while html2pdf captures the page, so a PDF downloaded from a
+       phone comes out identical to one downloaded from a laptop. */
+    .khata-page.pdf-mode {
+        width: 900px !important;
+        max-width: 900px !important;
+    }
+
     @@media print {
         .d-print-none { display: none !important; }
         .khata-page { padding: 0; }
@@ -269,14 +381,14 @@ else
         <!-- Company Title -->
         <div class="khata-title-block" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px;">
             <!-- Left side: spacer -->
-            <div style="min-width:180px;"></div>
+            <div class="khata-title-spacer" style="min-width:180px;"></div>
             <!-- Center: main title -->
             <div style="flex:1; text-align:center;">
                 <h2 style="margin:0 0 10px 0; font-size:26px; font-weight:700; font-family:'Noto Nastaliq Urdu',serif;">الحافظ سکریپ ڈیلر</h2>
                 <div style="font-size:13px; font-family:'Noto Nastaliq Urdu',serif; color:#333;padding-top:10px;">پرانہ چینیوٹ روڈ جھنگ سٹی</div>
             </div>
             <!-- Right side: contact, forced LTR table so label stays left of number -->
-            <div style="min-width:180px; display:flex; justify-content:center; align-items:center;">
+            <div class="khata-contact" style="min-width:180px; display:flex; justify-content:center; align-items:center;">
                 <table style="border:none; border-collapse:collapse; direction:ltr; text-align:left;">
                     <tr>
 
@@ -296,7 +408,7 @@ else
         @{
             var advancedBalance = (decimal)(ViewBag.AdvancedBalance ?? 0m);
         }
-        <div style="display:flex; gap:8px; align-items:stretch; margin-bottom:6px;">
+        <div class="khata-info-row" style="display:flex; gap:8px; align-items:stretch; margin-bottom:6px;">
             <!-- Customer Info Table -->
             <div style="flex:1;">
                 <table class="khata-info-table" style="margin-bottom:0;">
@@ -330,7 +442,7 @@ else
                 </table>
             </div>
             <!-- Advanced Balance Card (right side) -->
-            <div style="min-width:160px; border:2px solid #1a1a2e; border-radius:4px; background:#f0f4ff; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 12px; text-align:center;">
+            <div class="khata-adv-card" style="min-width:160px; border:2px solid #1a1a2e; border-radius:4px; background:#f0f4ff; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 12px; text-align:center;">
                 <div style="font-family:'Noto Nastaliq Urdu',serif; font-size:12px; font-weight:700; color:#1a1a2e; margin-bottom:6px;">ایڈوانس رقم</div>
                 <div style="font-family:Arial,sans-serif; font-size:16px; font-weight:700;
                     color:@(advancedBalance > 0 ? "#c00" : advancedBalance < 0 ? "#060" : "#555");">
@@ -595,7 +707,14 @@ else
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         };
 
-        html2pdf().set(opt).from(element).save();
+        // Force the desktop width while capturing so the PDF is the same on every device
+        element.classList.add('pdf-mode');
+        html2pdf().set(opt).from(element).save()
+            .then(function () { element.classList.remove('pdf-mode'); })
+            .catch(function (err) {
+                element.classList.remove('pdf-mode');
+                console.error('PDF generation error:', err);
+            });
     }
 </script>
 }
