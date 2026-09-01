@@ -402,6 +402,7 @@
                         <th class="fw-bold" style="font-size: 14px;">Description</th>
                         <th class="fw-bold" style="font-size: 14px;">Expense Head Details</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Qty</th>
+                        <th class="text-end fw-bold" style="font-size: 14px;">Rate</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Debit (Expense)</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Credit (Revenue)</th>
                         <th class="text-end fw-bold" style="font-size: 14px;">Running Balance</th>
@@ -475,6 +476,12 @@
                                     <td class="text-end align-middle fw-semibold">
                                         @(voucher.Quantity.HasValue ? voucher.Quantity.Value.ToString("N3") : "-")
                                     </td>
+                                    <td class="text-end align-middle">
+                                        @{
+                                            var rowRate = voucher.Rate ?? voucher.ExpenseHeadRate;
+                                        }
+                                        @(rowRate.HasValue ? rowRate.Value.ToString("#,##0.##") : "-")
+                                    </td>
                                     <td class="text-end align-middle @(!isSale ? "text-danger fw-semibold" : "")">
                                         @if (!isSale)
                                         {
@@ -513,6 +520,7 @@
                         <th></th>
                         <th></th>
                         <th class="text-end fw-bold py-3">@totalQty.ToString("N3")</th>
+                        <th></th>
                         <th class="text-end text-danger fw-bold py-3">Rs. @string.Format("{0:N0}", tableDebit)</th>
                         <th class="text-end text-success fw-bold py-3">Rs. @string.Format("{0:N0}", tableCredit)</th>
                         <th class="text-end fw-bold py-3 @(runningBalance >= 0 ? "text-success" : "text-danger")">Rs. @string.Format("{0:N0}", Math.Abs(runningBalance))</th>
@@ -571,10 +579,13 @@
 
                 // Get all visible rows from DataTable
                 dt.rows({search: 'applied'}).every(function() {
+                    // Columns: 0 Date, 1 Txn No, 2 Type, 3 Gari No, 4 Customer/Item,
+                    // 5 Description, 6 Expense Head Details, 7 Qty, 8 Rate, 9 Debit,
+                    // 10 Credit, 11 Running Balance
                     var cells = this.node().querySelectorAll('td');
-                    var qtyCell = cells[6].textContent.trim();
-                    var debitCell = cells[7].textContent.trim();
-                    var creditCell = cells[8].textContent.trim();
+                    var qtyCell = cells[7].textContent.trim();
+                    var debitCell = cells[9].textContent.trim();
+                    var creditCell = cells[10].textContent.trim();
 
                     // Parse values
                     var qty = parseFloat(qtyCell.replace(/,/g, '')) || 0;
@@ -588,14 +599,14 @@
 
                 // Update footer totals
                 var footerRow = $('#plReportTable tfoot tr');
-                footerRow.find('th:eq(6)').text(totalQty.toFixed(3));
-                footerRow.find('th:eq(7)').text('Rs. ' + totalDebit.toLocaleString('en-PK', {maximumFractionDigits: 0}));
-                footerRow.find('th:eq(8)').text('Rs. ' + totalCredit.toLocaleString('en-PK', {maximumFractionDigits: 0}));
+                footerRow.find('th:eq(7)').text(totalQty.toFixed(3));
+                footerRow.find('th:eq(9)').text('Rs. ' + totalDebit.toLocaleString('en-PK', {maximumFractionDigits: 0}));
+                footerRow.find('th:eq(10)').text('Rs. ' + totalCredit.toLocaleString('en-PK', {maximumFractionDigits: 0}));
 
                 // Calculate and update running balance
                 var runningBalance = totalCredit - totalDebit;
                 var balanceClass = runningBalance >= 0 ? 'text-success' : 'text-danger';
-                footerRow.find('th:eq(9)')
+                footerRow.find('th:eq(11)')
                     .text('Rs. ' + Math.abs(runningBalance).toLocaleString('en-PK', {maximumFractionDigits: 0}))
                     .removeClass('text-success text-danger')
                     .addClass(balanceClass);
