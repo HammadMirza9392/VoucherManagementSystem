@@ -3,6 +3,7 @@ using VoucherManagementSystem.Data;
 using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Repositories;
 using VoucherManagementSystem.Filters;
+using VoucherManagementSystem.Services.Caching;
 
 // Tell Npgsql to treat all DateTime as UTC globally — avoids errors across the whole app
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -47,6 +48,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking); // Faster read operations
     options.EnableSensitiveDataLogging(false); // Reduce overhead
 });
+
+// Master-data memory cache (customers, items, banks, rates, etc.) — invalidated on writes
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IMasterDataCache, MasterDataCache>();
 
 // Register Repository Services
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));

@@ -2,24 +2,31 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VoucherManagementSystem.Data;
 using VoucherManagementSystem.Models;
+using VoucherManagementSystem.Services.Caching;
 
 namespace VoucherManagementSystem.Controllers
 {
     public class MonMultiplierController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMasterDataCache _cache;
         private readonly ILogger<MonMultiplierController> _logger;
 
-        public MonMultiplierController(ApplicationDbContext context, ILogger<MonMultiplierController> logger)
+        public MonMultiplierController(
+            ApplicationDbContext context,
+            IMasterDataCache cache,
+            ILogger<MonMultiplierController> logger)
         {
             _context = context;
+            _cache = cache;
             _logger = logger;
         }
 
         // GET: MonMultiplier
         public async Task<IActionResult> Index()
         {
-            var multipliers = await _context.MonMultipliers.OrderBy(m => m.VoucherType).ToListAsync();
+            var multipliers = await _cache.GetOrCreateAsync(CacheKeys.MonMultipliersAll, async () =>
+                await _context.MonMultipliers.AsNoTracking().OrderBy(m => m.VoucherType).ToListAsync());
             return View(multipliers);
         }
 
@@ -40,6 +47,7 @@ namespace VoucherManagementSystem.Controllers
                 model.UpdatedBy = HttpContext.Session.GetString("Username") ?? "System";
                 _context.MonMultipliers.Add(model);
                 await _context.SaveChangesAsync();
+                _cache.InvalidateMonMultipliers();
                 TempData["Success"] = "Mon multiplier saved successfully.";
                 return RedirectToAction(nameof(Index));
             }
@@ -67,6 +75,7 @@ namespace VoucherManagementSystem.Controllers
                 model.UpdatedBy = HttpContext.Session.GetString("Username") ?? "System";
                 _context.Update(model);
                 await _context.SaveChangesAsync();
+                _cache.InvalidateMonMultipliers();
                 TempData["Success"] = "Mon multiplier updated successfully.";
                 return RedirectToAction(nameof(Index));
             }
@@ -83,6 +92,7 @@ namespace VoucherManagementSystem.Controllers
             {
                 _context.MonMultipliers.Remove(multiplier);
                 await _context.SaveChangesAsync();
+                _cache.InvalidateMonMultipliers();
                 TempData["Success"] = "Mon multiplier deleted.";
             }
             return RedirectToAction(nameof(Index));
@@ -93,17 +103,18 @@ namespace VoucherManagementSystem.Controllers
         [HttpGet]
         public async Task<IActionResult> GetMultiplier(string voucherType)
         {
-            var multiplier = await _context.MonMultipliers
-                .Where(m => m.VoucherType == voucherType && m.IsActive)
-                .FirstOrDefaultAsync();
-
-            if (multiplier != null)
+            var key = CacheKeys.MonMultiplier(voucherType ?? string.Empty);
+            var value = await _cache.GetOrCreateAsync(key, async () =>
             {
-                return Json(new { multiplier = multiplier.Multiplier });
-            }
+                var multiplier = await _context.MonMultipliers
+                    .AsNoTracking()
+                    .Where(m => m.VoucherType == voucherType && m.IsActive)
+                    .FirstOrDefaultAsync();
 
-            // Default fallback
-            return Json(new { multiplier = 40m });
+                return multiplier?.Multiplier ?? 40m;
+            });
+
+            return Json(new { multiplier = value });
         }
     }
 }
