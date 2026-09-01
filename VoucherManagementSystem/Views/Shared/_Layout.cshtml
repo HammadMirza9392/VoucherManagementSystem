@@ -28,11 +28,16 @@
         .container-fluid {
             flex: 1 0 auto;
         }
+        /* Space between the navbar and the start of every page */
+        main[role="main"] {
+            padding-top: 1.2rem;
+        }
         .footer {
             flex-shrink: 0;
         }
         /* Mobile: ensure all table wrappers scroll horizontally */
         @@media (max-width: 768px) {
+            main[role="main"] { padding-top: 1rem; }
             .table-responsive { overflow-x: auto !important; }
             main { padding-left: 4px; padding-right: 4px; }
             .d-print-none > .btn,
