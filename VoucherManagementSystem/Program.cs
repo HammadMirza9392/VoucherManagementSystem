@@ -4,6 +4,7 @@ using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Repositories;
 using VoucherManagementSystem.Filters;
 using VoucherManagementSystem.Services;
+using VoucherManagementSystem.Services.Caching;
 
 // Tell Npgsql to treat all DateTime as UTC globally — avoids errors across the whole app
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -49,6 +50,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.EnableSensitiveDataLogging(false); // Reduce overhead
 });
 
+// Master-data memory cache (customers, items, banks, rates, etc.) — invalidated on writes
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IMasterDataCache, MasterDataCache>();
+
 // Register Repository Services
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
@@ -61,8 +66,7 @@ builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 // Register PageLockFilter with DbContext dependency
 builder.Services.AddScoped<PageLockFilter>();
 
-// Site branding (site name shown across the frontend), cached in memory
-builder.Services.AddMemoryCache();
+// Site branding (site name shown across the frontend) — shares the memory cache above
 builder.Services.AddScoped<ISiteSettingsService, SiteSettingsService>();
 
 // Add Session support for authentication

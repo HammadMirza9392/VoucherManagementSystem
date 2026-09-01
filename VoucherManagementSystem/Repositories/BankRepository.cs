@@ -2,21 +2,25 @@
 using VoucherManagementSystem.Data;
 using VoucherManagementSystem.Interfaces;
 using VoucherManagementSystem.Models;
+using VoucherManagementSystem.Services.Caching;
 
 namespace VoucherManagementSystem.Repositories
 {
     public class BankRepository : GenericRepository<Bank>, IBankRepository
     {
-        public BankRepository(ApplicationDbContext context) : base(context)
+        public BankRepository(ApplicationDbContext context, IMasterDataCache cache)
+            : base(context, cache)
         {
         }
 
         public async Task<IEnumerable<Bank>> GetActiveBanksAsync()
         {
-            return await _context.Banks
-                .Where(b => b.IsActive)
-                .OrderBy(b => b.Name)
-                .ToListAsync();
+            return await _cache.GetOrCreateAsync(CacheKeys.ActiveBanks, async () =>
+                await _context.Banks
+                    .AsNoTracking()
+                    .Where(b => b.IsActive)
+                    .OrderBy(b => b.Name)
+                    .ToListAsync());
         }
 
         public async Task UpdateBalanceAsync(int bankId, decimal amount, bool isAddition)
@@ -30,11 +34,15 @@ namespace VoucherManagementSystem.Repositories
                 await _context.Banks
                     .Where(b => b.Id == bankId)
                     .ExecuteUpdateAsync(s => s.SetProperty(b => b.Balance, b => b.Balance - amount));
+
+            // Balance changed — Bank Index / lists must refresh
+            _cache.InvalidateBanks();
         }
 
         public async Task<decimal> GetBankBalanceAsync(int bankId)
         {
-            var bank = await _context.Banks.FindAsync(bankId);
+            // Always live — balances must not be served from cache
+            var bank = await _context.Banks.AsNoTracking().FirstOrDefaultAsync(b => b.Id == bankId);
             return bank?.Balance ?? 0;
         }
 

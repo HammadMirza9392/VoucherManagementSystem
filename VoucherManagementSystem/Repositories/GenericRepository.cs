@@ -2,6 +2,7 @@
 using System.Linq.Expressions;
 using VoucherManagementSystem.Data;
 using VoucherManagementSystem.Interfaces;
+using VoucherManagementSystem.Services.Caching;
 
 namespace VoucherManagementSystem.Repositories
 {
@@ -9,11 +10,13 @@ namespace VoucherManagementSystem.Repositories
     {
         protected readonly ApplicationDbContext _context;
         protected readonly DbSet<T> _dbSet;
+        protected readonly IMasterDataCache _cache;
 
-        public GenericRepository(ApplicationDbContext context)
+        public GenericRepository(ApplicationDbContext context, IMasterDataCache cache)
         {
             _context = context;
             _dbSet = context.Set<T>();
+            _cache = cache;
         }
 
         public virtual async Task<IEnumerable<T>> GetAllAsync()
@@ -35,6 +38,7 @@ namespace VoucherManagementSystem.Repositories
         {
             await _dbSet.AddAsync(entity);
             await _context.SaveChangesAsync();
+            _cache.InvalidateForEntityType(typeof(T));
             return entity;
         }
 
@@ -42,12 +46,14 @@ namespace VoucherManagementSystem.Repositories
         {
             _dbSet.Update(entity);
             await _context.SaveChangesAsync();
+            _cache.InvalidateForEntityType(typeof(T));
         }
 
         public virtual async Task DeleteAsync(T entity)
         {
             _dbSet.Remove(entity);
             await _context.SaveChangesAsync();
+            _cache.InvalidateForEntityType(typeof(T));
         }
 
         public virtual async Task<bool> ExistsAsync(int id)
