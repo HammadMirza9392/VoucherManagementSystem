@@ -1741,8 +1741,8 @@ namespace VoucherManagementSystem.Controllers
                 foreach (var v in purchaseVouchers)
                 {
                     var rate   = v.ExpenseHeadRate ?? 0;
-                    var qty    = v.Quantity ?? 0;
-                    var amount = rate * qty;
+                    var weight = v.Weight ?? 0;
+                    var amount = rate * weight;
 
                     rows.Add(new ExpenseReportRow
                     {
@@ -1783,7 +1783,7 @@ namespace VoucherManagementSystem.Controllers
                 var openingVouchers = await openingBalanceQuery.ToListAsync();
                 var openingBalance = openingVouchers.Sum(v =>
                     v.VoucherType == VoucherType.Purchase
-                        ? -((v.ExpenseHeadRate ?? 0) * (v.Quantity ?? 0))
+                        ? -((v.ExpenseHeadRate ?? 0) * (v.Weight ?? 0))
                         : v.VoucherType == VoucherType.Hazri
                             ? -v.Amount
                             : v.Amount);
