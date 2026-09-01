@@ -6,16 +6,19 @@ namespace VoucherManagementSystem.Models
     {
         public int Id { get; set; }
 
-        // Site branding — the name shown in the navbar, page titles, login page and footer.
+        // Site branding: the name shown in the navbar, page titles, login page and footer.
+        // Deliberately blank by default. A new install takes its starting name from
+        // configuration (SiteSettings:Name) so the same build can serve different
+        // customers; the admin then sets the final name in Theme Settings.
         [Required]
         [MaxLength(100)]
         [Display(Name = "Site Name")]
-        public string SiteName { get; set; } = "AL-Hafiz Voucher System";
+        public string SiteName { get; set; } = "";
 
         // Optional shorter name used where space is tight (mobile navbar). Falls back to SiteName.
         [MaxLength(50)]
         [Display(Name = "Short Name")]
-        public string? SiteShortName { get; set; } = "AL-Hafiz";
+        public string? SiteShortName { get; set; }
 
         [Required]
         [MaxLength(20)]

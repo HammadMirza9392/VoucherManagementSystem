@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VoucherManagementSystem.Data;
 using VoucherManagementSystem.Models;
@@ -36,6 +36,8 @@ namespace VoucherManagementSystem.Controllers
             {
                 themeSettings = new ThemeSettings
                 {
+                    SiteName = _siteSettings.DefaultSiteName,
+                    SiteShortName = _siteSettings.DefaultSiteShortName,
                     ThemeMode = "Light",
                     PrimaryColor = "#0d6efd",
                     SecondaryColor = "#6c757d",
@@ -52,6 +54,10 @@ namespace VoucherManagementSystem.Controllers
                     IsActive = true
                 };
             }
+
+            // A row saved before branding existed can still have an empty name
+            if (string.IsNullOrWhiteSpace(themeSettings.SiteName))
+                themeSettings.SiteName = _siteSettings.DefaultSiteName;
 
             return View(themeSettings);
         }
@@ -78,7 +84,7 @@ namespace VoucherManagementSystem.Controllers
                 {
                     // Update existing theme
                     existingTheme.SiteName = string.IsNullOrWhiteSpace(model.SiteName)
-                        ? SiteSettingsService.DefaultSiteName
+                        ? _siteSettings.DefaultSiteName
                         : model.SiteName.Trim();
                     existingTheme.SiteShortName = string.IsNullOrWhiteSpace(model.SiteShortName)
                         ? null
@@ -105,7 +111,7 @@ namespace VoucherManagementSystem.Controllers
                 {
                     // Create new theme
                     if (string.IsNullOrWhiteSpace(model.SiteName))
-                        model.SiteName = SiteSettingsService.DefaultSiteName;
+                        model.SiteName = _siteSettings.DefaultSiteName;
                     model.IsActive = true;
                     model.LastUpdated = DateTimeHelper.PkNow;
                     model.UpdatedBy = HttpContext.Session.GetString("Username");
