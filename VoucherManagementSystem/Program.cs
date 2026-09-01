@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using VoucherManagementSystem.Data;
 using VoucherManagementSystem.Interfaces;
@@ -120,6 +121,25 @@ builder.Services.AddSession(options =>
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 
+// ---------------------------------------------------------------------------
+// Reverse proxy (Render, and any other host that terminates TLS at its edge).
+//
+// Render answers the browser over HTTPS but forwards the request to this app over
+// plain HTTP, marking the original scheme in X-Forwarded-Proto. Without reading that
+// header Request.IsHttps is false, so UseHttpsRedirection answers every request with
+// a redirect. On a POST (for example /Home/DoLogin) the action never runs and the
+// browser follows the redirect with a GET, so the login silently fails.
+//
+// KnownNetworks/KnownProxies are cleared because the proxy address is assigned by the
+// host and is not known ahead of time.
+// ---------------------------------------------------------------------------
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // Add response compression for faster data transfer
 builder.Services.AddResponseCompression(options =>
 {
@@ -134,6 +154,9 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
+// Must run before anything that inspects the scheme or the client IP
+app.UseForwardedHeaders();
 
 app.UseHttpsRedirection();
 app.UseResponseCompression();
