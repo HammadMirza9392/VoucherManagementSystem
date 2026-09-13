@@ -195,7 +195,7 @@
                 </div>
                 <div class="col-md-2 mb-3" id="stockIncludeSection">
                     <label class="form-label">Stock Include</label>
-                    <input type="text" class="form-control" id="stockIncludeText" value="@(Model.StockInclude ? "1" : "0")" maxlength="1" />
+                    <input type="text" class="form-control" id="stockIncludeText" value="@(Model.StockInclude ? "1" : "0")" inputmode="numeric" autocomplete="off" />
                     <input type="hidden" asp-for="StockInclude" id="stockInclude" />
                     <small class="text-muted">0=No, 1=Yes</small>
                 </div>
@@ -298,25 +298,17 @@
                 }
             });
 
-            // Pressing 1 or 0 replaces the value directly (maxlength=1 otherwise blocks typing
-            // until the existing value is selected)
-            $('#stockIncludeText').on('keydown', function(e) {
-                if (e.key === '1' || e.key === '0') {
-                    e.preventDefault();
-                    $(this).val(e.key).trigger('input');
-                }
-            });
-
-            // Stock Include text to checkbox conversion
+            // Stock (0/1): typing 1 or 0 replaces the value without selecting it first.
+            // Reads the digit just typed from the value itself (the one before the cursor) instead of
+            // keydown, because Android keyboards send e.key "Unidentified". Urdu digits ۱/۰ are accepted.
             $('#stockIncludeText').on('input', function() {
-                var value = $(this).val();
-                if (value === '1') {
-                    $('#stockInclude').val('True');
-                    $(this).val('1');
-                } else {
-                    $('#stockInclude').val('False');
-                    $(this).val('0');
-                }
+                var v = this.value.replace(/[٠۰]/g, '0').replace(/[١۱]/g, '1');
+                var pos = this.selectionStart != null ? this.selectionStart : v.length;
+                var typed = v.charAt(pos - 1);
+                var digits = v.match(/[01]/g);
+                var value = (typed === '0' || typed === '1') ? typed : (digits ? digits.pop() : '0');
+                $(this).val(value);
+                $('#stockInclude').val(value === '1' ? 'True' : 'False');
             });
 
             // On form submit, ensure stockInclude hidden field is set correctly
