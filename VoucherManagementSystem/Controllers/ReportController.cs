@@ -2685,7 +2685,6 @@ namespace VoucherManagementSystem.Controllers
                         ProjectId = g.Key,
                         TotalSale = g.Sum(v => v.VoucherType == VoucherType.Sale ||
                                                v.VoucherType == VoucherType.CashReceived ? v.Amount : 0m),
-                        Purchases = g.Sum(v => v.VoucherType == VoucherType.Purchase ? v.Amount : 0m),
                         Expenses = g.Sum(v => v.VoucherType == VoucherType.Expense ||
                                               v.VoucherType == VoucherType.Hazri ? v.Amount : 0m),
                         VoucherCount = g.Count()
@@ -2703,7 +2702,9 @@ namespace VoucherManagementSystem.Controllers
                     var totalSale = totals?.TotalSale ?? 0m;
                     var revenue = totalSale + stockValue; // Revenue = Sale + CashReceived + Stock
 
-                    var purchases = totals?.Purchases ?? 0m;
+                    // Purchases = "Total Qty" amount of the Item-wise Inventory table (Opening Stock + Purchase),
+                    // same as the yellow Total Purchase box on the project Profit & Loss report
+                    var purchases = itemSummary.Sum(i => i.TotalQtyAmount);
                     var expenses = totals?.Expenses ?? 0m;
                     var totalExpenses = purchases + expenses;
 
