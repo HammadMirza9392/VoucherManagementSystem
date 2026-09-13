@@ -16,6 +16,12 @@
     <p class="text-muted">Overview of all projects performance</p>
 </div>
 
+<!-- Title shown only in print / PDF (the heading above is screen-only) -->
+<div class="d-none d-print-block pdf-title mb-3">
+    <h3 class="mb-0"><i class="bi bi-diagram-3"></i> All Projects Report</h3>
+    <small>Period: @fromDate.ToString("dd-MMM-yyyy") to @toDate.ToString("dd-MMM-yyyy")</small>
+</div>
+
 <!-- Filter Form -->
 <div class="card mb-3 d-print-none">
     <div class="card-header bg-info text-white">
@@ -93,7 +99,7 @@
                         <th class="text-end">Purchases</th>
                         <th class="text-end">Expenses</th>
                         <th class="text-end">Profit/Loss</th>
-                        <th class="text-center">Action</th>
+                        <th class="text-center d-print-none">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -118,7 +124,7 @@
                                 <td class="text-end fw-bold @(p.ProfitLoss >= 0 ? "text-success" : "text-danger")">
                                     Rs. @string.Format("{0:N0}", p.ProfitLoss)
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center d-print-none">
                                     <a asp-action="ProjectReport" asp-route-projectId="@p.Project.Id" asp-route-fromDate="@fromDate.ToString("yyyy-MM-dd")" asp-route-toDate="@toDate.ToString("yyyy-MM-dd")" class="btn btn-sm btn-outline-info">
                                         <i class="bi bi-eye"></i> Details
                                     </a>
@@ -143,7 +149,7 @@
                             <th class="text-end">Rs. @string.Format("{0:N0}", totalPurchases)</th>
                             <th class="text-end">Rs. @string.Format("{0:N0}", totalExpenses)</th>
                             <th class="text-end">Rs. @string.Format("{0:N0}", totalProfitLoss)</th>
-                            <th></th>
+                            <th class="d-print-none"></th>
                         </tr>
                     </tfoot>
                 }
@@ -156,7 +162,94 @@
     <button onclick="window.print()" class="btn btn-primary">
         <i class="bi bi-printer"></i> Print
     </button>
+    <button onclick="generatePDF()" class="btn btn-danger"
+            data-from-date="@fromDate.ToString("yyyyMMdd")" data-to-date="@toDate.ToString("yyyyMMdd")">
+        <i class="bi bi-file-pdf"></i> Generate PDF
+    </button>
     <a asp-action="Index" class="btn btn-secondary">
         <i class="bi bi-arrow-left"></i> Back to Reports
     </a>
 </div>
+
+@section Scripts {
+    <!-- html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        // Builds a clean clone of just the report (no navbar/footer/filter/buttons/Action column),
+        // expanded so html2pdf captures every row and every column.
+        function buildPdfElement() {
+            const element = document.querySelector('body').cloneNode(true);
+            element.style.display = 'block';
+            element.style.height = 'auto';
+
+            // Strip site chrome and screen-only controls (filter form, buttons, Action column)
+            element.querySelectorAll('header, footer, .modal, .d-print-none')
+                   .forEach(el => el.remove());
+
+            // Show the print-only title
+            element.querySelectorAll('.pdf-title').forEach(el => el.classList.remove('d-none'));
+
+            element.querySelectorAll('.table-responsive').forEach(function(el) {
+                el.style.maxHeight = 'none';
+                el.style.overflow = 'visible';
+            });
+
+            element.querySelectorAll('#projectsTable thead').forEach(t => t.style.display = 'table-header-group');
+            element.querySelectorAll('#projectsTable tfoot').forEach(t => t.style.display = 'table-footer-group');
+
+            // Columns: Project Name, Vouchers, Revenue, Purchases, Expenses, Profit/Loss
+            const colWidths = ['26%', '9%', '17%', '16%', '15%', '17%'];
+            element.querySelectorAll('#projectsTable').forEach(function(tbl) {
+                tbl.style.width = '100%';
+                tbl.style.tableLayout = 'fixed';
+                const colgroup = document.createElement('colgroup');
+                colWidths.forEach(function(w) {
+                    const col = document.createElement('col');
+                    col.style.width = w;
+                    colgroup.appendChild(col);
+                });
+                tbl.insertBefore(colgroup, tbl.firstChild);
+            });
+
+            element.querySelectorAll('#projectsTable th, #projectsTable td').forEach(function(cell) {
+                cell.style.wordBreak = 'break-word';
+                cell.style.whiteSpace = 'normal';
+                cell.style.fontSize = '11px';
+                cell.style.padding = '5px 6px';
+                cell.style.verticalAlign = 'middle';
+            });
+
+            return element;
+        }
+
+        function generatePDF() {
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating PDF...';
+            button.disabled = true;
+
+            const f = button.getAttribute('data-from-date') || '';
+            const t = button.getAttribute('data-to-date') || '';
+            const filename = 'AllProjectsReport_' + f + '_' + t + '.pdf';
+
+            const element = buildPdfElement();
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0, scrollX: 0, windowHeight: element.scrollHeight },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(function() {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }).catch(function(error) {
+                console.error('PDF generation error:', error);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+        }
+    </script>
+}
