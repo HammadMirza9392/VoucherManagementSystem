@@ -171,7 +171,8 @@ namespace VoucherManagementSystem.Controllers
                 var totalRevenue = totalSale + totalStock; // Revenue = Sale + Stock
 
                 // Separate Purchase and Expense
-                var totalPurchase = vouchers.Where(v => v.VoucherType == VoucherType.Purchase).Sum(v => v.Amount);
+                // Total Purchase = "Total Qty" amount of the Item-wise Inventory table (Opening Stock + Purchase)
+                var totalPurchase = itemSummary.Sum(i => i.TotalQtyAmount);
                 var totalExpense = vouchers.Where(v => v.VoucherType == VoucherType.Expense ||
                                                        v.VoucherType == VoucherType.Hazri).Sum(v => v.Amount);
                 var totalExpenses = totalPurchase + totalExpense; // Total Expenses = Purchase + Expense
