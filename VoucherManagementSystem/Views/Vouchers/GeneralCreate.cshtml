@@ -895,6 +895,15 @@
                 }
             });
 
+            // Pressing 1 or 0 replaces the value directly (maxlength=1 otherwise blocks typing
+            // until the existing value is selected)
+            $('#stockIncludeText').on('keydown', function(e) {
+                if (e.key === '1' || e.key === '0') {
+                    e.preventDefault();
+                    $(this).val(e.key).trigger('input');
+                }
+            });
+
             // Stock Include text to checkbox conversion
             $('#stockIncludeText').on('input', function() {
                 var value = $(this).val();
