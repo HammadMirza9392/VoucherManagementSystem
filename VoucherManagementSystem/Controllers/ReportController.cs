@@ -1441,7 +1441,10 @@ namespace VoucherManagementSystem.Controllers
                     new SelectListItem { Value = "CashReceived", Text = "Cash Received" },
                     new SelectListItem { Value = "CashPaid", Text = "Cash Paid" },
                     new SelectListItem { Value = "Expense", Text = "Expense" },
-                    new SelectListItem { Value = "Hazri", Text = "Hazri" }
+                    new SelectListItem { Value = "Hazri", Text = "Hazri" },
+                    new SelectListItem { Value = "AdvancedCashReceived", Text = "Advanced Cash Received" },
+                    new SelectListItem { Value = "AdvancedCashPaid", Text = "Advanced Cash Paid" },
+                    new SelectListItem { Value = "ATMDailyCash", Text = "ATM Daily Cash" }
                 };
                 ViewBag.VoucherTypes = new SelectList(voucherTypes, "Value", "Text", voucherType);
                 ViewBag.SelectedVoucherType = voucherType;
@@ -1456,7 +1459,11 @@ namespace VoucherManagementSystem.Controllers
                 // Apply customer filter if selected
                 if (customerId.HasValue)
                 {
-                    query = query.Where(v => v.PurchasingCustomerId == customerId || v.ReceivingCustomerId == customerId);
+                    query = query.Where(v =>
+                        v.PurchasingCustomerId == customerId ||
+                        v.ReceivingCustomerId == customerId ||
+                        v.AdvancedPurchasingCustomerId == customerId ||
+                        v.AdvancedReceivingCustomerId == customerId);
                     ViewBag.SelectedCustomerId = customerId;
                     ViewBag.SelectedCustomer = await _customerRepository.GetByIdAsync(customerId.Value);
                 }
@@ -1480,8 +1487,12 @@ namespace VoucherManagementSystem.Controllers
                         v.BankCustomerPaidDetails,
                         v.PurchasingCustomerDetails,
                         v.ReceivingCustomerDetails,
+                        v.AdvancedPurchasingCustomerDetails,
+                        v.AdvancedReceivingCustomerDetails,
                         PurchasingCustomerName = v.PurchasingCustomer!.Name,
                         ReceivingCustomerName = v.ReceivingCustomer!.Name,
+                        AdvancedPurchasingCustomerName = v.AdvancedPurchasingCustomer!.Name,
+                        AdvancedReceivingCustomerName = v.AdvancedReceivingCustomer!.Name,
                         ItemName = v.Item!.Name,
                         ExpenseHeadName = v.ExpenseHead!.Name,
                         ProjectName = v.Project!.Name,
@@ -1499,8 +1510,12 @@ namespace VoucherManagementSystem.Controllers
                         BankCustomerPaidDetails = r.BankCustomerPaidDetails,
                         PurchasingCustomerDetails = r.PurchasingCustomerDetails,
                         ReceivingCustomerDetails = r.ReceivingCustomerDetails,
+                        AdvancedPurchasingCustomerDetails = r.AdvancedPurchasingCustomerDetails,
+                        AdvancedReceivingCustomerDetails = r.AdvancedReceivingCustomerDetails,
                         PurchasingCustomer = r.PurchasingCustomerName == null ? null : new Customer { Name = r.PurchasingCustomerName },
                         ReceivingCustomer = r.ReceivingCustomerName == null ? null : new Customer { Name = r.ReceivingCustomerName },
+                        AdvancedPurchasingCustomer = r.AdvancedPurchasingCustomerName == null ? null : new Customer { Name = r.AdvancedPurchasingCustomerName },
+                        AdvancedReceivingCustomer = r.AdvancedReceivingCustomerName == null ? null : new Customer { Name = r.AdvancedReceivingCustomerName },
                         Item = r.ItemName == null ? null : new Item { Name = r.ItemName },
                         ExpenseHead = r.ExpenseHeadName == null ? null : new ExpenseHead { Name = r.ExpenseHeadName },
                         Project = r.ProjectName == null ? null : new Project { Name = r.ProjectName },
@@ -1522,12 +1537,14 @@ namespace VoucherManagementSystem.Controllers
                         case VoucherType.Sale:
                         case VoucherType.CashReceived:
                         case VoucherType.ATMDailyCash:   // ATM withdrawal → daily cash in
+                        case VoucherType.AdvancedCashReceived:
                             totalReceipts += v.Amount;
                             break;
                         case VoucherType.Purchase:
                         case VoucherType.Expense:
                         case VoucherType.CashPaid:
                         case VoucherType.Hazri:
+                        case VoucherType.AdvancedCashPaid:
                             totalPayments += v.Amount;
                             break;
                     }
@@ -1556,29 +1573,36 @@ namespace VoucherManagementSystem.Controllers
         private async Task<decimal> GetDailyCashBookOpeningBalanceAsync(DateTime date, int? customerId = null)
         {
             // Netted in the database.
-            //   In:  Sale, CashReceived, ATMDailyCash (withdrawal → daily cash in)
-            //   Out: Purchase, Expense, CashPaid, Hazri
+            //   In:  Sale, CashReceived, ATMDailyCash, AdvancedCashReceived
+            //   Out: Purchase, Expense, CashPaid, Hazri, AdvancedCashPaid
             var voucherQuery = _context.Vouchers
                 .AsNoTracking()
                 .Where(v => v.CashType == CashType.DailyCashBook && v.VoucherDate < date &&
                             (v.VoucherType == VoucherType.Sale ||
                              v.VoucherType == VoucherType.CashReceived ||
                              v.VoucherType == VoucherType.ATMDailyCash ||
+                             v.VoucherType == VoucherType.AdvancedCashReceived ||
                              v.VoucherType == VoucherType.Purchase ||
                              v.VoucherType == VoucherType.Expense ||
                              v.VoucherType == VoucherType.CashPaid ||
-                             v.VoucherType == VoucherType.Hazri));
+                             v.VoucherType == VoucherType.Hazri ||
+                             v.VoucherType == VoucherType.AdvancedCashPaid));
 
             if (customerId.HasValue)
             {
-                voucherQuery = voucherQuery.Where(v => v.PurchasingCustomerId == customerId || v.ReceivingCustomerId == customerId);
+                voucherQuery = voucherQuery.Where(v =>
+                    v.PurchasingCustomerId == customerId ||
+                    v.ReceivingCustomerId == customerId ||
+                    v.AdvancedPurchasingCustomerId == customerId ||
+                    v.AdvancedReceivingCustomerId == customerId);
             }
 
             return await voucherQuery
                 .SumAsync(v => (decimal?)(
                     v.VoucherType == VoucherType.Sale ||
                     v.VoucherType == VoucherType.CashReceived ||
-                    v.VoucherType == VoucherType.ATMDailyCash
+                    v.VoucherType == VoucherType.ATMDailyCash ||
+                    v.VoucherType == VoucherType.AdvancedCashReceived
                         ? v.Amount
                         : -v.Amount)) ?? 0m;
         }

@@ -245,19 +245,25 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.CashInHand = cashInHand;
 
             // 3b. Daily Cash Book balance (CashType = DailyCashBook) — netted in the database.
+            // Matches Daily Cash Book report:
+            // In:  Sale, CashReceived, ATMDailyCash, AdvancedCashReceived
+            // Out: Purchase, Expense, CashPaid, Hazri, AdvancedCashPaid
             decimal dailyCashBalance = await vouchers
                 .Where(v => v.CashType == CashType.DailyCashBook && v.VoucherDate < date &&
                             (v.VoucherType == VoucherType.Sale ||
                              v.VoucherType == VoucherType.CashReceived ||
                              v.VoucherType == VoucherType.ATMDailyCash ||
+                             v.VoucherType == VoucherType.AdvancedCashReceived ||
                              v.VoucherType == VoucherType.Purchase ||
                              v.VoucherType == VoucherType.Expense ||
                              v.VoucherType == VoucherType.CashPaid ||
-                             v.VoucherType == VoucherType.Hazri))
+                             v.VoucherType == VoucherType.Hazri ||
+                             v.VoucherType == VoucherType.AdvancedCashPaid))
                 .SumAsync(v => (decimal?)(
                     v.VoucherType == VoucherType.Sale ||
                     v.VoucherType == VoucherType.CashReceived ||
-                    v.VoucherType == VoucherType.ATMDailyCash
+                    v.VoucherType == VoucherType.ATMDailyCash ||
+                    v.VoucherType == VoucherType.AdvancedCashReceived
                         ? v.Amount
                         : -v.Amount)) ?? 0m;
             ViewBag.DailyCashBalance = dailyCashBalance;

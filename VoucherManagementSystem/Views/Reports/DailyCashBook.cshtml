@@ -191,6 +191,18 @@
                                         description = $"Hazri - {v.ExpenseHead?.Name ?? v.Item?.Name ?? "Labor"}";
                                         details = v.ExpenseHeadDetails ?? "";
                                         break;
+                                    case VoucherManagementSystem.Models.VoucherType.AdvancedCashReceived:
+                                        receipt = v.Amount;
+                                        customerName = v.AdvancedReceivingCustomer?.Name ?? v.AdvancedReceivingCustomerDetails ?? "N/A";
+                                        description = "Advanced Cash Received";
+                                        details = v.AdvancedReceivingCustomerDetails ?? "";
+                                        break;
+                                    case VoucherManagementSystem.Models.VoucherType.AdvancedCashPaid:
+                                        payment = v.Amount;
+                                        customerName = v.AdvancedPurchasingCustomer?.Name ?? v.AdvancedPurchasingCustomerDetails ?? "N/A";
+                                        description = "Advanced Cash Paid";
+                                        details = v.AdvancedPurchasingCustomerDetails ?? "";
+                                        break;
                                 }
 
                                 allTransactions.Add((v.VoucherDate, v.Id, v.TransactionNumber, v.VoucherType.ToString(), customerName, description, projectName, details, receipt, payment, true));

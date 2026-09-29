@@ -1126,8 +1126,10 @@
             // Restore saved cash type AFTER configureFormForVoucherType and the change handler
             // are both in place, so the handler fires correctly and isn't overwritten.
             if (savedCashType) {
-                if (savedCashType === 'DailyCashBook' &&
-                    !(savedVoucherType === 'CashPaid' || savedVoucherType === 'CashReceived')) {
+                var dailyCashAllowed = savedVoucherType === 'CashPaid' || savedVoucherType === 'CashReceived' ||
+                    savedVoucherType === 'Expense' ||
+                    savedVoucherType === 'AdvancedCashPaid' || savedVoucherType === 'AdvancedCashReceived';
+                if (savedCashType === 'DailyCashBook' && !dailyCashAllowed) {
                     localStorage.removeItem('gc_cashType');
                 } else {
                     $('#cashType').val(savedCashType).trigger('change');
@@ -1620,8 +1622,9 @@
             $('#projectCashTypeColumn, #rateAmountColumn').show();
             $('#projectRow, #cashTypeRow, #rateRow').show();
 
-            // "Daily Cash Book" cash type is only available for Cash Paid / Cash Received / Expense vouchers
-            toggleDailyCashBookOption(type === 'CashPaid' || type === 'CashReceived' || type === 'Expense');
+            // "Daily Cash Book" cash type for Cash Paid / Cash Received / Expense / Advanced Cash
+            toggleDailyCashBookOption(type === 'CashPaid' || type === 'CashReceived' || type === 'Expense' ||
+                                      type === 'AdvancedCashPaid' || type === 'AdvancedCashReceived');
 
             switch(type) {
                 case 'Purchase':

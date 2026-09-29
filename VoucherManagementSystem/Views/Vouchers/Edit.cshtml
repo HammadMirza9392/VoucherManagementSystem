@@ -548,8 +548,9 @@
             $('#rateSection, #stockIncludeSection, #projectSection, #cashTypeSection').show();
             $('.col-md-3.mb-3:has(label[for="GariNo"])').show();
 
-            // "Daily Cash Book" cash type is only available for Cash Paid / Cash Received vouchers
-            toggleDailyCashBookOption(type === 'CashPaid' || type === 'CashReceived');
+            // "Daily Cash Book" for Cash Paid / Cash Received / Advanced Cash vouchers
+            toggleDailyCashBookOption(type === 'CashPaid' || type === 'CashReceived' ||
+                                      type === 'AdvancedCashPaid' || type === 'AdvancedCashReceived');
 
             switch(type) {
                 case 'Purchase':
