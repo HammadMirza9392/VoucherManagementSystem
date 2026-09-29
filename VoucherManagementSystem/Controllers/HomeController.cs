@@ -218,37 +218,30 @@ namespace VoucherManagementSystem.Controllers
             ViewBag.PayablesData = payablesData.OrderByDescending(x => x.Amount).ToList();
 
             // 3. Cash in Hand — netted in the database.
-            // In: Sale, CashReceived, ATMCash (withdrawal → cash in)
-            // Out: Purchase, Expense, CashPaid, Hazri
+            // Matches Cash Flow Report (CashType = Cash):
+            // In:  Sale, CashReceived, ATMCash, AdvancedCashReceived
+            // Out: Purchase, Expense, CashPaid, Hazri, AdvancedCashPaid
             decimal cashInHand = await vouchers
                 .Where(v => v.CashType == CashType.Cash && v.VoucherDate < date &&
                             (v.VoucherType == VoucherType.Sale ||
                              v.VoucherType == VoucherType.CashReceived ||
                              v.VoucherType == VoucherType.ATMCash ||
+                             v.VoucherType == VoucherType.AdvancedCashReceived ||
                              v.VoucherType == VoucherType.Purchase ||
                              v.VoucherType == VoucherType.Expense ||
                              v.VoucherType == VoucherType.CashPaid ||
-                             v.VoucherType == VoucherType.Hazri))
+                             v.VoucherType == VoucherType.Hazri ||
+                             v.VoucherType == VoucherType.AdvancedCashPaid))
                 .SumAsync(v => (decimal?)(
                     v.VoucherType == VoucherType.Sale ||
                     v.VoucherType == VoucherType.CashReceived ||
-                    v.VoucherType == VoucherType.ATMCash
+                    v.VoucherType == VoucherType.ATMCash ||
+                    v.VoucherType == VoucherType.AdvancedCashReceived
                         ? v.Amount
                         : -v.Amount)) ?? 0m;
 
-            // Include CashAdjustments
-            try
-            {
-                cashInHand += await _context.CashAdjustments
-                    .AsNoTracking()
-                    .Where(c => c.AdjustmentDate < date &&
-                                (c.AdjustmentType == CashAdjustmentType.CashIn ||
-                                 c.AdjustmentType == CashAdjustmentType.CashOut))
-                    .SumAsync(c => (decimal?)(
-                        c.AdjustmentType == CashAdjustmentType.CashIn ? c.Amount : -c.Amount)) ?? 0m;
-            }
-            catch { /* CashAdjustments table may not exist */ }
-
+            // CashAdjustments are NOT included — same as Cash Flow Report,
+            // so dashboard Cash matches Cash Flow closing (as of today).
             ViewBag.CashInHand = cashInHand;
 
             // 3b. Daily Cash Book balance (CashType = DailyCashBook) — netted in the database.
