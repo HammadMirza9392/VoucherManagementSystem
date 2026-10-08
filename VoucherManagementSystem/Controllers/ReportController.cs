@@ -2098,11 +2098,10 @@ namespace VoucherManagementSystem.Controllers
             var previousVouchers = await _context.Vouchers
                 .Where(v => (v.BankCustomerPaidId == bankId || v.BankCustomerReceiverId == bankId) &&
                            v.VoucherDate < date &&
-                           // Bank-affecting cash vouchers (CashType = Bank)
-                           ((v.CashType == CashType.Bank &&
-                             (v.VoucherType == VoucherType.CashPaid ||
-                              v.VoucherType == VoucherType.CashReceived ||
-                              v.VoucherType == VoucherType.Expense))
+                           // Every voucher type paid/received through a bank (CashType = Bank):
+                           // Sale, Purchase, CashPaid, CashReceived, Expense, Hazri, AdvancedPayment,
+                           // AdvancedCashPaid, AdvancedCashReceived — same vouchers that move bank.Balance
+                           (v.CashType == CashType.Bank
                             // BCR (bank-to-bank transfer) — identified by bank fields, no CashType
                             || v.VoucherType == VoucherType.BCR
                             // ATM withdrawals — money out of bank into cash / daily cash
